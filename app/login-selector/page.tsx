@@ -75,36 +75,28 @@ export default function LoginSelectorPage() {
           </div>
 
           {/* Card 2: New Student Registration */}
-          <div
-            onClick={() => setActiveTab("register")}
-            className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-              activeTab === "register"
-                ? "bg-blue-500/20 border-blue-500 shadow-xl shadow-blue-500/10"
-                : "glass-panel border-white/10 hover:border-white/20"
-            }`}
+          <Link
+            href="/student-registration"
+            className={`p-5 rounded-2xl border cursor-pointer transition-all glass-panel border-white/10 hover:border-white/20 hover:bg-blue-500/10`}
           >
             <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-3">
               <UserPlus className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-white text-base">New Student?</h3>
             <p className="text-xs text-slate-400 mt-1">Register for temporary password & onboarding</p>
-          </div>
+          </Link>
 
           {/* Card 3: Admin / Staff Panel */}
-          <div
-            onClick={() => setActiveTab("admin")}
-            className={`p-5 rounded-2xl border cursor-pointer transition-all ${
-              activeTab === "admin" || activeTab === "staff"
-                ? "bg-purple-500/20 border-purple-500 shadow-xl shadow-purple-500/10"
-                : "glass-panel border-white/10 hover:border-white/20"
-            }`}
+          <Link
+            href="/admin-dashboard"
+            className={`p-5 rounded-2xl border cursor-pointer transition-all glass-panel border-white/10 hover:border-white/20 hover:bg-purple-500/10`}
           >
             <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-3">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-white text-base">Admin / Staff Panel</h3>
             <p className="text-xs text-slate-400 mt-1">Manage students, courses & system modules</p>
-          </div>
+          </Link>
 
         </div>
 
