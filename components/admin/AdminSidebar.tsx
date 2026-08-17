@@ -27,7 +27,11 @@ import {
   ChevronRight,
   LogOut,
   FolderKanban,
-  Monitor
+  Monitor,
+  BarChart3,
+  CreditCard,
+  RotateCcw,
+  Plus
 } from 'lucide-react';
 
 type NavItem = {
@@ -49,10 +53,20 @@ const navigation: NavItem[] = [
     children: [
       { label: 'Student Corner', href: '/admin-dashboard/students', icon: Users },
       { label: 'Student Logins', href: '/admin-dashboard/students/logins', icon: Monitor },
-      { label: 'Courses', href: '/admin-dashboard/courses', icon: BookOpen },
-      { label: 'Schedule', href: '/admin-dashboard/schedule', icon: CalendarDays },
-      { label: 'Leads', href: '/admin-dashboard/leads', icon: Target },
-      { label: 'Forms', href: '/admin-dashboard/forms', icon: FileText },
+      { label: 'Test Management', href: '/admin-dashboard/students/tests', icon: FileText },
+      { label: 'Test Cards', href: '/admin-dashboard/students/test-cards', icon: FileText },
+      { label: 'Assignments', href: '/admin-dashboard/students/assignments', icon: FileText },
+      { label: 'Batches', href: '/admin-dashboard/students/batches', icon: Users },
+      { label: 'Attendance', href: '/admin-dashboard/students/attendance', icon: CheckSquare },
+      { label: 'Certificates', href: '/admin-dashboard/students/certificates', icon: FileText },
+      { label: 'Course Content', href: '/admin-dashboard/courses/content', icon: BookOpen },
+      { label: 'Course Center', href: '/admin-dashboard/courses/center', icon: LayoutDashboard },
+      { label: 'Datewise Schedule', href: '/admin-dashboard/schedules/date-wise', icon: CalendarDays },
+      { label: 'Batch Schedule', href: '/admin-dashboard/schedules/batch', icon: Users },
+      { label: 'Meeting Schedule', href: '/admin-dashboard/schedules/meetings', icon: CalendarDays },
+      { label: 'All Leads', href: '/admin-dashboard/leads', icon: Target },
+      { label: 'All Forms', href: '/admin-dashboard/forms', icon: FileText },
+      { label: 'Create Form', href: '/admin-dashboard/forms/create', icon: Plus },
       { label: 'Task Manager', href: '/admin-dashboard/tasks', icon: CheckSquare },
     ],
   },
@@ -60,8 +74,16 @@ const navigation: NavItem[] = [
     label: 'Finance Operations',
     icon: Wallet,
     children: [
-      { label: 'Accounts', href: '/admin-dashboard/finance/accounts', icon: Building2 },
-      { label: 'Audit Trail', href: '/admin-dashboard/finance/audit-trail', icon: Receipt },
+      { label: 'Expense Tracker', href: '/admin-dashboard/accounts/expenses', icon: Receipt },
+      { label: 'Approval Queue', href: '/admin-dashboard/accounts/expense-approvals', icon: CheckSquare },
+      { label: 'Vendors', href: '/admin-dashboard/accounts/vendors', icon: Building2 },
+      { label: 'Expense Categories', href: '/admin-dashboard/accounts/expense-categories', icon: FileText },
+      { label: 'Finance Overview', href: '/admin-dashboard/finance/overview', icon: BarChart3 },
+      { label: 'Payments', href: '/admin-dashboard/finance/payments', icon: CreditCard },
+      { label: 'Invoices', href: '/admin-dashboard/finance/invoices', icon: FileText },
+      { label: 'Refunds', href: '/admin-dashboard/finance/refunds', icon: RotateCcw },
+      { label: 'Waivers', href: '/admin-dashboard/finance/waivers', icon: FileText },
+      { label: 'Audit Trail', href: '/admin-dashboard/finance/audit-trail', icon: Shield },
     ],
   },
   {

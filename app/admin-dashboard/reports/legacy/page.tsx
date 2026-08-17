@@ -113,12 +113,15 @@ function AdmissionsTab() {
       <div className="lg:col-span-2 glass-panel p-6 rounded-2xl h-[400px] flex flex-col">
         <h3 className="text-lg font-semibold text-white mb-6">Login & Activity Trends</h3>
         <div className="flex-1 border-b border-white/10 flex items-end gap-2 pb-4">
-          {Array.from({ length: 12 }).map((_, i) => (
+          {[35, 49, 25, 41, 39, 57, 55, 35, 33, 33, 58, 50].map((blueH, i) => {
+            const greenH = [64, 93, 76, 58, 67, 71, 80, 45, 87, 70, 58, 45][i];
+            return (
             <div key={i} className="flex-1 flex flex-col justify-end gap-1 group">
-              <div className="w-full bg-blue-500/80 rounded-t-sm transition-all group-hover:brightness-110" style={{ height: `${Math.random() * 40 + 20}%` }}></div>
-              <div className="w-full bg-emerald-500/80 rounded-t-sm transition-all group-hover:brightness-110" style={{ height: `${Math.random() * 60 + 40}%` }}></div>
+              <div className="w-full bg-blue-500/80 rounded-t-sm transition-all group-hover:brightness-110" style={{ height: `${blueH}%` }}></div>
+              <div className="w-full bg-emerald-500/80 rounded-t-sm transition-all group-hover:brightness-110" style={{ height: `${greenH}%` }}></div>
             </div>
-          ))}
+            );
+          })}
         </div>
         <div className="flex justify-between mt-3 text-xs text-slate-500 px-2">
           <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
