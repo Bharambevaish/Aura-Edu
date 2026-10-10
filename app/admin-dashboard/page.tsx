@@ -27,7 +27,7 @@ export default function AdminDashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Overview Dashboard</h1>
-          <p className="text-sm text-slate-400 mt-1">Welcome back, here's what's happening in your workspace today.</p>
+          <p className="text-sm text-slate-400 mt-1">Welcome back, here&apos;s what&apos;s happening in your workspace today.</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors font-medium text-sm shadow-lg shadow-emerald-600/20">
           <TrendingUp size={16} /> Generate Report

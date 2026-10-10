@@ -12,9 +12,7 @@ import {
   Download,
   Filter,
   PieChart,
-  BarChart,
-  Activity,
-  UserCheck
+  Activity
 } from 'lucide-react';
 
 export default function LegacyReportsPage() {
@@ -136,7 +134,7 @@ function AdmissionsTab() {
             { name: 'Rahul Sharma', score: 98, course: 'JEE Advanced' },
             { name: 'Priya Patel', score: 95, course: 'NEET Bio' },
             { name: 'Amit Singh', score: 92, course: 'JEE Mains' },
-            { name: 'Sneha K.', score: 90, course: 'Foundation' },
+            { name: 'Sneha P.', score: 90, course: 'Foundation' },
             { name: 'Vikram Mehta', score: 88, course: 'MERN Stack' },
           ].map((student, i) => (
             <div key={i}>

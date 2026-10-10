@@ -1,32 +1,48 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useStudent } from "@/context/StudentContext";
-import {
-  Clock,
-  CheckCircle2,
-  Calendar,
-  Download,
-  List,
-  Activity,
-  Check,
-  X,
-  FileSpreadsheet,
-} from "lucide-react";
+import { getStudentAttendance, type StudentAttendance } from "@/lib/actions/attendance";
+import { Clock, List, Activity, FileSpreadsheet, Loader2 } from "lucide-react";
 
 export default function AttendancePage() {
   const { attendanceLogs, profile } = useStudent();
+  const [db, setDb] = useState<StudentAttendance | null>(null);
   const [viewMode, setViewMode] = useState<"timeline" | "table">("timeline");
 
-  const totalSessions = attendanceLogs.length;
-  const presentCount = attendanceLogs.filter((a) => a.status === "Present").length;
-  const attendancePercentage = totalSessions > 0 ? Math.round((presentCount / totalSessions) * 100) : 100;
+  useEffect(() => {
+    let ignore = false;
+    getStudentAttendance()
+      .then((d) => {
+        if (!ignore) setDb(d);
+      })
+      .catch(() => {
+        if (!ignore) setDb(null);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  // Live registers win once present; until then (or with no data) fall back to
+  // the context demo feed so the page never renders empty.
+  const live = !!db && db.totalSessions > 0;
+  const logs = live ? db!.logs : attendanceLogs;
+  const totalSessions = live ? db!.totalSessions : attendanceLogs.length;
+  const presentCount = live ? db!.present : attendanceLogs.filter((a) => a.status === "Present").length;
+  const absentCount = live ? db!.absent : 0;
+  const lateCount = live ? db!.late : 0;
+  const attendancePercentage = live
+    ? db!.overallPercentage
+    : totalSessions > 0
+      ? Math.round((presentCount / totalSessions) * 100)
+      : 100;
 
   const handleExportCSV = () => {
     const csvContent =
       "data:text/csv;charset=utf-8," +
       "Date,Day,Batch,Subject,CheckIn,Status,Remarks\n" +
-      attendanceLogs
+      logs
         .map((a) => `${a.date},${a.day},${a.batch},${a.subject},${a.checkIn},${a.status},${a.remarks}`)
         .join("\n");
     const encodedUri = encodeURI(csvContent);
@@ -49,7 +65,8 @@ export default function AttendancePage() {
               <h2 className="text-xl font-bold text-white">Attendance Analytics</h2>
             </div>
             <p className="text-xs text-slate-400">
-              Verified biometric RFID attendance log for {profile.name} ({profile.rollNo}).
+              Faculty-marked attendance log for {profile.name} ({profile.rollNo})
+              {!live ? " — showing demo preview data." : ""}
             </p>
           </div>
 
@@ -67,7 +84,9 @@ export default function AttendancePage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
           <div>
             <span className="text-xs text-slate-400">Overall Attendance</span>
-            <p className="text-2xl font-black text-emerald-400 font-mono">{attendancePercentage}%</p>
+            <p className="text-2xl font-black text-emerald-400 font-mono">
+              {live ? attendancePercentage : <LoaderSpinner />}%
+            </p>
           </div>
           <div>
             <span className="text-xs text-slate-400">Days Present</span>
@@ -75,11 +94,13 @@ export default function AttendancePage() {
           </div>
           <div>
             <span className="text-xs text-slate-400">Days Absent</span>
-            <p className="text-2xl font-black text-slate-400 font-mono">0</p>
+            <p className="text-2xl font-black text-slate-400 font-mono">{absentCount}</p>
           </div>
           <div>
             <span className="text-xs text-slate-400">Total Tracked</span>
-            <p className="text-2xl font-black text-cyan-400 font-mono">{totalSessions} Sessions</p>
+            <p className="text-2xl font-black text-cyan-400 font-mono">
+              {totalSessions} {lateCount > 0 ? `• ${lateCount} late` : "Sessions"}
+            </p>
           </div>
         </div>
       </div>
@@ -113,25 +134,44 @@ export default function AttendancePage() {
       </div>
 
       {/* 3. Rendering Views */}
-      {viewMode === "timeline" ? (
+      {logs.length === 0 ? (
+        <div className="p-10 rounded-3xl bg-slate-900/90 border border-slate-800 text-center">
+          <p className="text-sm text-slate-400">No attendance sessions recorded yet.</p>
+        </div>
+      ) : viewMode === "timeline" ? (
         <div className="space-y-4 relative before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
-          {attendanceLogs.map((log) => (
+          {logs.map((log) => (
             <div key={log.id} className="relative pl-10">
-              <div className="absolute left-2.5 top-3.5 -translate-x-1/2 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-4 ring-[#070B14]" />
+              <div
+                className={`absolute left-2.5 top-3.5 -translate-x-1/2 h-3.5 w-3.5 rounded-full ring-4 ring-[#070B14] ${
+                  log.status === "Present" ? "bg-emerald-500" : log.status === "Late" ? "bg-amber-500" : "bg-red-500"
+                }`}
+              />
               <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-white">{log.date} ({log.day})</span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        log.status === "Present"
+                          ? "bg-emerald-500/20 text-emerald-400"
+                          : log.status === "Late"
+                            ? "bg-amber-500/20 text-amber-400"
+                            : "bg-red-500/20 text-red-400"
+                      }`}
+                    >
                       {log.status}
                     </span>
                   </div>
                   <h4 className="text-sm font-bold text-slate-200">{log.subject}</h4>
-                  <p className="text-xs text-slate-400">Batch: {log.batch} | Checked In: {log.checkIn}</p>
+                  <p className="text-xs text-slate-400">
+                    Batch: {log.batch}
+                    {log.checkIn ? ` | Checked In: ${log.checkIn}` : ""}
+                  </p>
                 </div>
 
                 <div className="text-xs text-slate-400 font-mono">
-                  Remarks: <span className="text-slate-200">{log.remarks}</span>
+                  Remarks: <span className="text-slate-200">{log.remarks || "—"}</span>
                 </div>
               </div>
             </div>
@@ -151,18 +191,26 @@ export default function AttendancePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800 text-slate-300">
-              {attendanceLogs.map((log) => (
+              {logs.map((log) => (
                 <tr key={log.id} className="hover:bg-slate-800/40">
                   <td className="p-4 font-bold text-white">{log.date} ({log.day})</td>
                   <td className="p-4">{log.subject}</td>
                   <td className="p-4 font-mono text-cyan-400">{log.batch}</td>
-                  <td className="p-4 font-mono">{log.checkIn}</td>
+                  <td className="p-4 font-mono">{log.checkIn || "—"}</td>
                   <td className="p-4">
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">
+                    <span
+                      className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                        log.status === "Present"
+                          ? "bg-emerald-500/20 text-emerald-400"
+                          : log.status === "Late"
+                            ? "bg-amber-500/20 text-amber-400"
+                            : "bg-red-500/20 text-red-400"
+                      }`}
+                    >
                       {log.status}
                     </span>
                   </td>
-                  <td className="p-4 text-slate-400">{log.remarks}</td>
+                  <td className="p-4 text-slate-400">{log.remarks || "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -171,4 +219,8 @@ export default function AttendancePage() {
       )}
     </div>
   );
+}
+
+function LoaderSpinner() {
+  return <Loader2 className="inline animate-spin" size={18} />;
 }

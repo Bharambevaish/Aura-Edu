@@ -42,7 +42,7 @@ export default function Header() {
                 MyEdou
                 <span className="inline-block w-2 h-2 rounded-full bg-[#74B53C]"></span>
               </span>
-              <span className="text-[10px] text-slate-400 -mt-1 tracking-wider uppercase">by Codeserve</span>
+              <span className="text-[10px] text-slate-400 -mt-1 tracking-wider uppercase">Institution Management Suite</span>
             </div>
           </Link>
 
@@ -149,7 +149,7 @@ export default function Header() {
                   className="absolute top-full right-0 w-64 mt-2 p-2 rounded-2xl glass-panel border border-white/10 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200"
                 >
                   <Link
-                    href="/login-selector"
+                    href="/login"
                     onClick={() => setLoginDropdownOpen(false)}
                     className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 text-sm text-slate-200 hover:text-white transition-colors"
                   >
@@ -158,7 +158,7 @@ export default function Header() {
                   </Link>
 
                   <Link
-                    href="/login-selector"
+                    href="/login"
                     onClick={() => setLoginDropdownOpen(false)}
                     className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 text-sm text-slate-200 hover:text-white transition-colors"
                   >
@@ -167,7 +167,7 @@ export default function Header() {
                   </Link>
 
                   <Link
-                    href="/login-selector"
+                    href="/login"
                     onClick={() => setLoginDropdownOpen(false)}
                     className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 text-sm text-slate-200 hover:text-white transition-colors border-t border-white/5 mt-1 pt-2"
                   >
@@ -176,7 +176,7 @@ export default function Header() {
                   </Link>
 
                   <Link
-                    href="/login-selector"
+                    href="/login"
                     onClick={() => setLoginDropdownOpen(false)}
                     className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 text-sm text-slate-200 hover:text-white transition-colors"
                   >
@@ -235,7 +235,7 @@ export default function Header() {
               onClick={() => setMobileMenuOpen(false)}
               className="text-slate-200 hover:text-white font-medium py-1"
             >
-              About Codeserve
+              About MyEdou
             </a>
             <a
               href="#contact"
@@ -246,7 +246,7 @@ export default function Header() {
             </a>
             <div className="pt-2 border-t border-white/10 flex flex-col gap-2">
               <Link
-                href="/login-selector"
+                href="/login"
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-center py-2.5 rounded-xl bg-white/10 text-white font-semibold text-sm"
               >

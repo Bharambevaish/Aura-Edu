@@ -1,215 +1,174 @@
 "use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { 
-  Plus,
-  RefreshCw,
-  Search,
-  Filter,
-  DollarSign,
-  FileText,
-  CheckCircle,
-  Clock,
-  RotateCcw,
-  TrendingUp,
-  Eye,
-  Download,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight
-} from 'lucide-react';
+import React, { useState, useEffect, useCallback } from "react";
+import { getPayments, recordPayment, cancelPayment, getFinanceStudents, type PaymentRow } from "@/lib/actions/finance";
+import { getInvoices } from "@/lib/actions/finance";
+import { PAYMENT_MODES, PAYMENT_SOURCES, STATUS_PILL } from "@/lib/finance";
+import { Plus, RefreshCw, DollarSign, FileText, CheckCircle, Eye, Loader2, RotateCcw, Search } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { StatCard } from "@/components/ui/StatCard";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import { Combobox, type ComboboxOption } from "@/components/ui/Combobox";
+import { useToast } from "@/components/ui/Toast";
+
+const inputCls =
+  "mt-1 w-full px-3 py-2 border border-white/10 rounded-lg text-sm bg-slate-900/50 focus:outline-none focus:border-emerald-500 text-white placeholder:text-slate-500";
+const labelCls = "text-xs font-medium text-slate-300";
 
 export default function PaymentsPage() {
-  const payments = [
-    { invoice: '-', student: 'Nikhil Raghuwanshi', admNo: 'ADM-2026-0006', branch: 'Main Branch', mobile: '8787654543', email: 'nraghuwanshi100@gmail.com', course: 'NEET', batch: 'NEET BATCH', amount: 5001, gst: '₹0', gateway: '₹0', net: 5001, mode: 'Razorpay', source: 'Student Portal', date: '-', status: 'cancelled' },
-    { invoice: 'RCP-202607-5203', student: 'Rohan More', admNo: 'ADM-2026-0005', branch: 'Main Branch', mobile: '5668787160', email: 'katturwaromkar23@gmail.com', course: 'JEE', batch: '-', amount: 4500, gst: '₹0', gateway: '₹0', net: 4500, mode: 'Cash', source: 'Admin', date: '02 Jul 2026', status: 'success' },
-    { invoice: '-', student: 'Ansh Patthe', admNo: 'ADM-2026-0009', branch: 'Main Branch', mobile: '9022549936', email: 'anshpatthe90@gmail.com', course: 'MERN-Demo', batch: '-', amount: '₹1', gst: '₹0', gateway: '₹0', net: '₹1', mode: 'Razorpay', source: 'Student Portal', date: '-', status: 'cancelled' },
-    { invoice: 'RCP-202606-5095', student: 'Nikhil Raghuwanshi', admNo: 'ADM-2026-0006', branch: 'Main Branch', mobile: '8787654543', email: 'nraghuwanshi100@gmail.com', course: 'NEET', batch: '-', amount: 2436, gst: '₹0', gateway: '₹0', net: 2436, mode: 'Cash', source: 'Admin', date: '01 May 2026', status: 'success' },
-    { invoice: 'RCP-202606-0430', student: 'Nikhil Raghuwanshi', admNo: 'ADM-2026-0006', branch: 'Main Branch', mobile: '5187654543', email: 'nraghuwanshi100@gmail.com', course: 'NEET', batch: '-', amount: 4564, gst: '₹0', gateway: '₹0', net: 4564, mode: 'Cash', source: 'Admin', date: '11 Jun 2026', status: 'success' },
-    { invoice: 'RCP-202606-3072', student: 'Sumit Power', admNo: 'ADM-2026-0007', branch: 'Main Branch', mobile: '9876545453', email: 'sumit@gmail.com', course: 'JEE', batch: '-', amount: 5000, gst: '₹0', gateway: '₹0', net: 5000, mode: 'Cash', source: 'Admin', date: '11 Jun 2026', status: 'success' },
-    { invoice: 'RCP-202606-1298', student: 'Sumit Power', admNo: 'ADM-2026-0007', branch: 'Main Branch', mobile: '9876545453', email: 'sumit@gmail.com', course: 'NEET', batch: '-', amount: 25000, gst: '₹0', gateway: '₹0', net: 25000, mode: 'Cash', source: 'Admin', date: '11 Jun 2026', status: 'success' },
-  ];
+  const [data, setData] = useState<{ stats: { collected: number; count: number; today: number }; payments: PaymentRow[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [students, setStudents] = useState<ComboboxOption[]>([]);
+  const [invoices, setInvoices] = useState<{ id: string; invoiceNo: string; studentId: string }[]>([]);
+  const [payOpen, setPayOpen] = useState(false);
+  const [payStudent, setPayStudent] = useState("");
+  const [payInvoice, setPayInvoice] = useState("");
+  const [payAmount, setPayAmount] = useState("");
+  const [payMode, setPayMode] = useState<string>(PAYMENT_MODES[0]);
+  const [paySource, setPaySource] = useState<string>(PAYMENT_SOURCES[0]);
+  const [payFee, setPayFee] = useState("0");
+  const [payLoading, setPayLoading] = useState(false);
+  const [viewPayment, setViewPayment] = useState<PaymentRow | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<PaymentRow | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const { toast } = useToast();
 
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'success': return 'bg-green-900/30 text-green-400 border-green-900/50';
-      case 'cancelled': return 'bg-red-900/30 text-red-400 border-red-900/50';
-      default: return 'bg-slate-800 text-slate-300 border-slate-700';
-    }
+  const fetchData = useCallback(async () => {
+    try { setData(await getPayments()); } catch { toast("Failed to load payments", "error"); }
+  }, [toast]);
+
+  useEffect(() => {
+    let ignore = false;
+    getPayments()
+      .then((d) => { if (!ignore) setData(d); })
+      .finally(() => { if (!ignore) setLoading(false); });
+    getFinanceStudents().then((s) => {
+      if (ignore) return;
+      setStudents(s.map((st) => ({ value: st.id, label: st.name, hint: `${st.admissionNo} · ${st.batch}` })));
+    });
+    getInvoices().then((r) => {
+      if (ignore) return;
+      setInvoices(r.invoices.map((i) => ({ id: i.id, invoiceNo: i.invoiceNo, studentId: i.studentId })));
+    });
+    return () => { ignore = true; };
+  }, []);
+
+  const applicableInvoices = payStudent ? invoices.filter((i) => i.studentId === payStudent) : [];
+
+  const openRecord = () => { setPayStudent(""); setPayInvoice(""); setPayAmount(""); setPayMode(PAYMENT_MODES[0]); setPaySource(PAYMENT_SOURCES[0]); setPayFee("0"); setPayOpen(true); };
+
+  const runRecord = async () => {
+    if (!payStudent || !payAmount || Number(payAmount) < 1) { toast("Select student and amount", "error"); return; }
+    setPayLoading(true);
+    try {
+      const res = await recordPayment({ studentId: payStudent, invoiceId: payInvoice, amount: Number(payAmount), mode: payMode, source: paySource, gatewayFee: Number(payFee) || 0, gst: 0 });
+      toast(res.message, res.ok ? "success" : "error");
+      if (res.ok) { setPayOpen(false); await fetchData(); }
+    } catch { toast("Something went wrong", "error"); }
+    setPayLoading(false);
   };
 
+  const runCancel = async () => {
+    if (!cancelTarget) return;
+    setCancelLoading(true);
+    try {
+      const res = await cancelPayment(cancelTarget.id);
+      toast(res.message, res.ok ? "success" : "error");
+      if (res.ok) await fetchData();
+    } catch { toast("Error", "error"); }
+    setCancelTarget(null);
+    setCancelLoading(false);
+  };
+
+  const filtered = (data?.payments ?? []).filter((p) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return p.studentName.toLowerCase().includes(q) || p.receiptNo.toLowerCase().includes(q) || p.invoiceNo.toLowerCase().includes(q);
+  });
+
+  const columns: DataTableColumn<PaymentRow>[] = [
+    { key: "receipt", header: "RECEIPT NO", cell: (r) => <span className="text-xs font-mono text-slate-400">{r.receiptNo}</span> },
+    { key: "student", header: "STUDENT", cell: (r) => <span className="text-xs font-bold text-white">{r.studentName}</span> },
+    { key: "invoiceNo", header: "INVOICE", cell: (r) => <span className="text-xs text-slate-400">{r.invoiceNo || "-"}</span> },
+    { key: "amount", header: "AMOUNT", cell: (r) => <span className="text-xs font-bold text-white">₹{r.amount.toLocaleString("en-IN")}</span> },
+    { key: "net", header: "NET", cell: (r) => <span className="text-xs text-slate-400">₹{r.netAmount.toLocaleString("en-IN")}</span> },
+    { key: "mode", header: "MODE", cell: (r) => <span className="text-xs text-slate-300">{r.mode}</span> },
+    { key: "source", header: "SOURCE", cell: (r) => <span className="text-xs text-slate-400">{r.source}</span> },
+    { key: "branch", header: "BRANCH", cell: (r) => <span className="text-xs text-slate-400">{r.branch || "-"}</span> },
+    { key: "date", header: "DATE", cell: (r) => <span className="text-xs text-slate-400">{r.recordedAt}</span> },
+    { key: "status", header: "STATUS", cell: (r) => <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded border ${STATUS_PILL[r.status]}`}>{r.status.charAt(0).toUpperCase() + r.status.slice(1)}</span> },
+    {
+      key: "actions", header: "", className: "w-[80px]",
+      cell: (r) => (
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setViewPayment(r)} className="text-slate-500 hover:text-blue-400 transition-colors" title="View"><Eye size={14} /></button>
+          {r.status === "success" && <button onClick={() => setCancelTarget(r)} className="text-slate-500 hover:text-red-400 transition-colors" title="Cancel"><RotateCcw size={14} /></button>}
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="p-6 bg-[#0a0a0a] min-h-screen text-slate-200 font-sans">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-900/30 rounded-lg">
-            <DollarSign size={20} className="text-green-400" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white">Student Payments</h1>
-            <p className="text-sm text-slate-400 mt-0.5">Record offline payments, review the ledger, save receipts.</p>
-          </div>
+    <div className="space-y-6">
+      <PageHeader title="Student Payments" subtitle="Record offline payments, review the ledger, save receipts." icon={<DollarSign size={20} className="text-emerald-400" />}>
+        <Button variant="secondary" size="sm" onClick={() => fetchData().catch(() => {})}><RefreshCw size={14} /></Button>
+        <Button size="sm" onClick={openRecord}><Plus size={16} />Record Payment</Button>
+      </PageHeader>
+
+      {!loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <StatCard label="Total Collected" value={`₹${(data?.stats.collected ?? 0).toLocaleString("en-IN")}`} icon={<DollarSign size={14} />} accent="blue" />
+          <StatCard label="Successful Payments" value={data?.stats.count ?? 0} icon={<CheckCircle size={14} />} accent="emerald" />
+          <StatCard label="Collected Today" value={`₹${(data?.stats.today ?? 0).toLocaleString("en-IN")}`} icon={<FileText size={14} />} accent="amber" />
+          <StatCard label="Refunds + Waivers" value="Track in Refunds" icon={<RotateCcw size={14} />} accent="red" />
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <button className="px-3 py-1.5 bg-[#171717] border border-slate-700 text-slate-300 rounded-lg text-xs font-medium hover:bg-[#262626] transition-colors">All Branches</button>
-          <button className="flex items-center gap-2 px-3 py-1.5 bg-[#171717] border border-slate-700 text-slate-300 rounded-lg text-xs font-medium hover:bg-[#262626] transition-colors">
-            <RefreshCw size={14} /> Refresh
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm">
-            <Plus size={16} /> Record Payment
-          </button>
-        </div>
+      )}
+
+      <div className="relative flex-1 min-w-[220px]">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <input type="text" placeholder="Search receipt, student, invoice..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full pl-9 pr-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500 placeholder-slate-500" />
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-2">
-        <div className="bg-[#171717] border border-blue-900/50 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <DollarSign size={14} className="text-blue-400" />
-            <h4 className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">TOTAL COLLECTED</h4>
-          </div>
-          <p className="text-xl font-bold text-white">₹50,551</p>
-        </div>
-        <div className="bg-[#171717] border border-slate-700 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <FileText size={14} className="text-slate-400" />
-            <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">TOTAL PAYMENTS</h4>
-          </div>
-          <p className="text-xl font-bold text-white">40</p>
-        </div>
-        <div className="bg-[#171717] border border-green-900/50 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <CheckCircle size={14} className="text-green-400" />
-            <h4 className="text-[9px] font-bold text-green-400 uppercase tracking-wider">SUCCESSFUL</h4>
-          </div>
-          <p className="text-xl font-bold text-white">20</p>
-        </div>
-        <div className="bg-[#171717] border border-amber-900/50 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock size={14} className="text-amber-400" />
-            <h4 className="text-[9px] font-bold text-amber-400 uppercase tracking-wider">PENDING</h4>
-          </div>
-          <p className="text-xl font-bold text-white">5</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div className="bg-[#171717] border border-red-900/50 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <RotateCcw size={14} className="text-red-400" />
-            <h4 className="text-[9px] font-bold text-red-400 uppercase tracking-wider">REFUNDS</h4>
-          </div>
-          <p className="text-xl font-bold text-white">₹0</p>
-        </div>
-        <div className="bg-[#171717] border border-purple-900/50 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <FileText size={14} className="text-purple-400" />
-            <h4 className="text-[9px] font-bold text-purple-400 uppercase tracking-wider">WAIVERS</h4>
-          </div>
-          <p className="text-xl font-bold text-white">₹0</p>
-        </div>
-        <div className="bg-[#171717] border border-slate-700 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <DollarSign size={14} className="text-slate-400" />
-            <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">TOTAL EXPENSE</h4>
-          </div>
-          <p className="text-xl font-bold text-white">₹3,500</p>
-        </div>
-        <div className="bg-[#171717] border border-emerald-900/50 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <TrendingUp size={14} className="text-emerald-400" />
-            <h4 className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">PROFIT</h4>
-          </div>
-          <p className="text-xl font-bold text-white">₹47,051</p>
-        </div>
-      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-20"><Loader2 size={24} className="animate-spin text-slate-400" /></div>
+      ) : (
+        <DataTable columns={columns} rows={filtered} keyField={(r) => r.id} emptySlot={<div className="text-center py-12 text-slate-500">No payments yet.</div>} />
+      )}
 
-      {/* Search & Filters */}
-      <div className="bg-[#171717] border border-slate-800 rounded-xl p-4 mb-4 flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[300px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input type="text" placeholder="Search invoice, receipt, transaction ID, student..." className="w-full pl-9 pr-3 py-2 bg-[#0a0a0a] border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 placeholder-slate-500" />
+      <Modal open={payOpen} onClose={() => setPayOpen(false)} title="Record Payment" description="Create a payment receipt and lift the student's paid balance." size="lg" footer={<><Button variant="ghost" onClick={() => setPayOpen(false)}>Cancel</Button><Button loading={payLoading} onClick={runRecord}>Record Payment</Button></>}>
+        <div className="grid grid-cols-2 gap-4">
+          <div><label className={labelCls}>Student *</label><Combobox value={payStudent} onChange={(v) => { setPayStudent(v); setPayInvoice(""); }} options={students} placeholder="Select student" emptyMessage="No students" /></div>
+          <div><label className={labelCls}>Invoice</label><Combobox value={payInvoice} onChange={setPayInvoice} options={payStudent ? [{ value: "", label: "— No invoice —" }, ...applicableInvoices.map((i) => ({ value: i.id, label: i.invoiceNo }))] : []} placeholder={payStudent ? "Select invoice" : "Pick a student first"} emptyMessage="No invoices for this student" /></div>
+          <div><label className={labelCls}>Amount (₹) *</label><input type="number" min={1} value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="0" className={inputCls} /></div>
+          <div><label className={labelCls}>Gateway Fee (₹)</label><input type="number" min={0} value={payFee} onChange={(e) => setPayFee(e.target.value)} className={inputCls} /></div>
+          <div><label className={labelCls}>Mode</label>
+            <select value={payMode} onChange={(e) => setPayMode(e.target.value)} className={inputCls}>{PAYMENT_MODES.map((m) => <option key={m} value={m}>{m}</option>)}</select>
+          </div>
+          <div><label className={labelCls}>Source</label>
+            <select value={paySource} onChange={(e) => setPaySource(e.target.value)} className={inputCls}>{PAYMENT_SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
+          </div>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#0a0a0a] border border-slate-700 text-slate-300 rounded-lg text-xs font-medium hover:bg-[#262626] transition-colors">
-          <Filter size={14} /> Filters
-        </button>
-      </div>
+      </Modal>
 
-      {/* Amount Range */}
-      <div className="bg-[#171717] border border-slate-800 rounded-xl p-4 mb-6 flex flex-wrap items-center gap-6">
-        <div>
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">MIN AMOUNT</label>
-          <input type="number" defaultValue={0} className="block mt-1 px-3 py-1.5 bg-[#0a0a0a] border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-blue-500 w-32" />
-        </div>
-        <div>
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">MAX AMOUNT</label>
-          <input type="number" defaultValue={100000} className="block mt-1 px-3 py-1.5 bg-[#0a0a0a] border border-slate-700 rounded text-sm text-white focus:outline-none focus:border-blue-500 w-32" />
-        </div>
-        <div className="flex items-end gap-2 ml-auto">
-          <button className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-bold hover:bg-blue-700 transition-colors">Apply</button>
-          <button className="px-3 py-1.5 bg-transparent border border-slate-700 text-slate-400 rounded text-xs font-medium hover:bg-[#262626] transition-colors">Reset</button>
-        </div>
-      </div>
+      <Modal open={!!viewPayment} onClose={() => setViewPayment(null)} title="Payment Details" description={viewPayment?.receiptNo}>
+        {viewPayment && (
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div><p className="text-[10px] font-bold text-slate-500 uppercase">Student</p><p className="text-white mt-1">{viewPayment.studentName}</p></div>
+            <div><p className="text-[10px] font-bold text-slate-500 uppercase">Invoice</p><p className="text-white mt-1">{viewPayment.invoiceNo || "-"}</p></div>
+            <div><p className="text-[10px] font-bold text-slate-500 uppercase">Amount</p><p className="text-white mt-1 font-bold">₹{viewPayment.amount.toLocaleString("en-IN")}</p></div>
+            <div><p className="text-[10px] font-bold text-slate-500 uppercase">Net Amount</p><p className="text-white mt-1">₹{viewPayment.netAmount.toLocaleString("en-IN")}</p></div>
+            <div><p className="text-[10px] font-bold text-slate-500 uppercase">Mode</p><p className="text-white mt-1">{viewPayment.mode} · {viewPayment.source}</p></div>
+            <div><p className="text-[10px] font-bold text-slate-500 uppercase">Status</p><span className={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded border mt-1 ${STATUS_PILL[viewPayment.status]}`}>{viewPayment.status.charAt(0).toUpperCase() + viewPayment.status.slice(1)}</span></div>
+          </div>
+        )}
+      </Modal>
 
-      {/* Table */}
-      <div className="bg-[#171717] border border-slate-800 rounded-xl overflow-x-auto shadow-sm">
-        <table className="w-full text-left border-collapse min-w-[1500px]">
-          <thead>
-            <tr className="border-b border-slate-800 text-[9px] font-bold text-slate-400 uppercase tracking-wider bg-[#111111]">
-              <th className="py-3 px-3">INVOICE NO</th>
-              <th className="py-3 px-3">STUDENT</th>
-              <th className="py-3 px-3">BRANCH</th>
-              <th className="py-3 px-3">MOBILE</th>
-              <th className="py-3 px-3">EMAIL</th>
-              <th className="py-3 px-3">COURSE</th>
-              <th className="py-3 px-3">BATCH</th>
-              <th className="py-3 px-3">AMOUNT</th>
-              <th className="py-3 px-3">GST</th>
-              <th className="py-3 px-3">GATEWAY FEE</th>
-              <th className="py-3 px-3">NET AMOUNT</th>
-              <th className="py-3 px-3">PAYMENT MODE</th>
-              <th className="py-3 px-3">SOURCE</th>
-              <th className="py-3 px-3">DATE</th>
-              <th className="py-3 px-3">STATUS</th>
-              <th className="py-3 px-3">ACTION</th>
-            </tr>
-          </thead>
-          <tbody className="text-xs">
-            {payments.map((p, i) => (
-              <tr key={i} className="border-b border-slate-800/50 hover:bg-[#262626]/40 transition-colors">
-                <td className="py-3 px-3 text-slate-400 font-mono">{p.invoice}</td>
-                <td className="py-3 px-3">
-                  <div className="font-bold text-white">{p.student}</div>
-                  <div className="text-[10px] text-slate-500">{p.admNo}</div>
-                </td>
-                <td className="py-3 px-3"><span className="px-1.5 py-0.5 bg-blue-900/20 text-blue-400 rounded text-[10px] font-medium">{p.branch}</span></td>
-                <td className="py-3 px-3 text-slate-400">{p.mobile}</td>
-                <td className="py-3 px-3 text-slate-400 max-w-[150px] truncate">{p.email}</td>
-                <td className="py-3 px-3 text-slate-300 font-medium">{p.course}</td>
-                <td className="py-3 px-3 text-slate-400">{p.batch}</td>
-                <td className="py-3 px-3 text-white font-bold">₹{typeof p.amount === 'number' ? p.amount.toLocaleString() : p.amount}</td>
-                <td className="py-3 px-3 text-slate-400">{p.gst}</td>
-                <td className="py-3 px-3 text-slate-400">{p.gateway}</td>
-                <td className="py-3 px-3 text-white font-bold">₹{typeof p.net === 'number' ? p.net.toLocaleString() : p.net}</td>
-                <td className="py-3 px-3 text-slate-300">{p.mode}</td>
-                <td className="py-3 px-3 text-slate-400">{p.source}</td>
-                <td className="py-3 px-3 text-slate-400">{p.date}</td>
-                <td className="py-3 px-3">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getStatusStyle(p.status)}`}>{p.status}</span>
-                </td>
-                <td className="py-3 px-3">
-                  <div className="flex items-center gap-1.5">
-                    <button className="text-slate-500 hover:text-blue-400 transition-colors"><Eye size={13} /></button>
-                    <button className="text-slate-500 hover:text-green-400 transition-colors"><Download size={13} /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Modal open={!!cancelTarget} onClose={() => setCancelTarget(null)} title="Cancel Payment" footer={<><Button variant="ghost" onClick={() => setCancelTarget(null)}>Cancel</Button><Button variant="danger" loading={cancelLoading} onClick={runCancel}>Cancel Payment</Button></>}>
+        {cancelTarget && <p className="text-sm text-slate-300">Cancel <span className="text-white font-medium">{cancelTarget.receiptNo}</span> (₹{cancelTarget.amount.toLocaleString("en-IN")})? The linked invoice balance will be adjusted.</p>}
+      </Modal>
     </div>
   );
 }

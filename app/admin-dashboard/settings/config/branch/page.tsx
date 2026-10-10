@@ -11,7 +11,6 @@ import {
   Settings,
   Plus,
   X,
-  Check,
   CheckCircle2
 } from 'lucide-react';
 

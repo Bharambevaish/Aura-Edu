@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send, CheckSquare, Square, RefreshCw, Calculator, ShieldCheck, Server, Users, Building, Plus, Minus, Sparkles } from "lucide-react";
+import { Send, CheckSquare, Square, Calculator, Server, Users, Building, Plus, Minus, Sparkles } from "lucide-react";
 
 export default function QuoteSelector() {
   const [selectedProduct, setSelectedProduct] = useState<"Academy" | "ERP" | "HRM">("Academy");

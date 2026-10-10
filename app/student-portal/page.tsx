@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useStudent } from "@/context/StudentContext";
+import { getStudentAssignments, type StudentAssignmentRow } from "@/lib/actions/assignments";
+import { getStudentAttendance, type StudentAttendance } from "@/lib/actions/attendance";
 import {
   BookOpen,
   CheckCircle2,
@@ -29,15 +31,51 @@ export default function StudentDashboardPage() {
     assignments,
     tests,
     certificates,
-    attendanceLogs,
     pendingFee,
   } = useStudent();
 
   const [showFeeModal, setShowFeeModal] = useState(pendingFee > 0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [dbAssignments, setDbAssignments] = useState<StudentAssignmentRow[] | null>(null);
+  const [dbAttendance, setDbAttendance] = useState<StudentAttendance | null>(null);
 
-  const pendingAssignmentsCount = assignments.filter((a) => a.status === "Pending").length;
+  useEffect(() => {
+    let ignore = false;
+    getStudentAssignments()
+      .then((data) => {
+        if (!ignore) setDbAssignments(data);
+      })
+      .catch(() => {
+        // Fall back to context assignments below; the dashboard still renders.
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    getStudentAttendance()
+      .then((data) => {
+        if (!ignore) setDbAttendance(data);
+      })
+      .catch(() => {
+        // Attendace falls back to the demo context values below.
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const realAssignments = dbAssignments ?? assignments;
+  const pendingAssignmentsCount = realAssignments.filter((a) => a.status === "Pending").length;
   const upcomingTestsCount = tests.filter((t) => t.status === "Upcoming" || t.status === "Active Now").length;
+
+  // Live attendance wins once registers exist; otherwise keep the demo 100% story.
+  const attendanceLive = !!dbAttendance && dbAttendance.totalSessions > 0;
+  const attendancePct = attendanceLive ? dbAttendance!.overallPercentage : 100;
+  const presentDays = attendanceLive ? dbAttendance!.present : 4;
+  const totalTrackedDays = attendanceLive ? dbAttendance!.totalSessions : 4;
 
   const totalLessons = enrolledCourses.reduce((sum, c) => sum + c.totalLessons, 0);
   const completedLessons = enrolledCourses.reduce((sum, c) => sum + c.completedLessons, 0);
@@ -88,7 +126,7 @@ export default function StudentDashboardPage() {
 
             <div className="flex items-center gap-3">
               <Link
-                href="/student-dashboard/fees"
+                href="/student-portal/fees"
                 onClick={() => setShowFeeModal(false)}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold text-sm hover:from-amber-400 hover:to-amber-500 shadow-lg shadow-amber-500/20 transition-all"
               >
@@ -116,7 +154,7 @@ export default function StudentDashboardPage() {
                 ADMISSION: {profile.admissionNo}
               </span>
               <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
-                100% Attendance Verified
+                {attendancePct === 100 ? "100% Attendance" : `${attendancePct}% Attendance`}
               </span>
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
@@ -139,7 +177,7 @@ export default function StudentDashboardPage() {
             </button>
 
             <Link
-              href="/student-dashboard/schedule"
+              href="/student-portal/schedule"
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500 text-slate-950 hover:bg-cyan-400 font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all"
             >
               <Calendar className="h-4 w-4" />
@@ -229,9 +267,9 @@ export default function StudentDashboardPage() {
               <Clock className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-white font-mono">100%</p>
+          <p className="text-2xl font-black text-white font-mono">{attendancePct}%</p>
           <p className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-medium">
-            4/4 Days Present
+            <CheckCircle2 className="h-3 w-3" /> {presentDays}/{totalTrackedDays} Days Present
           </p>
         </div>
       </div>
@@ -243,42 +281,42 @@ export default function StudentDashboardPage() {
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <Link
-            href="/student-dashboard/my-courses"
+            href="/student-portal/my-courses"
             className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-cyan-500/40 hover:bg-slate-800/60 transition-all text-center group"
           >
             <BookOpen className="h-6 w-6 text-cyan-400 mb-2 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-white">My Courses</span>
           </Link>
           <Link
-            href="/student-dashboard/schedule"
+            href="/student-portal/schedule"
             className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-cyan-500/40 hover:bg-slate-800/60 transition-all text-center group"
           >
             <Calendar className="h-6 w-6 text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-white">Class Schedule</span>
           </Link>
           <Link
-            href="/student-dashboard/assignments"
+            href="/student-portal/assignments"
             className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-cyan-500/40 hover:bg-slate-800/60 transition-all text-center group"
           >
             <FileCheck className="h-6 w-6 text-amber-400 mb-2 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-white">Assignments</span>
           </Link>
           <Link
-            href="/student-dashboard/tests"
+            href="/student-portal/tests"
             className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-cyan-500/40 hover:bg-slate-800/60 transition-all text-center group"
           >
             <GraduationCap className="h-6 w-6 text-purple-400 mb-2 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-white">Tests & Quizzes</span>
           </Link>
           <Link
-            href="/student-dashboard/attendance"
+            href="/student-portal/attendance"
             className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-cyan-500/40 hover:bg-slate-800/60 transition-all text-center group"
           >
             <Clock className="h-6 w-6 text-blue-400 mb-2 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-white">Attendance</span>
           </Link>
           <Link
-            href="/student-dashboard/certificates"
+            href="/student-portal/certificates"
             className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-950/60 border border-slate-800 hover:border-cyan-500/40 hover:bg-slate-800/60 transition-all text-center group"
           >
             <Award className="h-6 w-6 text-pink-400 mb-2 group-hover:scale-110 transition-transform" />
@@ -298,7 +336,7 @@ export default function StudentDashboardPage() {
                 <ShieldCheck className="h-5 w-5 text-cyan-400" /> Academic Score Center
               </h3>
               <Link
-                href="/student-dashboard/test-card"
+                href="/student-portal/test-card"
                 className="text-xs font-semibold text-cyan-400 hover:underline flex items-center gap-1"
               >
                 Detailed Test Card <ArrowRight className="h-3.5 w-3.5" />
@@ -326,11 +364,14 @@ export default function StudentDashboardPage() {
             {/* Attendance Progress Bar */}
             <div className="pt-4 border-t border-slate-800/80">
               <div className="flex items-center justify-between text-xs mb-2">
-                <span className="font-semibold text-slate-300">Biometric Attendance Log</span>
-                <span className="font-bold text-emerald-400 font-mono">100% Perfect Attendance</span>
+                <span className="font-semibold text-slate-300">Faculty-Marked Attendance</span>
+                <span className="font-bold text-emerald-400 font-mono">{attendancePct}% Attendance</span>
               </div>
               <div className="h-3 w-full rounded-full bg-slate-950 overflow-hidden p-0.5 border border-slate-800">
-                <div className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500 w-full" />
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500"
+                  style={{ width: `${attendancePct}%` }}
+                />
               </div>
             </div>
           </div>
@@ -342,7 +383,7 @@ export default function StudentDashboardPage() {
                 <BookOpen className="h-5 w-5 text-cyan-400" /> Active Course Tracker
               </h3>
               <Link
-                href="/student-dashboard/my-courses"
+                href="/student-portal/my-courses"
                 className="text-xs font-semibold text-cyan-400 hover:underline flex items-center gap-1"
               >
                 All Courses <ChevronRight className="h-3.5 w-3.5" />
@@ -375,7 +416,7 @@ export default function StudentDashboardPage() {
                     </div>
                   </div>
                   <Link
-                    href={`/student-dashboard/my-courses/${course.id}/learn`}
+                    href={`/student-portal/my-courses/${course.id}/learn`}
                     className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition-colors whitespace-nowrap"
                   >
                     Continue
@@ -395,7 +436,7 @@ export default function StudentDashboardPage() {
                 <GraduationCap className="h-5 w-5 text-purple-400" /> Upcoming Tests
               </h3>
               <Link
-                href="/student-dashboard/tests"
+                href="/student-portal/tests"
                 className="text-xs font-semibold text-purple-400 hover:underline"
               >
                 View All
@@ -429,7 +470,7 @@ export default function StudentDashboardPage() {
                 <FileCheck className="h-5 w-5 text-amber-400" /> Assignments Due
               </h3>
               <Link
-                href="/student-dashboard/assignments"
+                href="/student-portal/assignments"
                 className="text-xs font-semibold text-amber-400 hover:underline"
               >
                 Submission Portal
@@ -437,12 +478,16 @@ export default function StudentDashboardPage() {
             </div>
 
             <div className="space-y-3">
-              {assignments.slice(0, 2).map((asg) => (
+              {realAssignments.slice(0, 2).map((asg) => (
                 <div key={asg.id} className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                       asg.status === "Pending"
                         ? "bg-amber-500/20 text-amber-300"
+                        : asg.status === "Overdue"
+                        ? "bg-red-500/20 text-red-400"
+                        : asg.status === "Submitted"
+                        ? "bg-cyan-500/20 text-cyan-300"
                         : "bg-emerald-500/20 text-emerald-400"
                     }`}>
                       {asg.status}

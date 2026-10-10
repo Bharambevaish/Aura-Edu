@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { 
   Receipt, 
   Upload, 
@@ -119,7 +118,7 @@ export default function InvoiceConfigPage() {
                 <label className="block text-sm font-medium text-slate-300 mb-3">Authorized Signature</label>
                 <div className="border-2 border-dashed border-white/10 hover:border-emerald-500/50 rounded-xl p-4 flex flex-col items-center justify-center text-center h-40 bg-slate-900/30 transition-colors cursor-pointer group">
                   <div className="w-full h-16 border-b border-white/20 mb-2 flex items-end justify-center pb-2">
-                    <span className="font-[cursive] text-2xl text-slate-300 italic">C. Warke</span>
+                    <span className="font-[cursive] text-2xl text-slate-300 italic">System Admin</span>
                   </div>
                   <p className="text-xs text-slate-400 group-hover:text-emerald-400 transition-colors">Click to upload signature</p>
                   <p className="text-[10px] text-slate-500 mt-1">Transparent PNG up to 1MB</p>
@@ -148,8 +147,8 @@ export default function InvoiceConfigPage() {
             
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
               {[
-                { version: 'v3.0.1 (Current)', date: '19 Jul 2026', author: 'Charudatta W', active: true },
-                { version: 'v2.1.0', date: '10 Jan 2026', author: 'Charudatta W', active: false },
+                { version: 'v3.0.1 (Current)', date: '19 Jul 2026', author: 'System Administrator', active: true },
+                { version: 'v2.1.0', date: '10 Jan 2026', author: 'System Administrator', active: false },
                 { version: 'v2.0.0', date: '01 Apr 2025', author: 'System', active: false },
                 { version: 'v1.5.2', date: '15 Aug 2024', author: 'Admin User', active: false },
                 { version: 'v1.0.0', date: '01 Jan 2024', author: 'System', active: false },

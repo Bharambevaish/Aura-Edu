@@ -5,13 +5,9 @@ import { useStudent } from "@/context/StudentContext";
 import {
   Calendar as CalendarIcon,
   Clock,
-  Video,
   MapPin,
-  Filter,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  BookOpen,
 } from "lucide-react";
 
 export default function SchedulePage() {
@@ -22,7 +18,7 @@ export default function SchedulePage() {
     {
       id: 1,
       subject: "Physics: Rotational Dynamics & Torque numericals",
-      batch: "NEET Super 30",
+      batch: "NEET Batch A",
       time: "09:00 AM - 10:30 AM",
       instructor: "Prof. S. Sharma",
       room: "Hall A-102 & Live Stream",
@@ -32,7 +28,7 @@ export default function SchedulePage() {
     {
       id: 2,
       subject: "Organic Chemistry: Reaction Mechanisms & Aldol",
-      batch: "NEET Super 30",
+      batch: "NEET Batch A",
       time: "11:00 AM - 12:30 PM",
       instructor: "Dr. A. Verma",
       room: "Hall A-102 & Live Stream",
@@ -42,7 +38,7 @@ export default function SchedulePage() {
     {
       id: 3,
       subject: "Biology: Plant Growth & Regulators Worksheet",
-      batch: "NEET Super 30",
+      batch: "NEET Batch A",
       time: "02:00 PM - 03:30 PM",
       instructor: "Dr. Meenakshi Sundaram",
       room: "Online Live Stream",

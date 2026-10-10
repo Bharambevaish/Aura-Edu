@@ -78,11 +78,11 @@ export default function Hero() {
               </a>
 
               <Link
-                href="/login-selector"
+                href="/login"
                 className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl border border-white/20 bg-white/5 hover:bg-white/10 text-white text-base font-semibold backdrop-blur-md transition-all"
               >
                 <span>Login</span>
-                <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-slate-300">v2.3</span>
+                <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-slate-300">Demo</span>
               </Link>
             </div>
 
@@ -124,7 +124,7 @@ export default function Hero() {
                   </div>
                   <div className="text-xs font-mono text-slate-400 bg-white/5 px-3 py-1 rounded-full flex items-center gap-1.5">
                     <Activity className="w-3.5 h-3.5 text-[#74B53C] animate-pulse" />
-                    myedou.com system portal
+                    MyEdou demo portal
                   </div>
                 </div>
 

@@ -9,11 +9,11 @@ export default function FAQSection() {
   const faqs = [
     {
       q: "What is MyEdou and who is it for?",
-      a: "MyEdou is a family of education-management products from Codeserve Tech Solutions. MyEdou Academy runs coaching classes, tuition centres and multi-branch academies; MyEdou ERP is a complete institution ERP for schools, colleges and universities; and MyEdou HRM (launching soon) handles HR, payroll and workforce management. Each comes with a web portal and a mobile app.",
+      a: "MyEdou is a single platform for managing an education institution — coaching centres, schools, colleges and universities. It covers students, staff, attendance, examinations, fees, accounts and payroll, with a web portal and a mobile app, so everything lives in one place instead of across scattered tools.",
     },
     {
       q: "Which MyEdou product is right for me?",
-      a: "Choose MyEdou Academy if you run a coaching centre, tuition class or academy and need students, batches, attendance, fees and an app. Choose MyEdou ERP if you run a school, college or university and need admissions, examinations, hostel, transport, library, accounts and HR on one campus-wide platform. MyEdou HRM is launching soon for dedicated HR, payroll and recruitment. Not sure? Use Get Quotation and we'll recommend the right fit.",
+      a: "Choose the modules you need and ignore the rest. Coaching centres typically start with students, batches, attendance, fees and an app; schools, colleges and universities add admissions, examinations, hostel, transport, library, accounts and HR on one campus-wide platform. Not sure where to start? Use Get Quotation and we'll recommend the right fit.",
     },
     {
       q: "How is MyEdou priced?",
@@ -41,11 +41,11 @@ export default function FAQSection() {
     },
     {
       q: "Is my data secure?",
-      a: "MyEdou is cloud-hosted with role-based access, branch-scoped permissions, encrypted PII for finance records and an audit trail of every change. Codeserve Tech Solutions ships tests and monitoring with every feature, plus API access and data backup.",
+      a: "MyEdou is cloud-hosted with role-based access, branch-scoped permissions, encrypted PII for finance records and an audit trail of every change. Every feature ships with tests, monitoring and automated data backup, plus API access when you need it.",
     },
     {
       q: "Who builds and supports MyEdou?",
-      a: "MyEdou is built and operated by Codeserve Tech Solutions, a product engineering team in Pune. You get a named engineering team, ongoing updates and dedicated support across all MyEdou products — not a faceless reseller.",
+      a: "MyEdou is developed and supported by a dedicated product engineering team. You get ongoing updates and direct support across every module — not a faceless reseller.",
     },
   ];
 

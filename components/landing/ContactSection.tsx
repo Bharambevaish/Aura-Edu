@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send, Phone, MessageSquare, Mail, MapPin, Clock, Sparkles, CheckCircle2 } from "lucide-react";
+import { Send, Phone, MessageSquare, Mail, MapPin, Clock, CheckCircle2 } from "lucide-react";
 
 export default function ContactSection() {
   const [submitted, setSubmitted] = useState(false);
@@ -152,8 +152,8 @@ export default function ContactSection() {
                   </div>
                   <div>
                     <h4 className="text-xs font-mono text-slate-400 uppercase tracking-wider">CALL US</h4>
-                    <div className="text-sm font-bold text-white mt-0.5">+91 87937 89160</div>
-                    <div className="text-sm font-bold text-slate-300">+91 86687 89160</div>
+                    <div className="text-sm font-bold text-white mt-0.5">+91 98765 00000</div>
+                    <div className="text-sm font-bold text-slate-300">+91 98765 00001</div>
                   </div>
                 </div>
 
@@ -165,12 +165,12 @@ export default function ContactSection() {
                   <div>
                     <h4 className="text-xs font-mono text-slate-400 uppercase tracking-wider">WHATSAPP INSTANT</h4>
                     <a
-                      href="https://wa.me/918793789160"
+                      href="https://wa.me/919876500000"
                       target="_blank"
                       rel="noreferrer"
                       className="text-sm font-bold text-[#74B53C] hover:underline"
                     >
-                      +91 87937 89160 (Click to chat)
+                      +91 98765 00000 (Click to chat)
                     </a>
                   </div>
                 </div>
@@ -182,8 +182,8 @@ export default function ContactSection() {
                   </div>
                   <div>
                     <h4 className="text-xs font-mono text-slate-400 uppercase tracking-wider">EMAIL</h4>
-                    <div className="text-sm font-bold text-white mt-0.5">contact@codeservetech.com</div>
-                    <div className="text-xs text-slate-400">hr@codeservetech.com</div>
+                    <div className="text-sm font-bold text-white mt-0.5">info@demo.myedou.com</div>
+                    <div className="text-xs text-slate-400">hello@demo.myedou.com</div>
                   </div>
                 </div>
 
@@ -195,7 +195,7 @@ export default function ContactSection() {
                   <div>
                     <h4 className="text-xs font-mono text-slate-400 uppercase tracking-wider">OFFICE ADDRESS</h4>
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      Office No. 1014 & 1015, Gera&apos;s Imperium Rise, Hinjawadi Phase II, Pune, Maharashtra 411057, India
+                      10, Knowledge Park, South City, Maharashtra 411006, India
                     </p>
                   </div>
                 </div>

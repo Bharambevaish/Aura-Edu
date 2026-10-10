@@ -9,13 +9,8 @@ import {
   PlayCircle,
   CheckCircle2,
   FileText,
-  Clock,
-  ChevronRight,
   BookOpen,
   Download,
-  MessageSquare,
-  Sparkles,
-  ShieldAlert,
 } from "lucide-react";
 
 export default function CourseLearnPage() {
@@ -42,7 +37,7 @@ export default function CourseLearnPage() {
       <div className="flex items-center justify-between p-4 md:p-6 rounded-3xl bg-slate-900/90 border border-slate-800">
         <div className="flex items-center gap-3">
           <Link
-            href="/student-dashboard/my-courses"
+            href="/student-portal/my-courses"
             className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />

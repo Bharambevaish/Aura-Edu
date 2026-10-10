@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * Online Admissions multi-step festival form (demo).
+ *
+ * IMPORTANT: this is a UI brochure form — there is intentionally NO server
+ * action behind it, so nobody can mass-create accounts from this page. It
+ * exists to sell the admissions experience; a real signup action will only be
+ * added with the Online Admissions crown-jewel module (Phase 2).
+ */
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -12,7 +20,6 @@ import {
   ArrowLeft,
   Upload,
   Copy,
-  Download,
   AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
@@ -169,7 +176,7 @@ export default function StudentRegistrationPage() {
                   <h2 className="text-xl font-bold text-white mb-6">3. Guardian Details</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Guardian's Full Name *</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Guardian&apos;s Full Name *</label>
                       <input type="text" className="w-full bg-slate-900/80 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all" />
                     </div>
                     <div>
@@ -181,7 +188,7 @@ export default function StudentRegistrationPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-2">Guardian's Contact Number *</label>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Guardian&apos;s Contact Number *</label>
                       <input type="tel" className="w-full bg-slate-900/80 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all" />
                     </div>
                     <div>
@@ -278,7 +285,7 @@ export default function StudentRegistrationPage() {
             </button>
           ) : (
             <Link 
-              href="/login-selector"
+              href="/login"
               className="px-8 py-3 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-600/20 flex items-center gap-2 mx-auto"
             >
               Proceed to Login <ArrowRight size={18} />

@@ -9,12 +9,7 @@ import {
   CheckCircle2,
   Shield,
   X,
-  Lock,
   Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  Sparkles,
   Save,
 } from "lucide-react";
 
@@ -29,7 +24,7 @@ export default function ProfileManagePage() {
   const [email, setEmail] = useState(profile.email);
   const [guardianPhone, setGuardianPhone] = useState(profile.guardianPhone);
   const [address, setAddress] = useState(profile.address);
-  const [city, setCity] = useState(profile.city);
+  const [city] = useState(profile.city);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Password state

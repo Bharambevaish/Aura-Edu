@@ -7,3 +7,16 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Project Command Center
+
+Project: MyEdou — a POC/sales-demo platform for a coaching/institution
+management suite (~25 demo modules; only 7 need genuine working depth; rest are
+polished simulations on seeded data). Full execution plan, decisions, module map
+and tasklist live in `TASKLIST.md` — read it before anything else.
+Quick facts: Next.js 16 (unusual APIs — read node_modules/next/dist/docs first),
+TypeScript, Tailwind v4, MongoDB (local for dev, Atlas when going live), reuse the existing admin UI
+scaffold, keep `npm run build` green.
+
+Full chronological record of everything already done lives in `WORKLOG.md` — read
+`TASKLIST.md` for the plan, `WORKLOG.md` for what was actually changed.

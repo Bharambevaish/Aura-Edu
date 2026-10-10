@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * Student portal client state: the demo profile (locked to Aarav Sharma), the
+ * enrolled courses list, notifications, and the simulator's dark-mode swatch.
+ *
+ * IMPORTANT scope note: this is POC/demo data only. Auth identity comes from
+ * Auth.js (the JWT), but the rich student-facing data (profile, courses,
+ * notifications, fees ledger) is a context-provided simulation so every
+ * student screen has instant content without a DB round-trip. Real backend
+ * wiring per screen is being introduced in the crown-jewel modules (tests,
+ * attendance, etc.).
+ */
 import React, { createContext, useContext, useState } from "react";
 
 export interface StudentProfile {
@@ -110,7 +121,7 @@ export interface FeeReceipt {
   id: string;
   receiptNo: string;
   date: string;
-  mode: "Cash" | "Razorpay" | "Bank Transfer" | "UPI";
+  mode: "Cash" | "Online" | "Bank Transfer" | "UPI";
   amount: number;
   status: "Success" | "Cancelled" | "Pending";
   description: string;
@@ -148,7 +159,7 @@ interface StudentContextType {
   paidFee: number;
   pendingFee: number;
   paymentReceipts: FeeReceipt[];
-  addPayment: (amount: number, mode: "Razorpay" | "UPI" | "Cash") => void;
+  addPayment: (amount: number, mode: "Online" | "UPI" | "Cash") => void;
   courseStore: CourseStoreItem[];
   enrollInStoreCourse: (courseId: string) => void;
 }
@@ -157,21 +168,21 @@ const StudentContext = createContext<StudentContextType | undefined>(undefined);
 
 export function StudentProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<StudentProfile>({
-    name: "Nikhil Raguwanshi",
-    admissionNo: "ADM-2026-0006",
-    email: "nraghuvanshi100@gmail.com",
-    phone: "+91 87876 54543",
+    name: "Aarav Sharma",
+    admissionNo: "ADM-2026-0010",
+    email: "aarav.sharma@demo.myedou.com",
+    phone: "+91 98765 00001",
     dob: "2003-07-27",
     gender: "Male",
     category: "General",
     bloodGroup: "O+",
-    rollNo: "NEET-2026-042",
-    batch: "NEET Droppers Super 30",
+    rollNo: "NEET-2026-010",
+    batch: "NEET Dropper Batch",
     course: "NEET Comprehensive 2026",
     joiningDate: "15 June 2025",
     academicYear: "2025-2026",
-    fatherName: "Mr. Raghuvanshi",
-    motherName: "Mrs. Raghuvanshi",
+    fatherName: "Mr. Sharma",
+    motherName: "Mrs. Sharma",
     guardianPhone: "+91 98260 12345",
     address: "Scheme No. 54, Vijay Nagar",
     city: "Indore",
@@ -223,13 +234,13 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     },
     {
       id: "notif-4",
-      title: "Attendance Recorded: 100%",
-      message: "You were present in today's 3-hour morning session (Botany & Zoology revision).",
+      title: "Attendance Recorded: Present",
+      message: "Your attendance for today's Biology & revision session has been recorded.",
       category: "Attendance",
       time: "01:00 PM",
       date: "Yesterday",
       read: true,
-      sender: "Automated Biometric System",
+      sender: "Academic Office",
       ip: "103.14.24.11",
       os: "Windows 11",
       device: "Desktop Chrome",
@@ -249,10 +260,10 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     },
   ]);
 
-  const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourse[]>([
+  const [enrolledCourses] = useState<EnrolledCourse[]>([
     {
       id: "neet-2026",
-      title: "NEET Ultimate Droppers & Target 2026 Batch",
+      title: "NEET Comprehensive 2026",
       code: "NEET-MED-2026",
       instructor: "Dr. A. Verma & Team",
       progress: 45,
@@ -293,7 +304,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       id: "mern-stack-demo",
       title: "MERN Stack Web Development Specialization",
       code: "CS-MERN-101",
-      instructor: "Tech Lead Nikhil",
+      instructor: "Instructor Team",
       progress: 80,
       totalLessons: 40,
       completedLessons: 32,
@@ -311,17 +322,17 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   const [attendanceLogs] = useState<AttendanceRecord[]>([
-    { id: "att-1", date: "11 Aug 2026", day: "Tuesday", batch: "NEET Super 30", subject: "Physics & Chemistry", status: "Present", checkIn: "08:55 AM", remarks: "Regular Attendance" },
-    { id: "att-2", date: "10 Aug 2026", day: "Monday", batch: "NEET Super 30", subject: "Botany & Zoology", status: "Present", checkIn: "08:58 AM", remarks: "Regular Attendance" },
-    { id: "att-3", date: "09 Aug 2026", day: "Sunday", batch: "NEET Super 30", subject: "Sunday Grand Mock Test", status: "Present", checkIn: "09:45 AM", remarks: "Test Session" },
-    { id: "att-4", date: "08 Aug 2026", day: "Saturday", batch: "NEET Super 30", subject: "Organic Chemistry Drill", status: "Present", checkIn: "08:50 AM", remarks: "Regular Attendance" },
+    { id: "att-1", date: "11 Aug 2026", day: "Tuesday", batch: "NEET Batch A", subject: "Physics & Chemistry", status: "Present", checkIn: "08:55 AM", remarks: "Regular Attendance" },
+    { id: "att-2", date: "10 Aug 2026", day: "Monday", batch: "NEET Batch A", subject: "Botany & Zoology", status: "Present", checkIn: "08:58 AM", remarks: "Regular Attendance" },
+    { id: "att-3", date: "09 Aug 2026", day: "Sunday", batch: "NEET Batch A", subject: "Sunday Grand Mock Test", status: "Present", checkIn: "09:45 AM", remarks: "Test Session" },
+    { id: "att-4", date: "08 Aug 2026", day: "Saturday", batch: "NEET Batch A", subject: "Organic Chemistry Drill", status: "Present", checkIn: "08:50 AM", remarks: "Regular Attendance" },
   ]);
 
   const [assignments, setAssignments] = useState<AssignmentItem[]>([
     {
       id: "asg-1",
       title: "Worksheet #04: Rotational Motion & Torque",
-      course: "NEET Ultimate Droppers & Target 2026 Batch",
+      course: "NEET Comprehensive 2026",
       dueDate: "14 Aug 2026",
       status: "Pending",
       totalMarks: 50,
@@ -330,13 +341,13 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     {
       id: "asg-2",
       title: "NCERT Organic Mechanisms Drill #02",
-      course: "NEET Ultimate Droppers & Target 2026 Batch",
+      course: "NEET Comprehensive 2026",
       dueDate: "10 Aug 2026",
       status: "Submitted",
       totalMarks: 100,
       obtainedMarks: 94,
       instructions: "Explain Aldol condensation, Cannizzaro reaction, and Reimer-Tiemann mechanism with energy diagrams.",
-      submittedFile: "Nikhil_Organic_Mechanisms_Drill2.pdf",
+      submittedFile: "Organic_Mechanisms_Drill2.pdf",
       submittedAt: "09 Aug 2026, 11:20 PM",
     },
     {
@@ -348,7 +359,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       totalMarks: 40,
       obtainedMarks: 38,
       instructions: "Solve properties of definite integrals problems from Chapter 7.",
-      submittedFile: "Definite_Integrals_Nikhil.pdf",
+      submittedFile: "Definite_Integrals_Worksheet.pdf",
       submittedAt: "04 Aug 2026, 07:15 PM",
     },
   ]);
@@ -357,8 +368,8 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     {
       id: "t-1",
       title: "NEET All-India Major Test Series #05",
-      course: "NEET Ultimate Droppers & Target 2026 Batch",
-      batch: "NEET Super 30",
+      course: "NEET Comprehensive 2026",
+      batch: "NEET Batch A",
       date: "16 Aug 2026",
       time: "10:00 AM - 01:20 PM",
       durationMinutes: 200,
@@ -368,8 +379,8 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     {
       id: "t-2",
       title: "Biology Speed Drill - Genetics & Evolution",
-      course: "NEET Ultimate Droppers & Target 2026 Batch",
-      batch: "NEET Super 30",
+      course: "NEET Comprehensive 2026",
+      batch: "NEET Batch A",
       date: "12 Aug 2026",
       time: "04:00 PM - 05:00 PM",
       durationMinutes: 60,
@@ -379,8 +390,8 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     {
       id: "t-3",
       title: "Physics Mechanics Part 1 Assessment",
-      course: "NEET Ultimate Droppers & Target 2026 Batch",
-      batch: "NEET Super 30",
+      course: "NEET Comprehensive 2026",
+      batch: "NEET Batch A",
       date: "02 Aug 2026",
       time: "10:00 AM - 01:00 PM",
       durationMinutes: 180,
@@ -393,8 +404,8 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     {
       id: "t-4",
       title: "Chemistry Equilibrium & Kinetics Test",
-      course: "NEET Ultimate Droppers & Target 2026 Batch",
-      batch: "NEET Super 30",
+      course: "NEET Comprehensive 2026",
+      batch: "NEET Batch A",
       date: "25 Jul 2026",
       time: "10:00 AM - 01:00 PM",
       durationMinutes: 180,
@@ -434,10 +445,10 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       id: "rcp-1",
       receiptNo: "RCP-202606-9430",
       date: "15 Jun 2025",
-      mode: "Razorpay",
+      mode: "Online",
       amount: 5000,
       status: "Success",
-      description: "1st Installment Admission Fee - NEET Droppers 2026 Batch",
+      description: "1st Installment Admission Fee - NEET Dropper Batch 2026",
     },
     {
       id: "rcp-2",
@@ -453,7 +464,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
   const [courseStore, setCourseStore] = useState<CourseStoreItem[]>([
     {
       id: "store-1",
-      title: "NEET Super 30 Intensive Crash & Test Series 2026",
+      title: "NEET Batch A Intensive Crash & Test Series 2026",
       category: "Medical Entrance",
       price: 5000,
       originalPrice: 12000,
@@ -527,7 +538,7 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const addPayment = (amount: number, mode: "Razorpay" | "UPI" | "Cash") => {
+  const addPayment = (amount: number, mode: "Online" | "UPI" | "Cash") => {
     const newReceipt: FeeReceipt = {
       id: `rcp-${Date.now()}`,
       receiptNo: `RCP-202608-${Math.floor(1000 + Math.random() * 9000)}`,

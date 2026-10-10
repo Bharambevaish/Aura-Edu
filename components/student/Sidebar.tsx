@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useStudent } from "@/context/StudentContext";
+import { logoutAction } from "@/lib/actions/auth";
 import {
   LayoutDashboard,
   Bell,
@@ -51,33 +52,33 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     {
       title: "CORE PORTAL",
       items: [
-        { name: "Overview", href: "/student-dashboard", icon: LayoutDashboard },
-        { name: "Notifications", href: "/student-dashboard/notifications", icon: Bell, badge: unreadNotifs > 0 ? unreadNotifs : undefined },
+        { name: "Overview", href: "/student-portal", icon: LayoutDashboard },
+        { name: "Notifications", href: "/student-portal/notifications", icon: Bell, badge: unreadNotifs > 0 ? unreadNotifs : undefined },
       ],
     },
     {
       title: "ACADEMIC HUB",
       items: [
-        { name: "My Courses", href: "/student-dashboard/my-courses", icon: BookOpen },
-        { name: "Course Store", href: "/student-dashboard/course-store", icon: ShoppingBag },
-        { name: "Class Schedule", href: "/student-dashboard/schedule", icon: Calendar },
-        { name: "Attendance", href: "/student-dashboard/attendance", icon: Clock },
+        { name: "My Courses", href: "/student-portal/my-courses", icon: BookOpen },
+        { name: "Course Store", href: "/student-portal/course-store", icon: ShoppingBag },
+        { name: "Class Schedule", href: "/student-portal/schedule", icon: Calendar },
+        { name: "Attendance", href: "/student-portal/attendance", icon: Clock },
       ],
     },
     {
       title: "ASSESSMENTS & MARKS",
       items: [
-        { name: "Assignments", href: "/student-dashboard/assignments", icon: FileCheck },
-        { name: "Tests & Quizzes", href: "/student-dashboard/tests", icon: GraduationCap },
-        { name: "Academic Test Card", href: "/student-dashboard/test-card", icon: FileText },
-        { name: "Certificates", href: "/student-dashboard/certificates", icon: Award },
+        { name: "Assignments", href: "/student-portal/assignments", icon: FileCheck },
+        { name: "Tests & Quizzes", href: "/student-portal/tests", icon: GraduationCap },
+        { name: "Academic Test Card", href: "/student-portal/test-card", icon: FileText },
+        { name: "Certificates", href: "/student-portal/certificates", icon: Award },
       ],
     },
     {
       title: "ACCOUNT & FINANCE",
       items: [
-        { name: "Fees & Payments", href: "/student-dashboard/fees", icon: CreditCard, alert: true },
-        { name: "Profile & Security", href: "/student-dashboard/profile/manage", icon: User },
+        { name: "Fees & Payments", href: "/student-portal/fees", icon: CreditCard, alert: true },
+        { name: "Profile & Security", href: "/student-portal/profile/manage", icon: User },
       ],
     },
   ];
@@ -99,7 +100,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         {/* Brand Header */}
         <div className="flex h-18 items-center justify-between px-6 border-b border-slate-800/60">
-          <Link href="/student-dashboard" className="flex items-center gap-3 group">
+          <Link href="/student-portal" className="flex items-center gap-3 group">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-500 shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
               <Sparkles className="h-5 w-5 text-slate-950 font-bold" />
             </div>
@@ -143,7 +144,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               </h5>
               <div className="space-y-1">
                 {group.items.map((item) => {
-                  const isActive = pathname === item.href || (item.href !== "/student-dashboard" && pathname.startsWith(item.href));
+                  const isActive = pathname === item.href || (item.href !== "/student-portal" && pathname.startsWith(item.href));
                   const Icon = item.icon;
                   return (
                     <Link
@@ -188,16 +189,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Footer Logout CTA */}
         <div className="p-4 border-t border-slate-800/80">
-          <Link
-            href="/login-selector"
-            className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <LogOut className="h-4.5 w-4.5 text-rose-400" />
-              <span>Log Out Portal</span>
-            </div>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 font-mono">EXIT</span>
-          </Link>
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 transition-all"
+            >
+              <span className="flex items-center gap-3">
+                <LogOut className="h-4.5 w-4.5 text-rose-400" />
+                <span>Log Out Portal</span>
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 font-mono">EXIT</span>
+            </button>
+          </form>
         </div>
       </aside>
     </>

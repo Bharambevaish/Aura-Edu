@@ -14,15 +14,15 @@ import {
 } from 'lucide-react';
 
 export default function StaffPermissionPage() {
-  const [activeStaff, setActiveStaff] = useState('Nilam Thorat');
+  const [activeStaff, setActiveStaff] = useState('Ritu Sharma');
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({
     'LMS Operations': true,
     'Finance': false,
   });
 
   const staffList = [
-    { name: 'Nilam Thorat', role: 'Manager', selected: true },
-    { name: 'Omkar Katturwar', role: 'Staff', selected: false },
+    { name: 'Ritu Sharma', role: 'Manager', selected: true },
+    { name: 'Amit Joshi', role: 'Staff', selected: false },
     { name: 'Priya Desai', role: 'Counselor', selected: false },
     { name: 'Rahul Sharma', role: 'Faculty', selected: false },
   ];
@@ -127,10 +127,10 @@ export default function StaffPermissionPage() {
           <div className="p-6 border-b border-white/10 bg-white/[0.02] flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-lg shadow-lg">
-                NT
+                RS
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Nilam Thorat</h2>
+                <h2 className="text-xl font-bold text-white">Ritu Sharma</h2>
                 <div className="flex gap-2 mt-1">
                   <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-white/10">Role: Manager</span>
                   <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
@@ -195,7 +195,7 @@ export default function StaffPermissionPage() {
               <ShieldAlert size={20} className="text-orange-400 shrink-0" />
               <div>
                 <h4 className="text-sm font-semibold text-orange-400 mb-1">Administrative Privileges</h4>
-                <p className="text-xs text-orange-200">Granting 'Manage Master Data' or 'Global Settings' gives this user administrative control over the entire workspace. Proceed with caution.</p>
+                <p className="text-xs text-orange-200">Granting &apos;Manage Master Data&apos; or &apos;Global Settings&apos; gives this user administrative control over the entire workspace. Proceed with caution.</p>
               </div>
             </div>
           </div>

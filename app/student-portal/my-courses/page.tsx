@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useStudent, EnrolledCourse } from "@/context/StudentContext";
 import {
   BookOpen,
@@ -9,13 +10,10 @@ import {
   LayoutGrid,
   List,
   CheckCircle2,
-  Clock,
   PlayCircle,
   FileText,
   X,
   Sparkles,
-  ShieldCheck,
-  ChevronRight,
   Info,
 } from "lucide-react";
 
@@ -49,7 +47,7 @@ export default function MyCoursesPage() {
 
           <div className="flex items-center gap-3">
             <Link
-              href="/student-dashboard/course-store"
+              href="/student-portal/course-store"
               className="px-4 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 shadow-lg shadow-cyan-500/20 transition-all flex items-center gap-2"
             >
               <Sparkles className="h-4 w-4" /> Explore Course Store
@@ -135,10 +133,12 @@ export default function MyCoursesPage() {
               <div>
                 {/* Course Banner Image */}
                 <div className="relative h-44 w-full bg-slate-950 overflow-hidden">
-                  <img
+                  <Image
                     src={course.thumbnail}
                     alt={course.title}
-                    className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-80"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300 opacity-80"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
                   <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[10px] font-bold text-cyan-400 font-mono">
@@ -185,7 +185,7 @@ export default function MyCoursesPage() {
               {/* Bottom Actions */}
               <div className="p-6 pt-0 flex items-center gap-3">
                 <Link
-                  href={`/student-dashboard/my-courses/${course.id}/learn`}
+                  href={`/student-portal/my-courses/${course.id}/learn`}
                   className="flex-1 py-3 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition-colors text-center flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
                 >
                   <PlayCircle className="h-4 w-4" /> Continue Learning
@@ -209,9 +209,11 @@ export default function MyCoursesPage() {
               className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
               <div className="flex items-start gap-4">
-                <img
+                <Image
                   src={course.thumbnail}
                   alt={course.title}
+                  width={112}
+                  height={80}
                   className="h-20 w-28 rounded-xl object-cover shrink-0 border border-slate-800"
                 />
                 <div className="space-y-1">
@@ -242,7 +244,7 @@ export default function MyCoursesPage() {
 
                 <div className="flex items-center gap-2">
                   <Link
-                    href={`/student-dashboard/my-courses/${course.id}/learn`}
+                    href={`/student-portal/my-courses/${course.id}/learn`}
                     className="px-4 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition-all flex items-center gap-2"
                   >
                     <PlayCircle className="h-4 w-4" /> Continue
@@ -318,7 +320,7 @@ export default function MyCoursesPage() {
 
               <div className="flex items-center gap-3 pt-4 border-t border-slate-800">
                 <Link
-                  href={`/student-dashboard/my-courses/${selectedCourse.id}/learn`}
+                  href={`/student-portal/my-courses/${selectedCourse.id}/learn`}
                   onClick={() => setSelectedCourse(null)}
                   className="flex-1 py-3 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 text-center shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2"
                 >

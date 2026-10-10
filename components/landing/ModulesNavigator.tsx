@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GraduationCap, Building, Users, CheckCircle2, ArrowRight, Layers, Lock, Sparkles, Filter } from "lucide-react";
+import { GraduationCap, Building, Users, CheckCircle2, Layers, Sparkles, Filter } from "lucide-react";
 
 export default function ModulesNavigator() {
   const [activeMainTab, setActiveMainTab] = useState<"academy" | "erp" | "hrm">("academy");

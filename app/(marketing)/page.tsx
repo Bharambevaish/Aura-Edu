@@ -1,13 +1,13 @@
-import Header from "@/components/Header";
-import Hero from "@/components/Hero";
-import FeatureTicker from "@/components/FeatureTicker";
-import WhyMyEdou from "@/components/WhyMyEdou";
-import ModulesNavigator from "@/components/ModulesNavigator";
-import QuoteSelector from "@/components/QuoteSelector";
-import CodeserveAbout from "@/components/CodeserveAbout";
-import FAQSection from "@/components/FAQSection";
-import ContactSection from "@/components/ContactSection";
-import Footer from "@/components/Footer";
+import Header from "@/components/landing/Header";
+import Hero from "@/components/landing/Hero";
+import FeatureTicker from "@/components/landing/FeatureTicker";
+import WhyMyEdou from "@/components/landing/WhyMyEdou";
+import ModulesNavigator from "@/components/landing/ModulesNavigator";
+import QuoteSelector from "@/components/landing/QuoteSelector";
+import AboutSection from "@/components/landing/AboutSection";
+import FAQSection from "@/components/landing/FAQSection";
+import ContactSection from "@/components/landing/ContactSection";
+import Footer from "@/components/landing/Footer";
 
 export default function Home() {
   return (
@@ -18,7 +18,7 @@ export default function Home() {
       <WhyMyEdou />
       <ModulesNavigator />
       <QuoteSelector />
-      <CodeserveAbout />
+      <AboutSection />
       <FAQSection />
       <ContactSection />
       <Footer />

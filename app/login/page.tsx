@@ -1,30 +1,32 @@
 "use client";
 
-import { useState } from "react";
+/**
+ * Login screen — the only gate into the portals.
+ *
+ * Submits to the `login` server action (Auth.js Credentials underneath), which
+ * revalidates + rate-limits every attempt. The one-click demo buttons below
+ * simply pre-fill the exact same form → same server action (kept public for
+ * demo-day wow; note: that inherently means these demo credentials are public
+ * by design).
+ */
+import { useState, useActionState } from "react";
 import Link from "next/link";
-import { GraduationCap, UserPlus, ShieldCheck, ArrowLeft, Lock, CheckCircle2, User, KeyRound } from "lucide-react";
+import { GraduationCap, ShieldCheck, ArrowLeft, AlertCircle, LogIn } from "lucide-react";
+import { login } from "@/lib/actions/auth";
+
+const DEMO_LOGINS = {
+  student: { email: "student@demo.myedou.com", password: "Student@123", label: "Explore as Student" },
+  admin: { email: "admin@demo.myedou.com", password: "Admin@123", label: "Explore as Admin" },
+  staff: { email: "staff@demo.myedou.com", password: "Staff@123", label: "Explore as Staff" },
+} as const;
 
 export default function LoginSelectorPage() {
-  const [activeTab, setActiveTab] = useState<"student" | "register" | "admin" | "staff">("student");
-
-  // Form states
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [dob, setDob] = useState("");
-  const [qualification, setQualification] = useState("");
-  const [message, setMessage] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage(`Successfully authenticated into ${activeTab.toUpperCase()} portal! (Demo Mode)`);
-    setTimeout(() => setMessage(""), 5000);
-  };
+  const [activeTab, setActiveTab] = useState<"student" | "admin" | "staff">("student");
+  const [state, formAction, pending] = useActionState(login, null);
 
   return (
     <div className="min-h-screen bg-[#070B14] text-slate-100 flex flex-col justify-between relative overflow-hidden">
-      
+
       {/* Background radial lighting */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-[#5E9A2E]/15 rounded-full blur-[140px] pointer-events-none" />
 
@@ -45,19 +47,19 @@ export default function LoginSelectorPage() {
 
       {/* Main Container */}
       <main className="max-w-4xl mx-auto px-4 py-10 z-10 w-full">
-        
+
         {/* Title */}
         <div className="text-center mb-10 space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#5E9A2E]/10 text-[#74B53C] text-xs font-mono font-bold">
-            v2.3 Portal Authentication
+            v1.0 Demo Preview
           </div>
           <h1 className="text-4xl font-extrabold text-white">Welcome Back</h1>
           <p className="text-sm text-slate-400">Select your portal role to continue to your dashboard</p>
         </div>
 
         {/* Portal Selector Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+
           {/* Card 1: Student Login */}
           <div
             onClick={() => setActiveTab("student")}
@@ -74,36 +76,28 @@ export default function LoginSelectorPage() {
             <p className="text-xs text-slate-400 mt-1">Access your courses & learning dashboard</p>
           </div>
 
-          {/* Card 2: New Student Registration */}
-          <Link
-            href="/student-registration"
-            className={`p-5 rounded-2xl border cursor-pointer transition-all glass-panel border-white/10 hover:border-white/20 hover:bg-blue-500/10`}
-          >
-            <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-3">
-              <UserPlus className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-white text-base">New Student?</h3>
-            <p className="text-xs text-slate-400 mt-1">Register for temporary password & onboarding</p>
-          </Link>
-
-          {/* Card 3: Admin / Staff Panel */}
-          <Link
-            href="/admin-dashboard"
-            className={`p-5 rounded-2xl border cursor-pointer transition-all glass-panel border-white/10 hover:border-white/20 hover:bg-purple-500/10`}
+          {/* Card 2: Admin / Staff Panel */}
+          <div
+            onClick={() => setActiveTab("admin")}
+            className={`p-5 rounded-2xl border cursor-pointer transition-all ${
+              activeTab === "admin" || activeTab === "staff"
+                ? "bg-purple-500/20 border-purple-500 shadow-xl shadow-purple-500/10"
+                : "glass-panel border-white/10 hover:border-white/20"
+            }`}
           >
             <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-3">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <h3 className="font-bold text-white text-base">Admin / Staff Panel</h3>
             <p className="text-xs text-slate-400 mt-1">Manage students, courses & system modules</p>
-          </Link>
+          </div>
 
         </div>
 
         {/* Form Container Card */}
         <div className="p-8 rounded-3xl glass-panel border border-white/15 shadow-2xl max-w-lg mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            
+          <form action={formAction} className="space-y-4">
+
             {/* Student Login Form */}
             {activeTab === "student" && (
               <>
@@ -118,12 +112,14 @@ export default function LoginSelectorPage() {
                   <label className="block text-xs font-semibold text-slate-300 mb-1">Email</label>
                   <input
                     type="email"
+                    name="email"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="student@example.com"
                     className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm outline-none focus:border-[#74B53C]"
                   />
+                  {state?.errors?.email && (
+                    <p className="text-xs text-red-400 mt-1">{state.errors.email.join(", ")}</p>
+                  )}
                 </div>
 
                 <div>
@@ -133,96 +129,22 @@ export default function LoginSelectorPage() {
                   </div>
                   <input
                     type="password"
+                    name="password"
                     required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm outline-none focus:border-[#74B53C]"
                   />
+                  {state?.errors?.password && (
+                    <p className="text-xs text-red-400 mt-1">{state.errors.password.join(", ")}</p>
+                  )}
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#5E9A2E] to-[#74B53C] text-white font-bold text-sm shadow-lg shadow-[#5E9A2E]/30 hover:scale-[1.01] transition-all"
+                  disabled={pending}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#5E9A2E] to-[#74B53C] text-white font-bold text-sm shadow-lg shadow-[#5E9A2E]/30 hover:scale-[1.01] transition-all disabled:opacity-60"
                 >
-                  Login as Student
-                </button>
-              </>
-            )}
-
-            {/* Registration Form */}
-            {activeTab === "register" && (
-              <>
-                <div className="text-center pb-2 border-b border-white/10">
-                  <h2 className="text-xl font-bold text-white flex items-center justify-center gap-2">
-                    <UserPlus className="w-5 h-5 text-blue-400" />
-                    New Student Registration
-                  </h2>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Full name"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm outline-none focus:border-blue-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm outline-none focus:border-blue-400"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Mobile</label>
-                    <input
-                      type="tel"
-                      required
-                      value={mobile}
-                      onChange={(e) => setMobile(e.target.value)}
-                      placeholder="10-digit mobile"
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm outline-none focus:border-blue-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">Date of Birth</label>
-                    <input
-                      type="date"
-                      value={dob}
-                      onChange={(e) => setDob(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm outline-none focus:border-blue-400"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Qualification</label>
-                  <input
-                    type="text"
-                    value={qualification}
-                    onChange={(e) => setQualification(e.target.value)}
-                    placeholder="Class 12th / BE / BSc"
-                    className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm outline-none focus:border-blue-400"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm shadow-lg shadow-blue-500/30 hover:scale-[1.01] transition-all"
-                >
-                  Register Account
+                  {pending ? "Signing in..." : "Login as Student"}
                 </button>
               </>
             )}
@@ -263,12 +185,14 @@ export default function LoginSelectorPage() {
                   </label>
                   <input
                     type="text"
+                    name="email"
                     required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={activeTab === "admin" ? "admin@myedou.com" : "staff_username"}
+                    placeholder={activeTab === "admin" ? "admin@demo.myedou.com" : "staff@demo.myedou.com"}
                     className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm outline-none focus:border-purple-400"
                   />
+                  {state?.errors?.email && (
+                    <p className="text-xs text-red-400 mt-1">{state.errors.email.join(", ")}</p>
+                  )}
                 </div>
 
                 <div>
@@ -278,41 +202,65 @@ export default function LoginSelectorPage() {
                   </div>
                   <input
                     type="password"
+                    name="password"
                     required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm outline-none focus:border-purple-400"
                   />
+                  {state?.errors?.password && (
+                    <p className="text-xs text-red-400 mt-1">{state.errors.password.join(", ")}</p>
+                  )}
                 </div>
 
                 <button
                   type="submit"
-                  className={`w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-lg transition-all ${
+                  disabled={pending}
+                  className={`w-full py-3.5 rounded-xl text-white font-bold text-sm shadow-lg transition-all disabled:opacity-60 ${
                     activeTab === "admin"
                       ? "bg-gradient-to-r from-purple-600 to-pink-600 shadow-purple-500/30"
                       : "bg-gradient-to-r from-amber-600 to-orange-600 shadow-amber-500/30"
                   }`}
                 >
-                  {activeTab === "admin" ? "Login as System Admin" : "Login as Staff Member"}
+                  {pending ? "Signing in..." : activeTab === "admin" ? "Login as System Admin" : "Login as Staff Member"}
                 </button>
               </>
             )}
 
-            {message && (
-              <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500 text-emerald-300 text-xs font-semibold text-center flex items-center justify-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>{message}</span>
+            {state?.message && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/40 text-red-400 text-xs font-semibold text-center flex items-center justify-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                <span>{state.message}</span>
               </div>
             )}
           </form>
+
+          {/* One-click demo logins */}
+          <div className="mt-5 pt-5 border-t border-white/10 space-y-2">
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 font-mono text-center">One-click demo access</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {(["student", "admin", "staff"] as const).map((role) => (
+                <form key={role} action={formAction}>
+                  <input type="hidden" name="email" value={DEMO_LOGINS[role].email} />
+                  <input type="hidden" name="password" value={DEMO_LOGINS[role].password} />
+                  <button
+                    type="submit"
+                    disabled={pending}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-200 hover:bg-white/10 text-xs font-semibold transition-colors disabled:opacity-60"
+                  >
+                    <LogIn className="w-3.5 h-3.5 text-[#74B53C]" />
+                    {DEMO_LOGINS[role].label}
+                  </button>
+                </form>
+              ))}
+            </div>
+          </div>
         </div>
 
       </main>
 
       {/* Footer */}
       <footer className="p-6 text-center text-xs text-slate-500 z-10 border-t border-white/5">
-        © 2026 Codeserve Tech Solutions · Secured by MyEdou Identity Auth Engine
+        © 2026 MyEdou · Demo Preview
       </footer>
     </div>
   );

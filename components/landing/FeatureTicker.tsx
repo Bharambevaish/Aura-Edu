@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Sparkles, Building2, Users, Rocket, Calendar } from "lucide-react";
+import { Building2, Users, Rocket, Calendar } from "lucide-react";
 
 export default function FeatureTicker() {
   const tickerItems = [
@@ -19,10 +19,10 @@ export default function FeatureTicker() {
   ];
 
   const stats = [
-    { label: "Products Launched", value: "7", icon: Rocket, detail: "Operating across web & mobile" },
-    { label: "Team Members", value: "27+", icon: Users, detail: "Engineers & domain specialists" },
-    { label: "Engagements Shipped", value: "40+", icon: Building2, detail: "Deployments nationwide" },
-    { label: "Founded in Pune", value: "2025", icon: Calendar, detail: "Codeserve Tech Solutions" },
+    { label: "Demo Modules", value: "25+", icon: Rocket, detail: "Explorable end-to-end" },
+    { label: "Sample Students", value: "20+", icon: Users, detail: "Realistic seeded data" },
+    { label: "Sample Staff", value: "6+", icon: Building2, detail: "Across all modules" },
+    { label: "Branches", value: "2", icon: Calendar, detail: "Head office + branch" },
   ];
 
   return (

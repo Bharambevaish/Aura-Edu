@@ -4,14 +4,13 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useStudent } from "@/context/StudentContext";
+import { logoutAction } from "@/lib/actions/auth";
 import {
   Menu,
   Bell,
-  Search,
   ChevronDown,
   User,
   LogOut,
-  Sparkles,
   ShieldCheck,
   CheckCircle2,
   AlertCircle,
@@ -31,7 +30,7 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const getBreadcrumbTitle = (path: string) => {
-    if (path === "/student-dashboard") return "Dashboard Overview";
+    if (path === "/student-portal") return "Dashboard Overview";
     if (path.includes("/notifications")) return "Notifications Hub";
     if (path.includes("/my-courses") && path.includes("/learn")) return "Course Video Player";
     if (path.includes("/my-courses")) return "My Enrolled Courses";
@@ -78,13 +77,13 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
         {/* Version Badge */}
         <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
           <ShieldCheck className="h-3.5 w-3.5" />
-          <span>v2.3 Active</span>
+          <span>v1.0 Demo</span>
         </div>
 
         {/* Fee Alert Quick Indicator */}
         {pendingFee > 0 && (
           <Link
-            href="/student-dashboard/fees"
+            href="/student-portal/fees"
             className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium hover:bg-amber-500/20 transition-colors"
           >
             <AlertCircle className="h-4 w-4 text-amber-400 animate-pulse" />
@@ -115,7 +114,7 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
                   <Bell className="h-4 w-4 text-cyan-400" /> Notifications ({unreadCount} unread)
                 </h3>
                 <Link
-                  href="/student-dashboard/notifications"
+                  href="/student-portal/notifications"
                   onClick={() => setShowNotifQuick(false)}
                   className="text-xs font-semibold text-cyan-400 hover:underline flex items-center gap-1"
                 >
@@ -172,14 +171,14 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
               </div>
 
               <Link
-                href="/student-dashboard/profile/manage"
+                href="/student-portal/profile/manage"
                 onClick={() => setShowProfileDropdown(false)}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
               >
                 <User className="h-4 w-4 text-cyan-400" /> Manage Profile & Password
               </Link>
               <Link
-                href="/student-dashboard/fees"
+                href="/student-portal/fees"
                 onClick={() => setShowProfileDropdown(false)}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
               >
@@ -188,12 +187,11 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
 
               <div className="my-1 border-t border-slate-800" />
 
-              <Link
-                href="/login-selector"
-                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors"
-              >
-                <LogOut className="h-4 w-4" /> Sign Out
-              </Link>
+              <form action={logoutAction}>
+                <button type="submit" className="flex w-full items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 transition-colors">
+                  <LogOut className="h-4 w-4" /> Sign Out
+                </button>
+              </form>
             </div>
           )}
         </div>

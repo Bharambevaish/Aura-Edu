@@ -7,9 +7,7 @@ import {
   IndianRupee, 
   TrendingUp, 
   TrendingDown, 
-  CreditCard,
   Users,
-  BookOpen,
   Activity,
   ArrowRight,
   FileText

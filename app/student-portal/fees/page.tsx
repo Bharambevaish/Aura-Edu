@@ -8,10 +8,7 @@ import {
   AlertCircle,
   Download,
   X,
-  ShieldCheck,
   Receipt,
-  Sparkles,
-  ArrowRight,
 } from "lucide-react";
 
 export default function FeesPage() {
@@ -26,7 +23,7 @@ export default function FeesPage() {
 
   const [showPayDrawer, setShowPayDrawer] = useState(false);
   const [payAmount, setPayAmount] = useState(pendingFee > 0 ? pendingFee : 5001);
-  const [payMode, setPayMode] = useState<"Razorpay" | "UPI" | "Cash">("Razorpay");
+  const [payMode, setPayMode] = useState<"Online" | "UPI" | "Cash">("Online");
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
@@ -177,7 +174,7 @@ export default function FeesPage() {
             <div>
               <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-amber-400" /> Razorpay Payment Drawer
+                  <CreditCard className="h-5 w-5 text-amber-400" /> Online Payment Drawer
                 </h3>
                 <button
                   onClick={() => setShowPayDrawer(false)}
@@ -219,7 +216,7 @@ export default function FeesPage() {
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-slate-300">Payment Gateway Mode</label>
                     <div className="grid grid-cols-3 gap-2">
-                      {(["Razorpay", "UPI", "Cash"] as const).map((m) => (
+                      {(["Online", "UPI", "Cash"] as const).map((m) => (
                         <button
                           type="button"
                           key={m}
@@ -241,7 +238,7 @@ export default function FeesPage() {
                     disabled={isProcessing || payAmount <= 0}
                     className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold text-xs hover:from-amber-400 hover:to-amber-500 transition-all shadow-lg shadow-amber-500/20"
                   >
-                    {isProcessing ? "Connecting to Razorpay..." : `Confirm Payment of ₹${payAmount}`}
+                    {isProcessing ? "Connecting to payment gateway..." : `Confirm Payment of ₹${payAmount}`}
                   </button>
                 </form>
               )}

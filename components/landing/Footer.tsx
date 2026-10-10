@@ -19,12 +19,12 @@ export default function Footer() {
               </div>
               <div className="flex flex-col">
                 <span className="font-bold text-xl text-white">MyEdou</span>
-                <span className="text-[10px] text-slate-500 uppercase tracking-widest -mt-1">by Codeserve Tech Solutions</span>
+                <span className="text-[10px] text-slate-500 uppercase tracking-widest -mt-1">Institution Management Suite</span>
               </div>
             </Link>
 
             <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-              MyEdou Academy, ERP and HRM — one platform family for coaching centres, schools, colleges and universities. Web portals plus a mobile app.
+              One platform for coaching centres, schools, colleges and universities — admissions, students, staff, attendance, examinations, fees, accounts and payroll on web and mobile.
             </p>
 
             {/* Social Icons */}
@@ -80,7 +80,7 @@ export default function Footer() {
                 <a href="#quote" className="hover:text-white transition-colors">Get Quotation</a>
               </li>
               <li>
-                <Link href="/login-selector" className="hover:text-white transition-colors">Login Selector</Link>
+                <Link href="/login" className="hover:text-white transition-colors">Login Selector</Link>
               </li>
             </ul>
           </div>
@@ -90,7 +90,7 @@ export default function Footer() {
             <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider">COMPANY</h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#about" className="hover:text-white transition-colors">About Codeserve Tech Solutions</a>
+                <a href="#about" className="hover:text-white transition-colors">About MyEdou</a>
               </li>
               <li>
                 <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
@@ -100,12 +100,12 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://www.codeservetech.com"
+                  href="https://www.myedou.com"
                   target="_blank"
                   rel="noreferrer"
                   className="hover:text-[#74B53C] transition-colors flex items-center gap-1"
                 >
-                  codeservetech.com <ArrowUpRight className="w-3 h-3" />
+                  myedou.com <ArrowUpRight className="w-3 h-3" />
                 </a>
               </li>
               <li>
@@ -118,10 +118,10 @@ export default function Footer() {
           <div className="lg:col-span-3 space-y-3">
             <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider">REACH US</h4>
             <div className="space-y-2 text-xs text-slate-400">
-              <div>Phone: +91 87937 89160 · +91 86687 89160</div>
-              <div>Email: contact@codeservetech.com</div>
+              <div>Phone: +91 98765 00000</div>
+              <div>Email: support@demo.myedou.com</div>
               <div className="text-[11px] leading-relaxed">
-                Office No. 1014 & 1015, Gera&apos;s Imperium Rise, Hinjawadi Phase II, Pune, MH 411057
+                10, Knowledge Park, South City, MH 411006
               </div>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function Footer() {
         {/* Bottom Copyright Row */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <div>
-            © 2026 Codeserve Tech Solutions · www.myedou.com · All rights reserved.
+            © 2026 MyEdou · All rights reserved.
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-slate-400">

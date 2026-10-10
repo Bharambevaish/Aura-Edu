@@ -8,13 +8,9 @@ import {
   Star,
   CheckCircle2,
   Tag,
-  Clock,
-  Sparkles,
   X,
   CreditCard,
   Check,
-  ChevronRight,
-  ShieldCheck,
 } from "lucide-react";
 
 export default function CourseStorePage() {
@@ -251,7 +247,7 @@ export default function CourseStorePage() {
                   disabled={isProcessing}
                   className="w-full py-3 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
                 >
-                  {isProcessing ? "Processing Razorpay Demo..." : `Confirm Payment ₹${selectedCourse.price}`}
+                  {isProcessing ? "Processing Online Payment..." : `Confirm Payment ₹${selectedCourse.price}`}
                 </button>
               </div>
             )}

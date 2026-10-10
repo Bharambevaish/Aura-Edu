@@ -65,3 +65,22 @@
   background: #5E9A2E;
 }
 
+/* Print: only the #print-card report card is printed (student test cards) */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #print-card,
+  #print-card * {
+    visibility: visible;
+  }
+  #print-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #ffffff;
+    color: #0f172a;
+  }
+}
+

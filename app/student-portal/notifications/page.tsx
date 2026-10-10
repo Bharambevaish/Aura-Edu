@@ -1,32 +1,58 @@
 "use client";
 
-import React, { useState } from "react";
-import { useStudent, NotificationItem } from "@/context/StudentContext";
+import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import {
+  getStudentNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  type StudentNotification,
+} from "@/lib/actions/assignments";
 import {
   Bell,
   Search,
   CheckCircle2,
   Filter,
   RefreshCw,
-  Settings,
   X,
-  AlertCircle,
-  Clock,
   Shield,
-  Monitor,
-  Laptop,
-  Check,
   ChevronRight,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
 
 export default function NotificationsPage() {
-  const { notifications, markNotificationAsRead, markAllNotificationsAsRead } = useStudent();
+  const [notifications, setNotifications] = useState<StudentNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [activeFilter, setActiveFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [selectedNotif, setSelectedNotif] = useState<NotificationItem | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState<StudentNotification | null>(null);
+
+  const fetchNotifications = useCallback(async () => await getStudentNotifications(), []);
+
+  useEffect(() => {
+    let ignore = false;
+    fetchNotifications()
+      .then((data) => {
+        if (!ignore) setNotifications(data);
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [fetchNotifications]);
+
+  const refresh = () => {
+    setIsRefreshing(true);
+    void fetchNotifications()
+      .then(setNotifications)
+      .finally(() => setIsRefreshing(false));
+  };
 
   const categories = [
     "All",
@@ -41,18 +67,15 @@ export default function NotificationsPage() {
   ];
 
   const filteredNotifications = notifications.filter((item) => {
-    // Search query filter
     const matchesSearch =
       item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.sender.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Category filter
     let matchesCategory = true;
     if (activeCategory === "Unread") matchesCategory = !item.read;
     else if (activeCategory !== "All") matchesCategory = item.category === activeCategory;
 
-    // Filter pill
     let matchesPill = true;
     if (activeFilter === "Unread") matchesPill = !item.read;
     if (activeFilter === "Today") matchesPill = item.date === "Today";
@@ -62,16 +85,21 @@ export default function NotificationsPage() {
     return matchesSearch && matchesCategory && matchesPill;
   });
 
-  const handleRefresh = () => {
-    setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 500);
-  };
-
-  const handleSelectNotif = (notif: NotificationItem) => {
+  const handleSelectNotif = (notif: StudentNotification) => {
     setSelectedNotif(notif);
     if (!notif.read) {
-      markNotificationAsRead(notif.id);
+      void markNotificationRead(notif.id).then(() => {
+        setSelectedNotif((cur) => (cur?.id === notif.id ? { ...cur, read: true } : cur));
+        setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)));
+      });
     }
+  };
+
+  const handleMarkAllRead = () => {
+    void markAllNotificationsRead().then(() => {
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setSelectedNotif((cur) => (cur ? { ...cur, read: true } : cur));
+    });
   };
 
   return (
@@ -90,13 +118,13 @@ export default function NotificationsPage() {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={markAllNotificationsAsRead}
+            onClick={handleMarkAllRead}
             className="px-3 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 text-xs font-semibold flex items-center gap-1.5 transition-all"
           >
             <CheckCircle2 className="h-3.5 w-3.5" /> Mark All Read
           </button>
           <button
-            onClick={handleRefresh}
+            onClick={refresh}
             className={`p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-all ${
               isRefreshing ? "animate-spin" : ""
             }`}
@@ -109,7 +137,6 @@ export default function NotificationsPage() {
 
       {/* 2. Category Filters & Search Bar */}
       <div className="p-4 rounded-3xl bg-slate-900/90 border border-slate-800 space-y-4">
-        {/* Search Input & Quick Status Pills */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
@@ -139,7 +166,6 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        {/* Category Scroll Bar */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 border-t border-slate-800/80 pt-3">
           <span className="text-xs font-bold text-slate-400 uppercase font-mono mr-2 flex items-center gap-1">
             <Filter className="h-3 w-3" /> Category:
@@ -162,13 +188,15 @@ export default function NotificationsPage() {
 
       {/* 3. Notification List */}
       <div className="space-y-3">
-        {filteredNotifications.length === 0 ? (
+        {loading ? (
+          <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 text-slate-400 text-sm flex items-center justify-center gap-2">
+            <Loader2 className="h-5 w-5 animate-spin" /> Loading notifications...
+          </div>
+        ) : filteredNotifications.length === 0 ? (
           <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
             <Bell className="h-10 w-10 text-slate-600 mx-auto" />
             <h3 className="text-base font-bold text-white">No notifications found</h3>
-            <p className="text-xs text-slate-400">
-              Try adjusting your search criteria or category filter.
-            </p>
+            <p className="text-xs text-slate-400">Try adjusting your search criteria or category filter.</p>
           </div>
         ) : (
           filteredNotifications.map((notif) => (
@@ -204,9 +232,7 @@ export default function NotificationsPage() {
                         IMPORTANT
                       </span>
                     )}
-                    {!notif.read && (
-                      <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-                    )}
+                    {!notif.read && <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />}
                   </div>
                   <h4 className="text-sm font-bold text-white">{notif.title}</h4>
                   <p className="text-xs text-slate-300 line-clamp-2">{notif.message}</p>
@@ -258,7 +284,15 @@ export default function NotificationsPage() {
                   {selectedNotif.message}
                 </div>
 
-                {/* Audit & Device Metadata Box */}
+                {selectedNotif.link && (
+                  <Link
+                    href={selectedNotif.link}
+                    className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold text-xs hover:from-emerald-400 hover:to-cyan-400 transition-colors shadow-lg shadow-emerald-500/20"
+                  >
+                    <ExternalLink className="h-4 w-4" /> Open linked page
+                  </Link>
+                )}
+
                 <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-3 text-xs">
                   <h4 className="font-bold text-slate-300 uppercase font-mono tracking-wider text-[11px] flex items-center gap-1.5">
                     <Shield className="h-3.5 w-3.5 text-emerald-400" /> Security & Audit Log
