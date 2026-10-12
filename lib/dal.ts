@@ -82,3 +82,15 @@ export async function requireRole(
     },
   };
 }
+
+/**
+ * Gate for admin-only dashboard sections (see lib/permissions.ts). Used by the
+ * section layouts; staff are sent back to their dashboard instead of "/".
+ */
+export async function requireAdminPage(): Promise<{ user: SessionUser }> {
+  const { user } = await requireRole(["admin", "staff"]);
+  if (user.role !== "admin") {
+    redirect("/admin-dashboard?denied=1");
+  }
+  return { user };
+}

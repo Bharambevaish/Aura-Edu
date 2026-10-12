@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logoutAction } from "@/lib/actions/auth";
+import { canAccessPath } from "@/lib/permissions";
+import type { Role } from "@/lib/models/User";
 import {
   LayoutDashboard,
   GraduationCap,
@@ -130,10 +132,23 @@ const navigation: NavItem[] = [
 interface AdminSidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  role: Role;
 }
 
-export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSidebarProps) {
+/** Only the links this role may open (lib/permissions.ts); empty groups are dropped. */
+function navigationFor(role: Role): NavItem[] {
+  return navigation
+    .map((item) =>
+      item.children
+        ? { ...item, children: item.children.filter((c) => !c.href || canAccessPath(role, c.href)) }
+        : item,
+    )
+    .filter((item) => (item.children ? item.children.length > 0 : !item.href || canAccessPath(role, item.href)));
+}
+
+export default function AdminSidebar({ isCollapsed, setIsCollapsed, role }: AdminSidebarProps) {
   const pathname = usePathname();
+  const visibleNavigation = navigationFor(role);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   const toggleGroup = (label: string) => {
@@ -168,7 +183,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
               className="flex items-center gap-2 font-bold text-xl text-white tracking-tight"
             >
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-700 flex items-center justify-center shadow-lg shadow-green-500/20">
-                <span className="text-white text-sm">M</span>
+                <span className="text-white text-sm">A</span>
               </div>
               AuraEdu
             </motion.div>
@@ -183,7 +198,7 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed }: AdminSideb
       </div>
 
       <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1 custom-scrollbar">
-        {navigation.map((item) => (
+        {visibleNavigation.map((item) => (
           <div key={item.label}>
             {item.children ? (
               <div>

@@ -363,7 +363,7 @@ export async function updateStudent(id: string, input: Record<string, unknown>):
 }
 
 export async function deleteStudent(id: string): Promise<StudentOutcome> {
-  const { user } = await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin"]);
 
   await connectDB();
 
@@ -425,7 +425,7 @@ export async function bulkGenerateLogins(input: unknown): Promise<BulkOutcome> {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Select at least one student." };
   }
 
-  await requireRole(["admin", "staff"]);
+  await requireRole(["admin"]);
   await connectDB();
 
   const students = await UserModel.find({ _id: { $in: parsed.data.ids }, role: "student" }).lean();
@@ -448,7 +448,7 @@ export async function bulkSendCredentials(input: unknown): Promise<BulkOutcome> 
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Select at least one student." };
   }
 
-  await requireRole(["admin", "staff"]);
+  await requireRole(["admin"]);
   await connectDB();
 
   const count = await UserModel.countDocuments({ _id: { $in: parsed.data.ids }, role: "student" });

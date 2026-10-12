@@ -64,7 +64,7 @@ function toDTO(s: SessionDoc, now: Date): LoginSessionDTO {
 
 /** Full overview for the page: every student + their sessions + derived metrics. */
 export async function getLoginOverview(): Promise<LoginOverview> {
-  await requireRole(["admin", "staff"]);
+  await requireRole(["admin"]);
   await connectDB();
 
   const students = await UserModel.find({ role: "student" }).sort({ name: 1 }).lean();
@@ -133,7 +133,7 @@ export async function getLoginOverview(): Promise<LoginOverview> {
 export async function toggleBlockUser(
   userId: string,
 ): Promise<{ ok: boolean; blocked?: boolean; message?: string }> {
-  await requireRole(["admin", "staff"]);
+  await requireRole(["admin"]);
   await connectDB();
 
   const student = await UserModel.findById(userId)
@@ -163,7 +163,7 @@ export async function toggleBlockUser(
 export async function forceLogoutUser(
   userId: string,
 ): Promise<{ ok: boolean; count?: number; message?: string }> {
-  await requireRole(["admin", "staff"]);
+  await requireRole(["admin"]);
   await connectDB();
 
   const res = await SessionModel.updateMany(
@@ -181,7 +181,7 @@ export async function forceLogoutUser(
 export async function forceLogoutSession(
   sessionId: string,
 ): Promise<{ ok: boolean; message?: string }> {
-  await requireRole(["admin", "staff"]);
+  await requireRole(["admin"]);
   await connectDB();
 
   const res = await SessionModel.updateOne(

@@ -399,7 +399,7 @@ export async function getExpenses(): Promise<{ stats: { pending: number; approve
 }
 
 export async function getApprovalQueue(): Promise<ExpenseRow[]> {
-  await requireRole(["admin", "staff"]);
+  await requireRole(["admin"]);
   await connectDB();
   const details = await fetchExpenseDetails();
   return details.filter((e) => e.status === "pending").map(toExpenseRow);
@@ -1157,7 +1157,7 @@ export type AuditEntry = {
 };
 
 export async function getAuditTrail(): Promise<{ stats: { total: number; admin: number; staff: number; system: number }; entries: AuditEntry[] }> {
-  await requireRole(["admin", "staff"]);
+  await requireRole(["admin"]);
   await connectDB();
   const entries = await AuditLogModel.find().sort({ createdAt: -1 }).lean();
   const rows: AuditEntry[] = entries.map((e) => ({

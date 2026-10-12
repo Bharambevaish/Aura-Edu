@@ -26,6 +26,7 @@ import AddStudentModal from "@/components/admin/lms/students/AddStudentModal";
 import StudentDetailModal from "@/components/admin/lms/students/StudentDetailModal";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { useIsAdmin } from "@/components/admin/shell/AdminUserContext";
 import {
   getStudents,
   deleteStudent,
@@ -115,6 +116,8 @@ const COURSE_OPTIONS = [
 
 export default function StudentManagementPage() {
   const { toast } = useToast();
+  // Deleting students and (re)issuing passwords are admin-only (server-enforced).
+  const isAdmin = useIsAdmin();
 
   const [data, setData] = useState<{ stats: StudentStats; students: StudentRowDTO[]; totalPages: number; currentPage: number; total: number }>({
     stats: { totalStudents: 0, active: 0, inactive: 0, batchCount: 0, batches: [] },
@@ -651,20 +654,24 @@ export default function StudentManagementPage() {
                 {label}
               </button>
             ))}
-            <button
-              disabled={selected.size === 0 || genLoading}
-              onClick={handleGenerateLogins}
-              className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md border border-white/5 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {genLoading ? "Generating…" : "Generate Login"}
-            </button>
-            <button
-              disabled={selected.size === 0}
-              onClick={handleSendCredentials}
-              className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md border border-white/5 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Send Credentials
-            </button>
+            {isAdmin && (
+              <>
+                <button
+                  disabled={selected.size === 0 || genLoading}
+                  onClick={handleGenerateLogins}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md border border-white/5 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {genLoading ? "Generating…" : "Generate Login"}
+                </button>
+                <button
+                  disabled={selected.size === 0}
+                  onClick={handleSendCredentials}
+                  className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md border border-white/5 transition-colors whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Send Credentials
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -899,14 +906,16 @@ export default function StudentManagementPage() {
                           >
                             <Edit2 size={14} />
                           </button>
-                          <button
-                            onClick={() => setDeleteTarget(student)}
-                            title="Delete"
-                            disabled={student.isDemo}
-                            className="p-1.5 text-slate-400 hover:text-red-400 bg-slate-800 hover:bg-slate-700 rounded-md transition-colors border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              onClick={() => setDeleteTarget(student)}
+                              title="Delete"
+                              disabled={student.isDemo}
+                              className="p-1.5 text-slate-400 hover:text-red-400 bg-slate-800 hover:bg-slate-700 rounded-md transition-colors border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     )}
