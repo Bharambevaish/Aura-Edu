@@ -49,7 +49,7 @@ export default function StudentRegistrationPage() {
             animate={{ scale: 1, opacity: 1 }}
             className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 mx-auto flex items-center justify-center mb-6 shadow-xl shadow-emerald-500/20"
           >
-            <span className="text-2xl font-bold text-white">M</span>
+            <span className="text-2xl font-bold text-white">A</span>
           </motion.div>
           <h1 className="text-3xl font-bold text-white mb-2">Student Registration</h1>
           <p className="text-slate-400">Join AuraEdu Institute. Complete your profile in a few steps.</p>

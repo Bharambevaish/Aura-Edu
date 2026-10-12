@@ -87,7 +87,7 @@ export default async function RenderCertificatePage({
               className="w-10 h-10 rounded-full flex items-center justify-center"
               style={{ backgroundColor: "#5E9A2E1A", border: "1px solid #5E9A2E33" }}
             >
-              <span className="text-xs font-bold" style={{ color: "#5E9A2E" }}>M</span>
+              <span className="text-xs font-bold" style={{ color: "#5E9A2E" }}>A</span>
             </div>
             <div className="text-center">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#5E9A2E" }}>
