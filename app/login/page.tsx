@@ -9,8 +9,9 @@
  * demo-day wow; note: that inherently means these demo credentials are public
  * by design).
  */
-import { useState, useActionState } from "react";
+import { Suspense, useState, useActionState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { GraduationCap, ShieldCheck, ArrowLeft, AlertCircle, LogIn } from "lucide-react";
 import { login } from "@/lib/actions/auth";
 
@@ -20,9 +21,20 @@ const DEMO_LOGINS = {
   staff: { email: "staff@demo.auraedu.com", password: "Staff@123", label: "Explore as Staff" },
 } as const;
 
+// useSearchParams() needs a Suspense boundary on a statically rendered page.
 export default function LoginSelectorPage() {
+  return (
+    <Suspense>
+      <LoginSelector />
+    </Suspense>
+  );
+}
+
+function LoginSelector() {
   const [activeTab, setActiveTab] = useState<"student" | "admin" | "staff">("student");
   const [state, formAction, pending] = useActionState(login, null);
+  // Set by /session-ended after a block, force logout or expiry.
+  const sessionEnded = useSearchParams().get("reason") === "session-ended";
 
   return (
     <div className="min-h-screen bg-[#070B14] text-slate-100 flex flex-col justify-between relative overflow-hidden">
@@ -224,6 +236,13 @@ export default function LoginSelectorPage() {
                   {pending ? "Signing in..." : activeTab === "admin" ? "Login as System Admin" : "Login as Staff Member"}
                 </button>
               </>
+            )}
+
+            {sessionEnded && !state?.message && (
+              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-300 text-xs font-semibold text-center flex items-center justify-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                <span>Your session has ended. Please sign in again.</span>
+              </div>
             )}
 
             {state?.message && (

@@ -13,6 +13,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import type { Role } from "@/lib/models/User";
+import { checkAccess } from "@/lib/session-registry";
 
 export interface SessionUser {
   id: string;
@@ -30,40 +31,54 @@ export const getSession = cache(async () => {
 });
 
 /**
+ * DB re-validation of the signed-in session, memoized per request so several
+ * gates in one render cost a single round-trip.
+ */
+const getAccess = cache(async (userId: string, sessionId: string | undefined) => {
+  return checkAccess(userId, sessionId);
+});
+
+/**
  * The universal authorization gate. Usage:
  *
  *   const { user } = await requireRole(["admin", "staff"]);
  *
  * Fails closed:
- *  - no session            -> redirect to /login
- *  - session, wrong role    -> redirect to "/"
+ *  - no session                         -> redirect to /login
+ *  - session revoked, expired, user
+ *    blocked or deleted (checked in DB) -> redirect to /session-ended, which
+ *                                          clears the cookie, then /login
+ *  - wrong role (role read from the DB) -> redirect to "/"
  *
- * Redirect (not throw/403) is deliberate for this app: it gives demo visitors
- * the same clean UX as a real product while the data actions behind these
- * gates are also individually role-checked, so nothing leaks on partial
- * renders.
+ * The JWT is only trusted to say *which* session this is; whether that session
+ * is still allowed in — and with which role — is decided by the database on
+ * every request, so Block / Force logout take effect immediately.
  */
 export async function requireRole(
   roles: Role[],
 ): Promise<{ user: SessionUser }> {
   const session = await getSession();
-  const user = session?.user;
+  const token = session?.user;
 
-  if (!user?.email) {
+  if (!token?.email || !token.id) {
     redirect("/login");
   }
 
-  const role = user.role ?? "student";
-  if (!roles.includes(role)) {
+  const access = await getAccess(token.id, token.sessionId);
+  if (!access) {
+    redirect("/session-ended");
+  }
+
+  if (!roles.includes(access.role)) {
     redirect("/");
   }
 
   return {
     user: {
-      id: user.id,
-      name: user.name ?? "",
-      email: user.email,
-      role,
+      id: token.id,
+      name: access.name,
+      email: access.email,
+      role: access.role,
     },
   };
 }

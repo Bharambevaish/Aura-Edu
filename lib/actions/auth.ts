@@ -16,7 +16,8 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { AuthError } from "next-auth";
-import { signIn, signOut } from "@/auth";
+import { auth, signIn, signOut } from "@/auth";
+import { endSession, loginGateToken } from "@/lib/session-registry";
 import { connectDB } from "@/lib/db";
 import { UserModel } from "@/lib/models/User";
 import { LoginSchema, type LoginState } from "@/lib/validation";
@@ -73,7 +74,7 @@ export async function login(
   await connectDB();
 
   try {
-    await signIn("credentials", { email, password, redirect: false });
+    await signIn("credentials", { email, password, gate: loginGateToken(), redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
       // Blocked accounts get a direct, honest message (no attempt counting —
@@ -123,6 +124,9 @@ export async function login(
 }
 
 export async function logoutAction(): Promise<void> {
+  // End the server-side session row too, so the Logins screen shows it closed.
+  const session = await auth();
+  if (session?.user?.sessionId) await endSession(session.user.sessionId);
   await signOut({ redirect: false });
   redirect("/login");
 }

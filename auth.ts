@@ -2,8 +2,14 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
+import { headers } from "next/headers";
 import { UserModel } from "@/lib/models/User";
 import type { Role } from "@/lib/models/User";
+import {
+  SESSION_MAX_AGE_SECONDS,
+  createLoginSession,
+  isValidLoginGate,
+} from "@/lib/session-registry";
 
 /**
  * Auth.js (NextAuth v5 beta) — the single authentication layer for the whole
@@ -32,9 +38,9 @@ const DUMMY_PASSWORD_HASH =
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
-    // 7-day session. Role changes are picked up on next sign-in because
-    // credibility re-checks happen against the DB on every server action.
-    maxAge: 60 * 60 * 24 * 7,
+    // 7-day session. The JWT carries a sessionId; requireRole() re-checks that
+    // session row + the user (blocked/role) in the DB on every request.
+    maxAge: SESSION_MAX_AGE_SECONDS,
   },
   pages: {
     signIn: "/login",
@@ -47,8 +53,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        gate: { type: "hidden" },
       },
       async authorize(credentials) {
+        // Only the rate-limited `login` server action may authenticate.
+        if (!isValidLoginGate(credentials?.gate)) return null;
+
         const email = String(credentials?.email ?? "")
           .trim()
           .toLowerCase();
@@ -74,11 +84,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // Admin-blocked accounts (Student Logins → Block) cannot sign in.
         if (user.isBlocked) return null;
 
+        // Register the sign-in (device + IP) so it can be listed and revoked.
+        const h = await headers();
+        const sessionId = await createLoginSession({
+          userId: user._id.toString(),
+          email: user.email,
+          userAgent: h.get("user-agent"),
+          ip: h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "local",
+        });
+
         return {
           id: user._id.toString(),
           name: user.name,
           email: user.email,
           role: user.role as Role,
+          sessionId,
         };
       },
     }),
@@ -92,6 +112,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.name = user.name;
         token.email = user.email;
         token.role = user.role;
+        token.sessionId = user.sessionId;
       }
       return token;
     },
@@ -103,6 +124,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.name = token.name ?? "";
         session.user.email = token.email ?? "";
         session.user.role = (token.role as Role) ?? "student";
+        session.user.sessionId = token.sessionId;
       }
       return session;
     },

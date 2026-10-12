@@ -5,8 +5,9 @@
  *
  * Lives in its own file (not lib/actions/auth.ts) because it is a demo-
  * lifecycle action, not an auth action — auth now only owns login/logout.
- * Only removes accounts flagged isDemo and their coupled records, so any
- * manually created admin/student never gets destroyed by the demo button.
+ * Demo accounts are re-upserted by email (stable ids), so the admin who clicks
+ * Reset stays signed in; every *other* session is ended for a clean demo.
+ * Manually created admins/students are never touched.
  *
  * Security: server actions are public POST endpoints — hiding the button is
  * not protection. The admin gate below runs before any DB access, so a
@@ -14,9 +15,9 @@
  * with nothing deleted.
  */
 
+import { auth } from "@/auth";
 import { requireRole } from "@/lib/dal";
 import { connectDB } from "@/lib/db";
-import { UserModel } from "@/lib/models/User";
 import { SessionModel } from "@/lib/models/Session";
 import { TestModel } from "@/lib/models/Test";
 import { QuestionModel } from "@/lib/models/Question";
@@ -34,13 +35,14 @@ import { seedDemoData } from "@/lib/seed/demo";
 
 export async function resetDemoData(): Promise<void> {
   await requireRole(["admin"]);
+  const mySessionId = (await auth())?.user?.sessionId;
   await connectDB();
 
   await ResultModel.deleteMany({});
   await AttemptModel.deleteMany({});
   await QuestionModel.deleteMany({});
   await TestModel.deleteMany({});
-  await SessionModel.deleteMany({});
+  await SessionModel.deleteMany({ sessionId: { $ne: mySessionId } });
   await AuditLogModel.deleteMany({});
   await WaiverModel.deleteMany({});
   await RefundModel.deleteMany({});
@@ -49,6 +51,5 @@ export async function resetDemoData(): Promise<void> {
   await ExpenseModel.deleteMany({});
   await ExpenseCategoryModel.deleteMany({});
   await VendorModel.deleteMany({});
-  await UserModel.deleteMany({ isDemo: true });
   await seedDemoData();
 }
