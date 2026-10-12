@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useStudent } from "@/context/StudentContext";
+import { updateMyProfile, changeMyPassword } from "@/lib/actions/student-portal";
 import {
   User,
   KeyRound,
@@ -14,18 +16,18 @@ import {
 } from "lucide-react";
 
 export default function ProfileManagePage() {
-  const { profile, updateProfile } = useStudent();
+  const { profile } = useStudent();
+  const router = useRouter();
 
   const [showEditDrawer, setShowEditDrawer] = useState(false);
   const [showPasswordDrawer, setShowPasswordDrawer] = useState(false);
 
-  // Edit profile form state
+  // Edit profile form state (email is the login identity — admin-managed, read-only here)
   const [phone, setPhone] = useState(profile.phone);
-  const [email, setEmail] = useState(profile.email);
   const [guardianPhone, setGuardianPhone] = useState(profile.guardianPhone);
   const [address, setAddress] = useState(profile.address);
-  const [city] = useState(profile.city);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   // Password state
   const [currentPass, setCurrentPass] = useState("");
@@ -33,35 +35,63 @@ export default function ProfileManagePage() {
   const [confirmPass, setConfirmPass] = useState("");
   const [isChangingPass, setIsChangingPass] = useState(false);
   const [passSuccess, setPassSuccess] = useState(false);
+  const [passError, setPassError] = useState<string | null>(null);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingProfile(true);
-    setTimeout(() => {
-      updateProfile({ phone, email, guardianPhone, address, city });
-      setIsSavingProfile(false);
-      setShowEditDrawer(false);
-    }, 600);
+  const openEditDrawer = () => {
+    // Re-seed from the latest server profile each time the drawer opens.
+    setPhone(profile.phone);
+    setGuardianPhone(profile.guardianPhone);
+    setAddress(profile.address);
+    setProfileError(null);
+    setShowEditDrawer(true);
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSavingProfile(true);
+    setProfileError(null);
+    try {
+      const res = await updateMyProfile({ phone, guardianPhone, street: address, city: profile.city });
+      if (!res.ok) {
+        setProfileError(res.message);
+        return;
+      }
+      router.refresh(); // layout re-reads the profile from the DB
+      setShowEditDrawer(false);
+    } catch {
+      setProfileError("Could not save your details. Please try again.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassError(null);
     if (newPass !== confirmPass) {
-      alert("New password and confirm password do not match!");
+      setPassError("New password and confirm password do not match.");
       return;
     }
     setIsChangingPass(true);
-    setTimeout(() => {
-      setIsChangingPass(false);
+    try {
+      const res = await changeMyPassword({ currentPassword: currentPass, newPassword: newPass });
+      if (!res.ok) {
+        setPassError(res.message);
+        return;
+      }
       setPassSuccess(true);
+      setCurrentPass("");
+      setNewPass("");
+      setConfirmPass("");
       setTimeout(() => {
         setPassSuccess(false);
         setShowPasswordDrawer(false);
-        setCurrentPass("");
-        setNewPass("");
-        setConfirmPass("");
       }, 1000);
-    }, 800);
+    } catch {
+      setPassError("Could not update your password. Please try again.");
+    } finally {
+      setIsChangingPass(false);
+    }
   };
 
   return (
@@ -80,7 +110,7 @@ export default function ProfileManagePage() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowEditDrawer(true)}
+            onClick={openEditDrawer}
             className="px-4 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 flex items-center gap-2 shadow-lg shadow-cyan-500/20 transition-all"
           >
             <Edit3 className="h-4 w-4" /> Edit Contact Info
@@ -218,11 +248,11 @@ export default function ProfileManagePage() {
                   <label className="text-xs font-semibold text-slate-300">Email Address</label>
                   <input
                     type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
+                    readOnly
+                    value={profile.email}
+                    className="w-full rounded-xl bg-slate-950/50 border border-slate-800 px-4 py-2.5 text-xs text-slate-500 cursor-not-allowed"
                   />
+                  <p className="text-[10px] text-slate-500">Your login email can only be changed by the institute.</p>
                 </div>
 
                 <div className="space-y-1.5">
@@ -240,7 +270,6 @@ export default function ProfileManagePage() {
                   <label className="text-xs font-semibold text-slate-300">Guardian Contact</label>
                   <input
                     type="text"
-                    required
                     value={guardianPhone}
                     onChange={(e) => setGuardianPhone(e.target.value)}
                     className="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
@@ -251,12 +280,13 @@ export default function ProfileManagePage() {
                   <label className="text-xs font-semibold text-slate-300">Residential Address</label>
                   <input
                     type="text"
-                    required
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     className="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
                   />
                 </div>
+
+                {profileError && <p className="text-xs text-rose-400">{profileError}</p>}
 
                 <button
                   type="submit"
@@ -330,6 +360,8 @@ export default function ProfileManagePage() {
                       className="w-full rounded-xl bg-slate-950 border border-slate-800 px-4 py-2.5 text-xs text-white focus:border-cyan-500 focus:outline-none"
                     />
                   </div>
+
+                  {passError && <p className="text-xs text-rose-400">{passError}</p>}
 
                   <button
                     type="submit"

@@ -33,6 +33,7 @@ import {
   PaymentSchema,
   RefundSchema,
   WaiverSchema,
+  StudentPaymentSchema,
 } from "@/lib/validation";
 import type {
   ExpenseStatus,
@@ -1178,4 +1179,134 @@ export async function getAuditTrail(): Promise<{ stats: { total: number; admin: 
     },
     entries: rows,
   };
+}
+/* ------------------------------------------------------------------ */
+/* Student self-service (student portal → Fees)                        */
+/* ------------------------------------------------------------------ */
+
+export type MyFeeReceipt = {
+  id: string;
+  receiptNo: string;
+  date: string;
+  mode: string;
+  amount: number;
+  status: PaymentStatus;
+  description: string;
+};
+
+export type MyFees = {
+  total: number;
+  paid: number;
+  waived: number;
+  outstanding: number;
+  /** Outstanding balance on invoices whose due date has passed. */
+  overdue: number;
+  /** Earliest due date among invoices that still have a balance (ISO), if any. */
+  nextDueDate: string | null;
+  invoices: number;
+  receipts: MyFeeReceipt[];
+};
+
+/** The signed-in student's own fee account: invoices + payment receipts. */
+export async function getMyFees(): Promise<MyFees> {
+  const { user } = await requireRole(["student"]);
+  await connectDB();
+  const studentId = new mongoose.Types.ObjectId(user.id);
+  const [invoices, payments] = await Promise.all([
+    InvoiceModel.find({ studentId }).sort({ dueDate: 1 }).lean(),
+    PaymentModel.find({ studentId }).sort({ recordedAt: -1 }).lean(),
+  ]);
+
+  const now = Date.now();
+  let total = 0, paid = 0, waived = 0, overdue = 0;
+  let nextDueDate: string | null = null;
+  const invoiceNoById = new Map<string, string>();
+  for (const inv of invoices) {
+    invoiceNoById.set(String(inv._id), inv.invoiceNo);
+    total += inv.total;
+    paid += inv.paid;
+    waived += inv.waived;
+    const balance = Math.max(0, inv.total - inv.paid - inv.waived);
+    if (balance > 0) {
+      if (new Date(inv.dueDate).getTime() < now) overdue += balance;
+      if (!nextDueDate) nextDueDate = new Date(inv.dueDate).toISOString();
+    }
+  }
+
+  return {
+    total,
+    paid,
+    waived,
+    outstanding: Math.max(0, total - paid - waived),
+    overdue,
+    nextDueDate,
+    invoices: invoices.length,
+    receipts: payments.map((p) => {
+      const invNo = p.invoiceId ? invoiceNoById.get(String(p.invoiceId)) : undefined;
+      return {
+        id: String(p._id),
+        receiptNo: p.receiptNo,
+        date: new Date(p.recordedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+        mode: p.mode,
+        amount: p.amount,
+        status: p.status,
+        description: invNo ? `Fee payment towards ${invNo}` : "Fee payment",
+      };
+    }),
+  };
+}
+
+/**
+ * Student pays (part of) their own dues from the portal. The gateway is
+ * simulated in the POC, but the payment is real: it is applied to the
+ * student's oldest invoice with a balance, recorded with source "Student
+ * Portal", and audit-logged — so it shows up in admin Finance immediately.
+ */
+export async function payMyInvoice(input: unknown): Promise<{ ok: boolean; message: string }> {
+  const { user } = await requireRole(["student"]);
+  const parsed = StudentPaymentSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid payment." };
+  const { amount, mode } = parsed.data;
+
+  await connectDB();
+  const studentId = new mongoose.Types.ObjectId(user.id);
+  const student = await UserModel.findOne({ _id: studentId, role: "student" }).select("name branch").lean();
+  if (!student) return { ok: false, message: "Student record not found." };
+
+  const invoices = await InvoiceModel.find({ studentId }).sort({ dueDate: 1 }).lean();
+  const target = invoices.find((i) => i.total - i.paid - i.waived > 0);
+  if (!target) return { ok: false, message: "You have no outstanding dues." };
+  const balance = target.total - target.paid - target.waived;
+  if (amount > balance) {
+    return { ok: false, message: `Maximum payable on ${target.invoiceNo} is ₹${balance.toLocaleString("en-IN")}.` };
+  }
+
+  // Conditional increment: never let concurrent payments push paid past total.
+  const applied = await InvoiceModel.updateOne(
+    { _id: target._id, studentId, $expr: { $lte: [{ $add: ["$paid", "$waived", amount] }, "$total"] } },
+    { $inc: { paid: amount } },
+  );
+  if (applied.modifiedCount === 0) {
+    return { ok: false, message: "Your balance changed — refresh and try again." };
+  }
+
+  const now = new Date();
+  const receiptNo = await nextDocNumber(PaymentModel, `RCP-${now.getFullYear()}${pad(now.getMonth() + 1, 2)}-`, 4);
+  await PaymentModel.create({
+    receiptNo,
+    studentId,
+    invoiceId: target._id,
+    amount,
+    gst: 0,
+    gatewayFee: 0,
+    netAmount: amount,
+    mode,
+    source: "Student Portal",
+    branch: student.branch ?? "",
+    status: "success",
+    recordedBy: studentId,
+    recordedAt: now,
+  });
+  await writeAudit(user, "student portal payment", `${receiptNo} — ${student.name} (₹${amount}) → ${target.invoiceNo}`);
+  return { ok: true, message: `Payment successful (${receiptNo}).` };
 }

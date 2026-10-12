@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useStudent } from "@/context/StudentContext";
+import { getMyCourse, type MyCourse, type MyLesson } from "@/lib/actions/student-portal";
 import {
   ArrowLeft,
   PlayCircle,
@@ -16,20 +17,49 @@ import {
 export default function CourseLearnPage() {
   const params = useParams();
   const courseId = params?.id as string;
-  const { enrolledCourses, profile } = useStudent();
+  const { profile } = useStudent();
 
-  const course = enrolledCourses.find((c) => c.id === courseId) || enrolledCourses[0];
-
-  const lessonsList = [
-    { id: 1, title: "Lesson 01: Course Orientation & NCERT Strategy", duration: "24:15", type: "video", completed: true },
-    { id: 2, title: "Lesson 02: Kinematics 1D Motion Basics", duration: "45:30", type: "video", completed: true },
-    { id: 3, title: "Lesson 03: Vector Analysis & Relative Velocity", duration: "50:10", type: "video", completed: true },
-    { id: 4, title: "Lesson 04: Newton's Laws & Friction Worksheets", duration: "38:40", type: "document", completed: false },
-    { id: 5, title: "Lesson 05: Rotational Mechanics Numerical Drills", duration: "55:00", type: "video", completed: false },
-  ];
-
-  const [activeLesson, setActiveLesson] = useState(lessonsList[2]);
+  // undefined = loading, null = not found / not enrolled
+  const [course, setCourse] = useState<MyCourse | null | undefined>(undefined);
+  const [selectedLesson, setSelectedLesson] = useState<MyLesson | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "notes" | "discussion">("overview");
+
+  useEffect(() => {
+    let ignore = false;
+    getMyCourse(courseId)
+      .then((data) => {
+        if (!ignore) setCourse(data);
+      })
+      .catch(() => {
+        if (!ignore) setCourse(null);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [courseId]);
+
+  if (course === undefined) {
+    return (
+      <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 text-sm text-slate-400">
+        Loading course…
+      </div>
+    );
+  }
+
+  if (course === null) {
+    return (
+      <div className="p-10 rounded-3xl bg-slate-900/90 border border-slate-800 text-center space-y-3">
+        <BookOpen className="h-8 w-8 text-cyan-400 mx-auto" />
+        <p className="text-sm font-semibold text-white">This course is not available in your account.</p>
+        <Link href="/student-portal/my-courses" className="text-xs font-semibold text-cyan-400 hover:underline">
+          Back to My Courses
+        </Link>
+      </div>
+    );
+  }
+
+  const lessonsList = course.modules.flatMap((m) => m.lessons.map((l) => ({ ...l, moduleTitle: m.title })));
+  const activeLesson = (selectedLesson && lessonsList.find((l) => l.id === selectedLesson.id)) || lessonsList[0];
 
   return (
     <div className="space-y-6">
@@ -52,12 +82,17 @@ export default function CourseLearnPage() {
 
         <div className="hidden sm:flex items-center gap-2">
           <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold font-mono border border-emerald-500/20">
-            Progress: {course.progress}%
+            {course.modules.length} modules · {course.totalLessons} lessons
           </span>
         </div>
       </div>
 
       {/* 2. Main Player & Lesson Navigation Layout */}
+      {!activeLesson ? (
+        <div className="p-10 rounded-3xl bg-slate-900/90 border border-slate-800 text-center text-sm text-slate-400">
+          Lessons for this course have not been published yet.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left/Main Column: Video Canvas Player */}
         <div className="lg:col-span-2 space-y-6">
@@ -75,7 +110,7 @@ export default function CourseLearnPage() {
               <span className="font-semibold text-white flex items-center gap-2">
                 <PlayCircle className="h-4 w-4 text-cyan-400" /> {activeLesson.title}
               </span>
-              <span className="font-mono text-cyan-400">{activeLesson.duration}</span>
+              <span className="font-mono text-cyan-400">{activeLesson.duration || "—"}</span>
             </div>
 
             {/* Center Video Play Simulation Graphic */}
@@ -151,12 +186,14 @@ export default function CourseLearnPage() {
             {activeTab === "overview" && (
               <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
                 <p>
-                  In this session, Dr. A. Verma covers high-yield vector operations, dot & cross product resolution, and relative velocity vectors in 2D space.
+                  {activeLesson.title} is part of <strong className="text-white">{activeLesson.moduleTitle}</strong> in{" "}
+                  {course.title}
+                  {course.instructor ? `, taught by ${course.instructor}` : ""}.
                 </p>
                 <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1 font-mono text-[11px] text-slate-400">
-                  <p>• Key Focus 1: Rain-man & River-swimmer problem vectors</p>
-                  <p>• Key Focus 2: Standard NCERT Exercises 3.1 to 3.12</p>
-                  <p>• Key Focus 3: PYQ Analysis from NEET 2019-2025</p>
+                  <p>• Format: {activeLesson.type}</p>
+                  <p>• Duration: {activeLesson.duration || "—"}</p>
+                  <p>• Module: {activeLesson.moduleTitle}</p>
                 </div>
               </div>
             )}
@@ -167,7 +204,7 @@ export default function CourseLearnPage() {
                   <div className="flex items-center gap-3">
                     <FileText className="h-6 w-6 text-cyan-400" />
                     <div>
-                      <h4 className="text-xs font-bold text-white">Handwritten_Lecture_Notes_Unit3.pdf</h4>
+                      <h4 className="text-xs font-bold text-white">{activeLesson.title} — Notes.pdf</h4>
                       <p className="text-[10px] text-slate-400">PDF • 4.2 MB • Watermarked for {profile.name}</p>
                     </div>
                   </div>
@@ -206,7 +243,7 @@ export default function CourseLearnPage() {
               {lessonsList.map((les) => (
                 <button
                   key={les.id}
-                  onClick={() => setActiveLesson(les)}
+                  onClick={() => setSelectedLesson(les)}
                   className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
                     activeLesson.id === les.id
                       ? "bg-cyan-950/40 border-cyan-500/40 text-white"
@@ -214,14 +251,16 @@ export default function CourseLearnPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    {les.completed ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
-                    ) : (
+                    {les.type === "video" ? (
                       <PlayCircle className="h-4 w-4 text-cyan-400 mt-0.5 shrink-0" />
+                    ) : (
+                      <FileText className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
                     )}
                     <div>
                       <h4 className="text-xs font-bold line-clamp-1">{les.title}</h4>
-                      <span className="text-[10px] text-slate-400 font-mono">{les.duration}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {les.moduleTitle} · {les.duration || les.type}
+                      </span>
                     </div>
                   </div>
                 </button>
@@ -230,6 +269,7 @@ export default function CourseLearnPage() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

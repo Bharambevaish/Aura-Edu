@@ -2,11 +2,14 @@ import React from "react";
 import { StudentProvider } from "@/context/StudentContext";
 import StudentShell from "@/components/student/StudentShell";
 import { requireRole } from "@/lib/dal";
+import { getMyProfile } from "@/lib/actions/student-portal";
+import { getMyFees } from "@/lib/actions/finance";
 
 /**
  * Student layout gate: every /student-portal route requires a signed-in
- * student session (requireRole) and then provides the demo-profile context
- * to the whole portal (see context/StudentContext.tsx for the POC scope note).
+ * student session (requireRole), then loads that student's own profile and
+ * fee balance from the DB and hands them to the client context. Pages call
+ * `router.refresh()` after a mutation so this layout re-reads fresh values.
  */
 export default async function StudentDashboardLayout({
   children,
@@ -14,8 +17,9 @@ export default async function StudentDashboardLayout({
   children: React.ReactNode;
 }) {
   await requireRole(["student"]);
+  const [profile, fees] = await Promise.all([getMyProfile(), getMyFees()]);
   return (
-    <StudentProvider>
+    <StudentProvider profile={profile} pendingFee={fees.outstanding}>
       <StudentShell>{children}</StudentShell>
     </StudentProvider>
   );

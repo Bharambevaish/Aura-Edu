@@ -1,41 +1,20 @@
 "use client";
 
 /**
- * Student portal client state: the demo profile (locked to Aarav Sharma), the
- * enrolled courses list, notifications, and the simulator's dark-mode swatch.
+ * Student portal client state.
  *
- * IMPORTANT scope note: this is POC/demo data only. Auth identity comes from
- * Auth.js (the JWT), but the rich student-facing data (profile, courses,
- * notifications, fees ledger) is a context-provided simulation so every
- * student screen has instant content without a DB round-trip. Real backend
- * wiring per screen is being introduced in the crown-jewel modules (tests,
- * attendance, etc.).
+ * `profile` and `pendingFee` are the signed-in student's real data, loaded
+ * server-side by app/student-portal/layout.tsx (getMyProfile / getMyFees) and
+ * passed in as props — call `router.refresh()` after a mutation to reload them.
+ * Courses, fees and the store are fetched per page from server actions.
+ *
+ * Still simulated here (POC): notifications bell feed, attendance logs,
+ * assignments, tests and certificates fallbacks.
  */
 import React, { createContext, useContext, useState } from "react";
+import type { MyProfile } from "@/lib/actions/student-portal";
 
-export interface StudentProfile {
-  name: string;
-  admissionNo: string;
-  email: string;
-  phone: string;
-  dob: string;
-  gender: string;
-  category: string;
-  bloodGroup: string;
-  rollNo: string;
-  batch: string;
-  course: string;
-  joiningDate: string;
-  academicYear: string;
-  fatherName: string;
-  motherName: string;
-  guardianPhone: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  avatarUrl?: string;
-}
+export type StudentProfile = MyProfile;
 
 export interface NotificationItem {
   id: string;
@@ -50,23 +29,6 @@ export interface NotificationItem {
   ip: string;
   os: string;
   device: string;
-}
-
-export interface EnrolledCourse {
-  id: string;
-  title: string;
-  code: string;
-  instructor: string;
-  progress: number;
-  totalLessons: number;
-  completedLessons: number;
-  nextLesson: string;
-  thumbnail: string;
-  category: string;
-  duration: string;
-  status: "Active" | "Completed" | "Pending";
-  description: string;
-  syllabus: { section: string; topics: string[] }[];
 }
 
 export interface AttendanceRecord {
@@ -117,79 +79,31 @@ export interface CertificateItem {
   downloadUrl: string;
 }
 
-export interface FeeReceipt {
-  id: string;
-  receiptNo: string;
-  date: string;
-  mode: "Cash" | "Online" | "Bank Transfer" | "UPI";
-  amount: number;
-  status: "Success" | "Cancelled" | "Pending";
-  description: string;
-}
-
-export interface CourseStoreItem {
-  id: string;
-  title: string;
-  category: string;
-  price: number;
-  originalPrice: number;
-  duration: string;
-  level: string;
-  rating: number;
-  reviewsCount: number;
-  isEnrolled: boolean;
-  badge?: string;
-  description: string;
-  features: string[];
-}
-
 interface StudentContextType {
   profile: StudentProfile;
-  updateProfile: (updated: Partial<StudentProfile>) => void;
+  /** Outstanding fee balance across the student's invoices (live). */
+  pendingFee: number;
   notifications: NotificationItem[];
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
-  enrolledCourses: EnrolledCourse[];
   attendanceLogs: AttendanceRecord[];
   assignments: AssignmentItem[];
   submitAssignment: (id: string, fileName: string) => void;
   tests: TestItem[];
   certificates: CertificateItem[];
-  totalFee: number;
-  paidFee: number;
-  pendingFee: number;
-  paymentReceipts: FeeReceipt[];
-  addPayment: (amount: number, mode: "Online" | "UPI" | "Cash") => void;
-  courseStore: CourseStoreItem[];
-  enrollInStoreCourse: (courseId: string) => void;
 }
 
 const StudentContext = createContext<StudentContextType | undefined>(undefined);
 
-export function StudentProvider({ children }: { children: React.ReactNode }) {
-  const [profile, setProfile] = useState<StudentProfile>({
-    name: "Aarav Sharma",
-    admissionNo: "ADM-2026-0010",
-    email: "aarav.sharma@demo.myedou.com",
-    phone: "+91 98765 00001",
-    dob: "2003-07-27",
-    gender: "Male",
-    category: "General",
-    bloodGroup: "O+",
-    rollNo: "NEET-2026-010",
-    batch: "NEET Dropper Batch",
-    course: "NEET Comprehensive 2026",
-    joiningDate: "15 June 2025",
-    academicYear: "2025-2026",
-    fatherName: "Mr. Sharma",
-    motherName: "Mrs. Sharma",
-    guardianPhone: "+91 98260 12345",
-    address: "Scheme No. 54, Vijay Nagar",
-    city: "Indore",
-    state: "Madhya Pradesh",
-    pincode: "452010",
-  });
-
+export function StudentProvider({
+  children,
+  profile,
+  pendingFee,
+}: {
+  children: React.ReactNode;
+  profile: StudentProfile;
+  pendingFee: number;
+}) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: "notif-1",
@@ -257,67 +171,6 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       ip: "103.14.24.11",
       os: "Windows 11",
       device: "Desktop Chrome",
-    },
-  ]);
-
-  const [enrolledCourses] = useState<EnrolledCourse[]>([
-    {
-      id: "neet-2026",
-      title: "NEET Comprehensive 2026",
-      code: "NEET-MED-2026",
-      instructor: "Dr. A. Verma & Team",
-      progress: 45,
-      totalLessons: 120,
-      completedLessons: 54,
-      nextLesson: "Chapter 14: Plant Growth & Physiology",
-      thumbnail: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&q=80",
-      category: "Medical Entrance",
-      duration: "1 Year Full-Time",
-      status: "Active",
-      description: "Comprehensive 1-year intensive preparation for NEET-UG with daily mock drills, NCERT line-by-line breakdown, and video solutions.",
-      syllabus: [
-        { section: "Physics", topics: ["Kinematics & Mechanics", "Thermodynamics", "Optics & Modern Physics"] },
-        { section: "Chemistry", topics: ["Physical Chemistry Foundations", "Organic Mechanisms", "Inorganic Coordination Compounds"] },
-        { section: "Biology", topics: ["Cell Biology & Genetics", "Plant Physiology", "Human Anatomy & Systematics"] },
-      ],
-    },
-    {
-      id: "jee-advance-2026",
-      title: "JEE Main & Advanced Mathematics Crash Course",
-      code: "JEE-MATH-2026",
-      instructor: "Prof. R. K. Gupta",
-      progress: 20,
-      totalLessons: 60,
-      completedLessons: 12,
-      nextLesson: "Lesson 13: Integral Calculus & Area Under Curves",
-      thumbnail: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&q=80",
-      category: "Engineering Entrance",
-      duration: "6 Months",
-      status: "Active",
-      description: "Advanced problem-solving tactics for JEE Mathematics covering Algebra, Calculus, Coordinate Geometry, and Vectors.",
-      syllabus: [
-        { section: "Calculus", topics: ["Limits, Continuity & Differentiability", "Definite Integrals", "Differential Equations"] },
-        { section: "Algebra", topics: ["Complex Numbers", "Matrices & Determinants", "Permutations & Combinations"] },
-      ],
-    },
-    {
-      id: "mern-stack-demo",
-      title: "MERN Stack Web Development Specialization",
-      code: "CS-MERN-101",
-      instructor: "Instructor Team",
-      progress: 80,
-      totalLessons: 40,
-      completedLessons: 32,
-      nextLesson: "Module 9: Deploying Next.js & Node.js Microservices",
-      thumbnail: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80",
-      category: "Computer Science",
-      duration: "3 Months",
-      status: "Active",
-      description: "Hands-on full stack engineering with React, Next.js, Express, and MongoDB.",
-      syllabus: [
-        { section: "Frontend", topics: ["React Hooks & Context API", "Next.js App Router", "TailwindCSS Styling"] },
-        { section: "Backend", topics: ["Node.js Server Architecture", "MongoDB Aggregation & Schemas", "JWT Security"] },
-      ],
     },
   ]);
 
@@ -436,83 +289,6 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     },
   ]);
 
-  const [totalFee] = useState<number>(10001);
-  const [paidFee, setPaidFee] = useState<number>(5000);
-  const pendingFee = totalFee - paidFee;
-
-  const [paymentReceipts, setPaymentReceipts] = useState<FeeReceipt[]>([
-    {
-      id: "rcp-1",
-      receiptNo: "RCP-202606-9430",
-      date: "15 Jun 2025",
-      mode: "Online",
-      amount: 5000,
-      status: "Success",
-      description: "1st Installment Admission Fee - NEET Dropper Batch 2026",
-    },
-    {
-      id: "rcp-2",
-      receiptNo: "RCP-202606-5093",
-      date: "10 Jul 2025",
-      mode: "UPI",
-      amount: 0,
-      status: "Cancelled",
-      description: "Failed UPI Transaction (Timed Out)",
-    },
-  ]);
-
-  const [courseStore, setCourseStore] = useState<CourseStoreItem[]>([
-    {
-      id: "store-1",
-      title: "NEET Batch A Intensive Crash & Test Series 2026",
-      category: "Medical Entrance",
-      price: 5000,
-      originalPrice: 12000,
-      duration: "6 Months",
-      level: "Advanced Dropper Level",
-      rating: 4.9,
-      reviewsCount: 340,
-      isEnrolled: true,
-      badge: "BESTSELLER",
-      description: "Comprehensive test series + live problem solving with top AIIMS alumni faculties.",
-      features: ["50+ Full Mock Tests", "1-on-1 Doubt Sessions", "Printed NCERT Maps", "Performance Analytics"],
-    },
-    {
-      id: "store-2",
-      title: "JEE Mains & Advanced Mathematics Mastery 2026",
-      category: "Engineering Entrance",
-      price: 4999,
-      originalPrice: 9999,
-      duration: "5 Months",
-      level: "Target Top 1000",
-      rating: 4.8,
-      reviewsCount: 210,
-      isEnrolled: false,
-      badge: "POPULAR",
-      description: "Master calculus, algebra, and coordinate geometry with high-yield shortcut tricks.",
-      features: ["300+ Video Lectures", "Topic-wise Problem Banks", "Weekly Live Quizzes", "Rank Predictor"],
-    },
-    {
-      id: "store-3",
-      title: "Full Stack MERN & Next.js Boot Camp (Special Discount)",
-      category: "Computer Science",
-      price: 1,
-      originalPrice: 4999,
-      duration: "3 Months",
-      level: "Beginner to Advanced",
-      rating: 4.95,
-      reviewsCount: 520,
-      isEnrolled: false,
-      badge: "FLASH OFFER ₹1",
-      description: "Learn web development from scratch to production deployment with live projects.",
-      features: ["React 19 & Next.js 16", "Express & MongoDB", "TailwindCSS & Framer Motion", "Job Portal Access"],
-    },
-  ]);
-
-  const updateProfile = (updated: Partial<StudentProfile>) => {
-    setProfile((prev) => ({ ...prev, ...updated }));
-  };
-
   const markNotificationAsRead = (id: string) => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
@@ -538,47 +314,19 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const addPayment = (amount: number, mode: "Online" | "UPI" | "Cash") => {
-    const newReceipt: FeeReceipt = {
-      id: `rcp-${Date.now()}`,
-      receiptNo: `RCP-202608-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-      mode,
-      amount,
-      status: "Success",
-      description: "Balance Fee Payment Clearance",
-    };
-    setPaymentReceipts((prev) => [newReceipt, ...prev]);
-    setPaidFee((prev) => prev + amount);
-  };
-
-  const enrollInStoreCourse = (courseId: string) => {
-    setCourseStore((prev) =>
-      prev.map((c) => (c.id === courseId ? { ...c, isEnrolled: true } : c))
-    );
-  };
-
   return (
     <StudentContext.Provider
       value={{
         profile,
-        updateProfile,
+        pendingFee,
         notifications,
         markNotificationAsRead,
         markAllNotificationsAsRead,
-        enrolledCourses,
         attendanceLogs,
         assignments,
         submitAssignment,
         tests,
         certificates,
-        totalFee,
-        paidFee,
-        pendingFee,
-        paymentReceipts,
-        addPayment,
-        courseStore,
-        enrollInStoreCourse,
       }}
     >
       {children}

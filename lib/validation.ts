@@ -457,3 +457,42 @@ export const CreateCalendarEventSchema = z.object({
   description: z.string().max(2000).optional().or(z.literal("")),
   batchNames: z.array(z.string().min(1)).default([]),
 });
+/* ------------------------------------------------------------------ */
+/* Student self-service (student portal)                               */
+/* ------------------------------------------------------------------ */
+
+const optionalPhone = z
+  .string()
+  .trim()
+  .max(25)
+  .regex(/^[+0-9\s()-]*$/, { message: "Phone may only contain digits, spaces, +, ( ) and -." });
+
+/** Contact fields a student may edit themselves. Identity/academic fields stay admin-only. */
+export const UpdateMyProfileSchema = z.object({
+  phone: optionalPhone,
+  guardianPhone: optionalPhone,
+  street: z.string().trim().max(200),
+  city: z.string().trim().max(80),
+});
+
+export const ChangePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, { message: "Enter your current password." }),
+    newPassword: z
+      .string()
+      .min(8, { message: "New password must be at least 8 characters." })
+      .max(128),
+  })
+  .refine((d) => d.currentPassword !== d.newPassword, {
+    message: "New password must be different from the current one.",
+    path: ["newPassword"],
+  });
+
+/** Simulated online payment from the student portal (no real gateway in the POC). */
+export const StudentPaymentSchema = z.object({
+  amount: z
+    .number({ message: "Enter a valid amount." })
+    .positive({ message: "Amount must be greater than zero." })
+    .max(10_000_000),
+  mode: z.enum(["Online", "UPI"]),
+});

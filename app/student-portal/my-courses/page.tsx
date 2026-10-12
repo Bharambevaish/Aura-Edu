@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useStudent, EnrolledCourse } from "@/context/StudentContext";
+import { useStudent } from "@/context/StudentContext";
+import { getMyCourses, type MyCourse } from "@/lib/actions/student-portal";
 import {
   BookOpen,
   Search,
@@ -17,12 +18,56 @@ import {
   Info,
 } from "lucide-react";
 
-export default function MyCoursesPage() {
-  const { enrolledCourses, profile } = useStudent();
+/** next/image only proxies hosts allowed in next.config.ts; anything else gets a placeholder. */
+function hasRenderableThumb(url: string) {
+  return url.startsWith("https://images.unsplash.com/");
+}
 
+function ThumbPlaceholder({ className }: { className: string }) {
+  return (
+    <div className={`${className} flex items-center justify-center bg-gradient-to-br from-cyan-950 to-slate-900`}>
+      <BookOpen className="h-8 w-8 text-cyan-500/50" />
+    </div>
+  );
+}
+
+export default function MyCoursesPage() {
+  const { profile } = useStudent();
+
+  const [enrolledCourses, setEnrolledCourses] = useState<MyCourse[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedCourse, setSelectedCourse] = useState<EnrolledCourse | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<MyCourse | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    getMyCourses()
+      .then((data) => {
+        if (!ignore) setEnrolledCourses(data);
+      })
+      .catch(() => {
+        if (!ignore) setLoadError(true);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  if (!enrolledCourses) {
+    return (
+      <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 text-sm text-slate-400">
+        {loadError ? "Could not load your courses. Please refresh the page." : "Loading your courses…"}
+      </div>
+    );
+  }
+
+  const totalModules = enrolledCourses.reduce((s, c) => s + c.modules.length, 0);
+  const totalLessons = enrolledCourses.reduce((s, c) => s + c.totalLessons, 0);
+  const videoLessons = enrolledCourses.reduce(
+    (s, c) => s + c.modules.reduce((n, m) => n + m.lessons.filter((l) => l.type === "video").length, 0),
+    0,
+  );
 
   const filteredCourses = enrolledCourses.filter((course) =>
     course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -58,29 +103,20 @@ export default function MyCoursesPage() {
         {/* Stats Summary Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
           <div>
-            <span className="text-xs text-slate-400">Enrolled Batches</span>
+            <span className="text-xs text-slate-400">Enrolled Courses</span>
             <p className="text-xl font-black text-white font-mono">{enrolledCourses.length}</p>
           </div>
           <div>
-            <span className="text-xs text-slate-400">In Progress</span>
-            <p className="text-xl font-black text-cyan-400 font-mono">
-              {enrolledCourses.filter((c) => c.status === "Active").length}
-            </p>
+            <span className="text-xs text-slate-400">Modules</span>
+            <p className="text-xl font-black text-cyan-400 font-mono">{totalModules}</p>
           </div>
           <div>
             <span className="text-xs text-slate-400">Total Lessons</span>
-            <p className="text-xl font-black text-emerald-400 font-mono">
-              {enrolledCourses.reduce((s, c) => s + c.totalLessons, 0)}
-            </p>
+            <p className="text-xl font-black text-emerald-400 font-mono">{totalLessons}</p>
           </div>
           <div>
-            <span className="text-xs text-slate-400">Avg Completion</span>
-            <p className="text-xl font-black text-purple-400 font-mono">
-              {Math.round(
-                enrolledCourses.reduce((s, c) => s + c.progress, 0) / enrolledCourses.length
-              )}
-              %
-            </p>
+            <span className="text-xs text-slate-400">Video Lessons</span>
+            <p className="text-xl font-black text-purple-400 font-mono">{videoLessons}</p>
           </div>
         </div>
       </div>
@@ -123,7 +159,15 @@ export default function MyCoursesPage() {
       </div>
 
       {/* 3. Course Catalog Rendering */}
-      {viewMode === "grid" ? (
+      {enrolledCourses.length === 0 ? (
+        <div className="p-10 rounded-3xl bg-slate-900/90 border border-slate-800 text-center space-y-3">
+          <BookOpen className="h-8 w-8 text-cyan-400 mx-auto" />
+          <p className="text-sm font-semibold text-white">You are not enrolled in any course yet.</p>
+          <Link href="/student-portal/course-store" className="text-xs font-semibold text-cyan-400 hover:underline">
+            Browse the Course Store
+          </Link>
+        </div>
+      ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCourses.map((course) => (
             <div
@@ -133,19 +177,23 @@ export default function MyCoursesPage() {
               <div>
                 {/* Course Banner Image */}
                 <div className="relative h-44 w-full bg-slate-950 overflow-hidden">
-                  <Image
-                    src={course.thumbnail}
-                    alt={course.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    className="object-cover group-hover:scale-105 transition-transform duration-300 opacity-80"
-                  />
+                  {hasRenderableThumb(course.thumbnail) ? (
+                    <Image
+                      src={course.thumbnail}
+                      alt={course.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300 opacity-80"
+                    />
+                  ) : (
+                    <ThumbPlaceholder className="absolute inset-0" />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
                   <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[10px] font-bold text-cyan-400 font-mono">
                     {course.code}
                   </span>
                   <span className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
-                    {course.status}
+                    Enrolled
                   </span>
                 </div>
 
@@ -157,27 +205,19 @@ export default function MyCoursesPage() {
                     <h3 className="text-lg font-bold text-white group-hover:text-cyan-400 transition-colors line-clamp-2">
                       {course.title}
                     </h3>
-                    <p className="text-xs text-slate-400">Instructor: {course.instructor}</p>
+                    <p className="text-xs text-slate-400">Instructor: {course.instructor || "—"}</p>
                   </div>
 
                   <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
                     {course.description}
                   </p>
 
-                  {/* Progress Bar */}
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400">Syllabus Progress</span>
-                      <span className="font-bold text-cyan-400 font-mono">
-                        {course.completedLessons}/{course.totalLessons} ({course.progress}%)
-                      </span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-slate-950 overflow-hidden border border-slate-800">
-                      <div
-                        className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full"
-                        style={{ width: `${course.progress}%` }}
-                      />
-                    </div>
+                  {/* Curriculum size */}
+                  <div className="flex items-center justify-between text-xs pt-2">
+                    <span className="text-slate-400">Curriculum</span>
+                    <span className="font-bold text-cyan-400 font-mono">
+                      {course.modules.length} modules · {course.totalLessons} lessons
+                    </span>
                   </div>
                 </div>
               </div>
@@ -209,13 +249,17 @@ export default function MyCoursesPage() {
               className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6"
             >
               <div className="flex items-start gap-4">
-                <Image
-                  src={course.thumbnail}
-                  alt={course.title}
-                  width={112}
-                  height={80}
-                  className="h-20 w-28 rounded-xl object-cover shrink-0 border border-slate-800"
-                />
+                {hasRenderableThumb(course.thumbnail) ? (
+                  <Image
+                    src={course.thumbnail}
+                    alt={course.title}
+                    width={112}
+                    height={80}
+                    className="h-20 w-28 rounded-xl object-cover shrink-0 border border-slate-800"
+                  />
+                ) : (
+                  <ThumbPlaceholder className="h-20 w-28 rounded-xl shrink-0 border border-slate-800" />
+                )}
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-[10px] font-bold font-mono">
@@ -224,23 +268,14 @@ export default function MyCoursesPage() {
                     <span className="text-xs text-slate-400">{course.duration}</span>
                   </div>
                   <h3 className="text-base font-bold text-white">{course.title}</h3>
-                  <p className="text-xs text-slate-400">Instructor: {course.instructor}</p>
+                  <p className="text-xs text-slate-400">Instructor: {course.instructor || "—"}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-6">
-                <div className="w-40 hidden sm:block">
-                  <div className="flex justify-between text-xs text-slate-400 mb-1">
-                    <span>Progress</span>
-                    <span className="font-bold text-cyan-400 font-mono">{course.progress}%</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-slate-950 overflow-hidden">
-                    <div
-                      className="h-full bg-cyan-500 rounded-full"
-                      style={{ width: `${course.progress}%` }}
-                    />
-                  </div>
-                </div>
+                <span className="hidden sm:block text-xs font-bold text-cyan-400 font-mono">
+                  {course.modules.length} modules · {course.totalLessons} lessons
+                </span>
 
                 <div className="flex items-center gap-2">
                   <Link
@@ -287,7 +322,7 @@ export default function MyCoursesPage() {
                 </span>
                 <h2 className="text-2xl font-bold text-white">{selectedCourse.title}</h2>
                 <p className="text-xs text-slate-400">
-                  Faculty: <strong className="text-white">{selectedCourse.instructor}</strong> | Duration: {selectedCourse.duration}
+                  Faculty: <strong className="text-white">{selectedCourse.instructor || "—"}</strong> | Duration: {selectedCourse.duration || "—"}
                 </p>
               </div>
 
@@ -302,14 +337,17 @@ export default function MyCoursesPage() {
                 </h4>
 
                 <div className="space-y-3">
-                  {selectedCourse.syllabus.map((sec, idx) => (
-                    <div key={idx} className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
-                      <h5 className="text-xs font-bold text-cyan-400">{sec.section}</h5>
+                  {selectedCourse.modules.length === 0 && (
+                    <p className="text-xs text-slate-500">The curriculum for this course has not been published yet.</p>
+                  )}
+                  {selectedCourse.modules.map((mod) => (
+                    <div key={mod.id} className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+                      <h5 className="text-xs font-bold text-cyan-400">{mod.title}</h5>
                       <ul className="space-y-1">
-                        {sec.topics.map((t, i) => (
-                          <li key={i} className="text-xs text-slate-300 flex items-center gap-2">
+                        {mod.lessons.map((lesson) => (
+                          <li key={lesson.id} className="text-xs text-slate-300 flex items-center gap-2">
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                            <span>{t}</span>
+                            <span>{lesson.title}</span>
                           </li>
                         ))}
                       </ul>

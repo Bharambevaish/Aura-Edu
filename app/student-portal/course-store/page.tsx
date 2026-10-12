@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { useStudent, CourseStoreItem } from "@/context/StudentContext";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { getCourseStore, enrollInCourse, type StoreCourse } from "@/lib/actions/student-portal";
 import {
   ShoppingBag,
   Search,
@@ -14,13 +15,39 @@ import {
 } from "lucide-react";
 
 export default function CourseStorePage() {
-  const { courseStore, enrollInStoreCourse } = useStudent();
+  const router = useRouter();
+  const [courseStore, setCourseStore] = useState<StoreCourse[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [enrollError, setEnrollError] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCourse, setSelectedCourse] = useState<CourseStoreItem | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<StoreCourse | null>(null);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    getCourseStore()
+      .then((data) => {
+        if (!ignore) setCourseStore(data);
+      })
+      .catch(() => {
+        if (!ignore) setLoadError(true);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [reloadKey]);
+
+  if (!courseStore) {
+    return (
+      <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 text-sm text-slate-400">
+        {loadError ? "Could not load the course store. Please refresh the page." : "Loading course store…"}
+      </div>
+    );
+  }
 
   const filteredStore = courseStore.filter(
     (c) =>
@@ -28,19 +55,30 @@ export default function CourseStorePage() {
       c.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleConfirmPurchase = () => {
+  // Checkout is simulated (no payment gateway in the POC); the enrollment is real.
+  const handleConfirmPurchase = async () => {
     if (!selectedCourse) return;
     setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
+    setEnrollError(null);
+    try {
+      const res = await enrollInCourse(selectedCourse.id);
+      if (!res.ok) {
+        setEnrollError(res.message);
+        return;
+      }
       setPurchaseSuccess(true);
-      enrollInStoreCourse(selectedCourse.id);
+      setReloadKey((k) => k + 1);
+      router.refresh();
       setTimeout(() => {
         setPurchaseSuccess(false);
         setShowCheckoutModal(false);
         setSelectedCourse(null);
       }, 1500);
-    }, 1000);
+    } catch {
+      setEnrollError("Enrollment failed. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -241,6 +279,8 @@ export default function CourseStorePage() {
                   <p className="text-sm font-bold text-white">{selectedCourse.title}</p>
                   <p className="text-lg font-black text-cyan-400 font-mono">₹{selectedCourse.price}</p>
                 </div>
+
+                {enrollError && <p className="text-xs text-rose-400">{enrollError}</p>}
 
                 <button
                   onClick={handleConfirmPurchase}
