@@ -9,7 +9,7 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "MyEdou — Institution Management Platform | Academy, School/College ERP & HRM",
+  title: "AuraEdu — Institution Management Platform | Academy, School/College ERP & HRM",
   description: "Run your entire institution on one platform. From coaching academies to schools, colleges and universities — manage admissions, students, staff, attendance, examinations, fees, accounts and payroll.",
   icons: {
     icon: "/favicon.ico",

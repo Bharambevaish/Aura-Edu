@@ -57,10 +57,10 @@ export default function AdminHeader({ user }: { user: SessionUser }) {
           </div>
           <div>
             <h1 className="text-sm font-semibold text-white flex items-center gap-2">
-              MyEdou Workspace
+              AuraEdu Workspace
               <ChevronDown size={14} className="text-slate-400" />
             </h1>
-            <p className="text-xs text-slate-400">MyEdou</p>
+            <p className="text-xs text-slate-400">AuraEdu</p>
           </div>
         </div>
       </div>

@@ -31,7 +31,7 @@ export default function ContactSection() {
             Let&apos;s get your institution live
           </h2>
           <p className="text-base sm:text-lg text-slate-300">
-            Tell us about your institution and we&apos;ll map the right MyEdou product to your workflow. WhatsApp is fastest for instant answers.
+            Tell us about your institution and we&apos;ll map the right AuraEdu product to your workflow. WhatsApp is fastest for instant answers.
           </p>
         </div>
 
@@ -182,8 +182,8 @@ export default function ContactSection() {
                   </div>
                   <div>
                     <h4 className="text-xs font-mono text-slate-400 uppercase tracking-wider">EMAIL</h4>
-                    <div className="text-sm font-bold text-white mt-0.5">info@demo.myedou.com</div>
-                    <div className="text-xs text-slate-400">hello@demo.myedou.com</div>
+                    <div className="text-sm font-bold text-white mt-0.5">info@demo.auraedu.com</div>
+                    <div className="text-xs text-slate-400">hello@demo.auraedu.com</div>
                   </div>
                 </div>
 

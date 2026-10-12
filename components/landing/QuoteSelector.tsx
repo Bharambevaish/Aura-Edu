@@ -161,7 +161,7 @@ export default function QuoteSelector() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                MyEdou Academy
+                AuraEdu Academy
               </button>
 
               <button
@@ -176,7 +176,7 @@ export default function QuoteSelector() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                MyEdou ERP
+                AuraEdu ERP
               </button>
 
               <button
@@ -191,7 +191,7 @@ export default function QuoteSelector() {
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                MyEdou HRM
+                AuraEdu HRM
                 <span className="text-[9px] bg-purple-400/20 text-purple-300 px-1 rounded uppercase">Soon</span>
               </button>
             </div>
@@ -204,7 +204,7 @@ export default function QuoteSelector() {
               <div className="lg:col-span-7 space-y-6">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold text-slate-200">
-                    2. Choose Modules for <span className="text-[#74B53C]">MyEdou {selectedProduct}</span>:
+                    2. Choose Modules for <span className="text-[#74B53C]">AuraEdu {selectedProduct}</span>:
                   </span>
                   <div className="flex items-center gap-2">
                     <button
@@ -421,7 +421,7 @@ export default function QuoteSelector() {
                 {/* Submit Action Box */}
                 <div className="space-y-3 pt-4 border-t border-white/10">
                   <div className="text-xs text-slate-400 flex items-center justify-between font-mono">
-                    <span>Selected: MyEdou {selectedProduct}</span>
+                    <span>Selected: AuraEdu {selectedProduct}</span>
                     <span className="text-[#74B53C] font-bold">{selectedModules.length} modules chosen</span>
                   </div>
 

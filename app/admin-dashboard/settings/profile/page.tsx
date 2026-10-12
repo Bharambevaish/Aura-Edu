@@ -87,7 +87,7 @@ export default function AdminProfilePage() {
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1 flex items-center gap-1"><Mail size={12}/> Email Address</label>
                 <p className="text-sm text-slate-200 font-medium flex items-center gap-2">
-                  admin@myedou.com
+                  admin@auraedu.com
                   <CheckCircle2 size={14} className="text-emerald-400" />
                 </p>
               </div>
@@ -108,7 +108,7 @@ export default function AdminProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Organization Name</label>
-                <p className="text-sm text-slate-200 font-medium">MyEdou Institute of Technology</p>
+                <p className="text-sm text-slate-200 font-medium">AuraEdu Institute of Technology</p>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Primary Branch</label>

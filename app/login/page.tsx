@@ -15,9 +15,9 @@ import { GraduationCap, ShieldCheck, ArrowLeft, AlertCircle, LogIn } from "lucid
 import { login } from "@/lib/actions/auth";
 
 const DEMO_LOGINS = {
-  student: { email: "student@demo.myedou.com", password: "Student@123", label: "Explore as Student" },
-  admin: { email: "admin@demo.myedou.com", password: "Admin@123", label: "Explore as Admin" },
-  staff: { email: "staff@demo.myedou.com", password: "Staff@123", label: "Explore as Staff" },
+  student: { email: "student@demo.auraedu.com", password: "Student@123", label: "Explore as Student" },
+  admin: { email: "admin@demo.auraedu.com", password: "Admin@123", label: "Explore as Admin" },
+  staff: { email: "staff@demo.auraedu.com", password: "Staff@123", label: "Explore as Staff" },
 } as const;
 
 export default function LoginSelectorPage() {
@@ -41,7 +41,7 @@ export default function LoginSelectorPage() {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#5E9A2E] to-[#74B53C] flex items-center justify-center font-extrabold text-white">
             E
           </div>
-          <span className="font-bold text-lg text-white">MyEdou Portals</span>
+          <span className="font-bold text-lg text-white">AuraEdu Portals</span>
         </div>
       </header>
 
@@ -187,7 +187,7 @@ export default function LoginSelectorPage() {
                     type="text"
                     name="email"
                     required
-                    placeholder={activeTab === "admin" ? "admin@demo.myedou.com" : "staff@demo.myedou.com"}
+                    placeholder={activeTab === "admin" ? "admin@demo.auraedu.com" : "staff@demo.auraedu.com"}
                     className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white text-sm outline-none focus:border-purple-400"
                   />
                   {state?.errors?.email && (
@@ -260,7 +260,7 @@ export default function LoginSelectorPage() {
 
       {/* Footer */}
       <footer className="p-6 text-center text-xs text-slate-500 z-10 border-t border-white/5">
-        © 2026 MyEdou · Demo Preview
+        © 2026 AuraEdu · Demo Preview
       </footer>
     </div>
   );

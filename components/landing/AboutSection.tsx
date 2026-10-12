@@ -31,7 +31,7 @@ export default function AboutSection() {
             THE PLATFORM
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
-            About MyEdou
+            About AuraEdu
           </h2>
           <p className="text-base sm:text-lg text-slate-300">
             Everything an institution needs on a single platform — from the first student enquiry to fees, examinations and payroll.

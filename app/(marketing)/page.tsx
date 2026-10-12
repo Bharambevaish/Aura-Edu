@@ -1,7 +1,7 @@
 import Header from "@/components/landing/Header";
 import Hero from "@/components/landing/Hero";
 import FeatureTicker from "@/components/landing/FeatureTicker";
-import WhyMyEdou from "@/components/landing/WhyMyEdou";
+import WhyAuraEdu from "@/components/landing/WhyAuraEdu";
 import ModulesNavigator from "@/components/landing/ModulesNavigator";
 import QuoteSelector from "@/components/landing/QuoteSelector";
 import AboutSection from "@/components/landing/AboutSection";
@@ -15,7 +15,7 @@ export default function Home() {
       <Header />
       <Hero />
       <FeatureTicker />
-      <WhyMyEdou />
+      <WhyAuraEdu />
       <ModulesNavigator />
       <QuoteSelector />
       <AboutSection />

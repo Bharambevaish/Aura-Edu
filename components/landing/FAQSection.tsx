@@ -8,44 +8,44 @@ export default function FAQSection() {
 
   const faqs = [
     {
-      q: "What is MyEdou and who is it for?",
-      a: "MyEdou is a single platform for managing an education institution — coaching centres, schools, colleges and universities. It covers students, staff, attendance, examinations, fees, accounts and payroll, with a web portal and a mobile app, so everything lives in one place instead of across scattered tools.",
+      q: "What is AuraEdu and who is it for?",
+      a: "AuraEdu is a single platform for managing an education institution — coaching centres, schools, colleges and universities. It covers students, staff, attendance, examinations, fees, accounts and payroll, with a web portal and a mobile app, so everything lives in one place instead of across scattered tools.",
     },
     {
-      q: "Which MyEdou product is right for me?",
+      q: "Which AuraEdu product is right for me?",
       a: "Choose the modules you need and ignore the rest. Coaching centres typically start with students, batches, attendance, fees and an app; schools, colleges and universities add admissions, examinations, hostel, transport, library, accounts and HR on one campus-wide platform. Not sure where to start? Use Get Quotation and we'll recommend the right fit.",
     },
     {
-      q: "How is MyEdou priced?",
+      q: "How is AuraEdu priced?",
       a: "There are no fixed public plans — pricing is tailored to each institution's size, the product you need and the modules you choose. Pick a product, select the modules you're interested in on the Get Quotation form, share your details, and our team prepares a custom quote and connects with you.",
     },
     {
-      q: "Does MyEdou support multiple branches and campuses?",
-      a: "Yes. MyEdou is multi-branch and multi-campus from day one — run any number of branches or campuses from one dashboard, keep each unit's students, staff and accounts cleanly separated, and roll figures up to a single head-office view. Branch-level permissions and reports work out of the box.",
+      q: "Does AuraEdu support multiple branches and campuses?",
+      a: "Yes. AuraEdu is multi-branch and multi-campus from day one — run any number of branches or campuses from one dashboard, keep each unit's students, staff and accounts cleanly separated, and roll figures up to a single head-office view. Branch-level permissions and reports work out of the box.",
     },
     {
-      q: "How does MyEdou handle admissions and leads?",
+      q: "How does AuraEdu handle admissions and leads?",
       a: "Captured enquiries can be auto-converted into active students with no manual re-entry or duplicate records. Online admissions, self-purchase enrolment via secure checkout, and embeddable forms on your own domain feed into the same inbox, so the path from enquiry to enrolled student is end-to-end across Academy and ERP.",
     },
     {
       q: "Is there a mobile app for students and parents?",
-      a: "Yes. MyEdou ships a mobile app for students (and parents on ERP) so they can view schedule, attendance, fees, assignments, examinations, results, certificates and notifications — the same data as the web portal, on every screen.",
+      a: "Yes. AuraEdu ships a mobile app for students (and parents on ERP) so they can view schedule, attendance, fees, assignments, examinations, results, certificates and notifications — the same data as the web portal, on every screen.",
     },
     {
-      q: "What does MyEdou ERP manage for schools, colleges and universities?",
-      a: "MyEdou ERP covers the whole campus across 40+ modules: academics and LMS, online examinations and result analysis, student information and portals, online admissions, fees and accounts, HR and payroll, administration, hostel, transport, library, alumni and training & placement, plus smart add-ons like dashboard analytics, NAAC & NBA support and AI reports.",
+      q: "What does AuraEdu ERP manage for schools, colleges and universities?",
+      a: "AuraEdu ERP covers the whole campus across 40+ modules: academics and LMS, online examinations and result analysis, student information and portals, online admissions, fees and accounts, HR and payroll, administration, hostel, transport, library, alumni and training & placement, plus smart add-ons like dashboard analytics, NAAC & NBA support and AI reports.",
     },
     {
-      q: "How quickly can we go live on MyEdou?",
+      q: "How quickly can we go live on AuraEdu?",
       a: "Most institutions go live quickly. Pick your product and modules, import your existing student or staff list (we offer a Data Migration option if you prefer it done for you), and your branded subdomain (or custom domain) is ready. On-site training is available on request.",
     },
     {
       q: "Is my data secure?",
-      a: "MyEdou is cloud-hosted with role-based access, branch-scoped permissions, encrypted PII for finance records and an audit trail of every change. Every feature ships with tests, monitoring and automated data backup, plus API access when you need it.",
+      a: "AuraEdu is cloud-hosted with role-based access, branch-scoped permissions, encrypted PII for finance records and an audit trail of every change. Every feature ships with tests, monitoring and automated data backup, plus API access when you need it.",
     },
     {
-      q: "Who builds and supports MyEdou?",
-      a: "MyEdou is developed and supported by a dedicated product engineering team. You get ongoing updates and direct support across every module — not a faceless reseller.",
+      q: "Who builds and supports AuraEdu?",
+      a: "AuraEdu is developed and supported by a dedicated product engineering team. You get ongoing updates and direct support across every module — not a faceless reseller.",
     },
   ];
 

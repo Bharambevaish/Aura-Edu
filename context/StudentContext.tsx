@@ -276,7 +276,7 @@ export function StudentProvider({
       title: "Certificate of Achievement - Biology Foundations",
       course: "NEET Comprehensive 2026",
       issuedDate: "09 Aug 2026",
-      certificateNo: "MYEDOU-CERT-2026-8841",
+      certificateNo: "AURAEDU-CERT-2026-8841",
       downloadUrl: "#",
     },
     {
@@ -284,7 +284,7 @@ export function StudentProvider({
       title: "Certificate of Completion - React & Next.js Core",
       course: "MERN Stack Web Development Specialization",
       issuedDate: "15 Jul 2026",
-      certificateNo: "MYEDOU-CERT-2026-7712",
+      certificateNo: "AURAEDU-CERT-2026-7712",
       downloadUrl: "#",
     },
   ]);

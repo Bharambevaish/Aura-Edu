@@ -425,7 +425,7 @@ function newMeetingLink(title: string): string {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .slice(0, 40) || "meeting";
-  return `https://meet.myedou.com/${slug}-${Math.random().toString(36).slice(2, 6)}`;
+  return `https://meet.auraedu.com/${slug}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 export async function createMeeting(input: unknown): Promise<Outcome<{ id: string; link: string }>> {

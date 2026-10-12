@@ -49,7 +49,7 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           // Strip extra headers that describe our framework/runtime — avoid
           // handing reconnaissance data to attackers.
-          { key: "X-Powered-By", value: "MyEdou" },
+          { key: "X-Powered-By", value: "AuraEdu" },
           ...(isProd
             ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]
             : []),

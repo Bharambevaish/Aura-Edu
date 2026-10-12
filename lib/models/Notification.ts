@@ -32,7 +32,7 @@ const notificationSchema = new mongoose.Schema<NotificationDoc>(
     title: { type: String, required: true },
     message: { type: String, required: true },
     category: { type: String, required: true, index: true },
-    sender: { type: String, default: "MyEdou Portal" },
+    sender: { type: String, default: "AuraEdu Portal" },
     important: { type: Boolean, default: false },
     read: { type: Boolean, default: false, index: true },
     link: { type: String, default: "" },

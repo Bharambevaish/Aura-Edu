@@ -1,4 +1,4 @@
-# MyEdou — Institution Management Platform (POC / Sales Demo)
+# AuraEdu — Institution Management Platform (POC / Sales Demo)
 
 A proof-of-concept web app for a coaching/institution management suite. Its only
 job is to impress potential clients with ~25 demonstrable modules so they can

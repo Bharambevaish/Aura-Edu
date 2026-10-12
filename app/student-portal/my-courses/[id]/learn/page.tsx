@@ -101,7 +101,7 @@ export default function CourseLearnPage() {
             {/* Watermark Security Text */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-10 rotate-[-15deg]">
               <p className="text-xl md:text-3xl font-black text-cyan-400 font-mono select-none">
-                {profile.email} • {profile.admissionNo} • MYEDOU PLAYER
+                {profile.email} • {profile.admissionNo} • AURAEDU PLAYER
               </p>
             </div>
 

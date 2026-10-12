@@ -10,7 +10,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ## Project Command Center
 
-Project: MyEdou — a POC/sales-demo platform for a coaching/institution
+Project: AuraEdu — a POC/sales-demo platform for a coaching/institution
 management suite (~25 demo modules; only 7 need genuine working depth; rest are
 polished simulations on seeded data). Full execution plan, decisions, module map
 and tasklist live in `TASKLIST.md` — read it before anything else.

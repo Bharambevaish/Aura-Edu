@@ -126,7 +126,7 @@ export default function CertificatesPage() {
               <div className="flex items-center justify-center gap-2">
                 <Sparkles className="h-6 w-6 text-cyan-400" />
                 <span className="text-sm font-bold text-cyan-400 font-mono tracking-widest uppercase">
-                  MYEDOU INSTITUTION OF EXCELLENCE
+                  AURAEDU INSTITUTION OF EXCELLENCE
                 </span>
               </div>
 

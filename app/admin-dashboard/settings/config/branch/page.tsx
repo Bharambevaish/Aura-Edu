@@ -24,7 +24,7 @@ export default function BranchConfigPage() {
       type: 'Headquarters',
       address: 'Tech Hub Building, Andheri East, Mumbai',
       phone: '+91 98765 43210',
-      email: 'main@myedou.com',
+      email: 'main@auraedu.com',
       capacity: 1200,
       activeStudents: 845,
       status: 'Active',
@@ -37,7 +37,7 @@ export default function BranchConfigPage() {
       type: 'Sub-Branch',
       address: 'Knowledge Park, Vashi, Navi Mumbai',
       phone: '+91 98765 12345',
-      email: 'mumbai@myedou.com',
+      email: 'mumbai@auraedu.com',
       capacity: 800,
       activeStudents: 403,
       status: 'Active',
@@ -195,7 +195,7 @@ export default function BranchConfigPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-300 mb-1.5">Contact Email</label>
-                        <input type="email" className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" placeholder="branch@myedou.com" />
+                        <input type="email" className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500" placeholder="branch@auraedu.com" />
                       </div>
                     </div>
                   </div>

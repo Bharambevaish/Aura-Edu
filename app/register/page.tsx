@@ -52,7 +52,7 @@ export default function StudentRegistrationPage() {
             <span className="text-2xl font-bold text-white">M</span>
           </motion.div>
           <h1 className="text-3xl font-bold text-white mb-2">Student Registration</h1>
-          <p className="text-slate-400">Join MyEdou Institute. Complete your profile in a few steps.</p>
+          <p className="text-slate-400">Join AuraEdu Institute. Complete your profile in a few steps.</p>
         </div>
 
         {/* Progress Bar */}
@@ -234,7 +234,7 @@ export default function StudentRegistrationPage() {
                     <CheckCircle2 size={48} />
                   </div>
                   <h2 className="text-3xl font-bold text-white mb-2">Registration Successful!</h2>
-                  <p className="text-slate-400 mb-8 max-w-md mx-auto">Your application has been received and verified. Welcome to MyEdou!</p>
+                  <p className="text-slate-400 mb-8 max-w-md mx-auto">Your application has been received and verified. Welcome to AuraEdu!</p>
                   
                   <div className="max-w-sm mx-auto bg-slate-900 border border-white/10 rounded-2xl p-6 relative overflow-hidden text-left shadow-2xl">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>

@@ -43,7 +43,7 @@ const noticeSchema = new mongoose.Schema<NoticeDoc>(
       batchNames: { type: [String], default: [] },
       studentIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     },
-    sender: { type: String, default: "MyEdou Portal" },
+    sender: { type: String, default: "AuraEdu Portal" },
     senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     pinnedAt: { type: Date, default: null },
     sentAt: { type: Date, default: Date.now },

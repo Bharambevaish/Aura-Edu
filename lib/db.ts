@@ -44,7 +44,7 @@ export async function connectDB(): Promise<typeof mongoose> {
     }
 
     cached.promise = mongoose.connect(MONGODB_URI, {
-      dbName: "myedou",
+      dbName: "auraedu",
       // Don't buffer model operations while connecting — fail fast in dev
       // instead of hanging a request on an unconfigured database.
       bufferCommands: false,

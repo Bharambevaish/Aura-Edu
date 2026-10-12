@@ -55,21 +55,21 @@ export interface DemoAccount {
 export const DEMO_ACCOUNTS: DemoAccount[] = [
   {
     name: "System Administrator",
-    email: "admin@demo.myedou.com",
+    email: "admin@demo.auraedu.com",
     password: "Admin@123",
     role: "admin",
     employeeId: "EMP-0001",
   },
   {
     name: "Ritu Sharma",
-    email: "staff@demo.myedou.com",
+    email: "staff@demo.auraedu.com",
     password: "Staff@123",
     role: "staff",
     employeeId: "EMP-0012",
   },
   {
     name: "Aarav Sharma",
-    email: "student@demo.myedou.com",
+    email: "student@demo.auraedu.com",
     password: "Student@123",
     role: "student",
     admissionNo: "ADM-2026-0010",
@@ -92,7 +92,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     name: "Priya Deshmukh",
-    email: "priya.deshmukh@demo.myedou.com",
+    email: "priya.deshmukh@demo.auraedu.com",
     password: "Student@123",
     role: "student",
     admissionNo: "ADM-2026-0009",
@@ -115,7 +115,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     name: "Rohan Kulkarni",
-    email: "rohan.kulkarni@demo.myedou.com",
+    email: "rohan.kulkarni@demo.auraedu.com",
     password: "Student@123",
     role: "student",
     admissionNo: "ADM-2026-0007",
@@ -138,7 +138,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     name: "Sneha Patil",
-    email: "sneha.patil@demo.myedou.com",
+    email: "sneha.patil@demo.auraedu.com",
     password: "Student@123",
     role: "student",
     admissionNo: "STU-2026-1004",
@@ -161,7 +161,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     name: "Aditya Joshi",
-    email: "aditya.joshi@demo.myedou.com",
+    email: "aditya.joshi@demo.auraedu.com",
     password: "Student@123",
     role: "student",
     admissionNo: "STU-2026-1005",
@@ -184,7 +184,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     name: "Meera Iyer",
-    email: "meera.iyer@demo.myedou.com",
+    email: "meera.iyer@demo.auraedu.com",
     password: "Student@123",
     role: "student",
     admissionNo: "ADM-2026-0006",
@@ -207,7 +207,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     name: "Kabir Singh",
-    email: "kabir.singh@demo.myedou.com",
+    email: "kabir.singh@demo.auraedu.com",
     password: "Student@123",
     role: "student",
     admissionNo: "ADM-2026-0005",
@@ -230,7 +230,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     name: "Ananya Rao",
-    email: "ananya.rao@demo.myedou.com",
+    email: "ananya.rao@demo.auraedu.com",
     password: "Student@123",
     role: "student",
     admissionNo: "ADM-2026-0004",
@@ -253,7 +253,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     name: "Dev Verma",
-    email: "dev.verma@demo.myedou.com",
+    email: "dev.verma@demo.auraedu.com",
     password: "Student@123",
     role: "student",
     admissionNo: "ADM-2026-0003",
@@ -276,7 +276,7 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
   },
   {
     name: "Ishita Nair",
-    email: "ishita.nair@demo.myedou.com",
+    email: "ishita.nair@demo.auraedu.com",
     password: "Student@123",
     role: "student",
     admissionNo: "ADM-2026-0002",
@@ -582,8 +582,8 @@ export async function seedDemoTests(): Promise<void> {
     },
   ];
 
-  const aarav = userIds.get("student@demo.myedou.com");
-  const rohan = userIds.get("rohan.kulkarni@demo.myedou.com");
+  const aarav = userIds.get("student@demo.auraedu.com");
+  const rohan = userIds.get("rohan.kulkarni@demo.auraedu.com");
 
   const completedTests = await Promise.all(
     completed.map(async (c) => {
@@ -1153,8 +1153,8 @@ export async function seedDemoAssignments(): Promise<void> {
   }
 
   const assignment = (title: string) => byTitle.get(title)!;
-  const neetOthers = neetStudents.filter((s) => s.email !== "student@demo.myedou.com" && s.email !== "rohan.kulkarni@demo.myedou.com");
-  const jeeOthers = jeeStudents.filter((s) => s.email !== "priya.deshmukh@demo.myedou.com");
+  const neetOthers = neetStudents.filter((s) => s.email !== "student@demo.auraedu.com" && s.email !== "rohan.kulkarni@demo.auraedu.com");
+  const jeeOthers = jeeStudents.filter((s) => s.email !== "priya.deshmukh@demo.auraedu.com");
 
   const reviewed = (a: ReturnType<typeof assignment>, student: { _id: unknown; name: string }, marks: number, verdict: "complete" | "needs_work", note: string, submittedDays: number) =>
     submissions.push({
@@ -1189,9 +1189,9 @@ export async function seedDemoAssignments(): Promise<void> {
   const studentById = (email: string) =>
     neetStudents.find((s) => s.email === email) ?? jeeStudents.find((s) => s.email === email) ?? neetStudents[0];
 
-  const aarav = studentById("student@demo.myedou.com");
-  const rohan = studentById("rohan.kulkarni@demo.myedou.com");
-  const priya = studentById("priya.deshmukh@demo.myedou.com");
+  const aarav = studentById("student@demo.auraedu.com");
+  const rohan = studentById("rohan.kulkarni@demo.auraedu.com");
+  const priya = studentById("priya.deshmukh@demo.auraedu.com");
 
   // Demo student (aarav): submitted-and-reviewed on the overdue sheet, pending on
   // Chemical Bonding, not yet attempted on Human Physiology + Laws of Motion.
@@ -1378,7 +1378,7 @@ export async function seedDemoAttendance(): Promise<void> {
       const entries = roster.map((s, p) => {
         // The demo login stays perfect every day — this is the account a visitor
         // actually uses, and it matches the "100% attendance" story on the dashboard.
-        if (s.email === "student@demo.myedou.com") {
+        if (s.email === "student@demo.auraedu.com") {
           return {
             studentId: s._id,
             status: "present" as const,
@@ -1442,56 +1442,56 @@ const LOGIN_PLAN: Record<
   string,
   { blocked?: boolean; lastLoginHours?: number; sessions?: SeedSessionPlan[] }
 > = {
-  "student@demo.myedou.com": {
+  "student@demo.auraedu.com": {
     sessions: [
       { offsetHours: 1, ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" },
       { offsetHours: 5, ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0" },
     ],
     lastLoginHours: 1,
   },
-  "priya.deshmukh@demo.myedou.com": {
+  "priya.deshmukh@demo.auraedu.com": {
     sessions: [
       { offsetHours: 20, ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" },
       { offsetHours: 26, ua: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15" },
     ],
     lastLoginHours: 20,
   },
-  "rohan.kulkarni@demo.myedou.com": {
+  "rohan.kulkarni@demo.auraedu.com": {
     sessions: [
       { offsetHours: 2, ua: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" },
     ],
     lastLoginHours: 2,
   },
-  "sneha.patil@demo.myedou.com": {
+  "sneha.patil@demo.auraedu.com": {
     sessions: [
       { offsetHours: 26, ua: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15" },
     ],
     lastLoginHours: 26,
   },
-  "meera.iyer@demo.myedou.com": {
+  "meera.iyer@demo.auraedu.com": {
     sessions: [
       { offsetHours: 30, ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0" },
     ],
     lastLoginHours: 30,
   },
-  "aditya.joshi@demo.myedou.com": {
+  "aditya.joshi@demo.auraedu.com": {
     sessions: [
       { offsetHours: 9 * 24, ua: "Mozilla/5.0 (X11; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0" },
     ],
     lastLoginHours: 9 * 24,
   },
-  "kabir.singh@demo.myedou.com": {},
-  "ananya.rao@demo.myedou.com": {
+  "kabir.singh@demo.auraedu.com": {},
+  "ananya.rao@demo.auraedu.com": {
     blocked: true,
     sessions: [
       { offsetHours: 5 * 24, ua: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36" },
     ],
     lastLoginHours: 5 * 24,
   },
-  "dev.verma@demo.myedou.com": {
+  "dev.verma@demo.auraedu.com": {
     blocked: true,
   },
-  "ishita.nair@demo.myedou.com": {},
+  "ishita.nair@demo.auraedu.com": {},
 };
 
 /** Writes the seeded sessions + user login fields so the Logins tab has live data. */
@@ -1563,8 +1563,8 @@ export async function seedDemoFinance(): Promise<void> {
   await AuditLogModel.deleteMany({});
 
   const [admin, staff, students] = await Promise.all([
-    UserModel.findOne({ email: "admin@demo.myedou.com" }).lean(),
-    UserModel.findOne({ email: "staff@demo.myedou.com" }).lean(),
+    UserModel.findOne({ email: "admin@demo.auraedu.com" }).lean(),
+    UserModel.findOne({ email: "staff@demo.auraedu.com" }).lean(),
     UserModel.find({ role: "student" }).lean(),
   ]);
   if (!admin || !staff) return;
@@ -1716,14 +1716,14 @@ export async function seedDemoFinance(): Promise<void> {
     issueDate: Date;
     dueDate: Date;
   }[] = [
-    { invoiceNo: "INV-2026-00001", email: "student@demo.myedou.com", total: 10001, paid: 5000, waived: 0, issueDate: new Date(2026, 5, 15), dueDate: new Date(2026, 7, 15) },
-    { invoiceNo: "INV-2026-00002", email: "priya.deshmukh@demo.myedou.com", total: 9001, paid: 9001, waived: 0, issueDate: new Date(2026, 5, 18), dueDate: new Date(2026, 7, 18) },
-    { invoiceNo: "INV-2026-00003", email: "rohan.kulkarni@demo.myedou.com", total: 10001, paid: 4000, waived: 0, issueDate: new Date(2026, 5, 20), dueDate: new Date(2026, 8, 10) },
-    { invoiceNo: "INV-2026-00004", email: "sneha.patil@demo.myedou.com", total: 10001, paid: 3000, waived: 0, issueDate: new Date(2026, 5, 22), dueDate: new Date(2026, 9, 15) },
-    { invoiceNo: "INV-2026-00005", email: "meera.iyer@demo.myedou.com", total: 9001, paid: 0, waived: 0, issueDate: new Date(2026, 5, 10), dueDate: new Date(2026, 8, 5) },
-    { invoiceNo: "INV-2026-00006", email: "aditya.joshi@demo.myedou.com", total: 10001, paid: 5000, waived: 0, issueDate: new Date(2026, 6, 8), dueDate: new Date(2026, 9, 1) },
-    { invoiceNo: "INV-2026-00007", email: "kabir.singh@demo.myedou.com", total: 10001, paid: 0, waived: 0, issueDate: new Date(2026, 6, 20), dueDate: new Date(2026, 9, 20) },
-    { invoiceNo: "INV-2026-00008", email: "dev.verma@demo.myedou.com", total: 9001, paid: 9001, waived: 0, issueDate: new Date(2026, 5, 5), dueDate: new Date(2026, 7, 5) },
+    { invoiceNo: "INV-2026-00001", email: "student@demo.auraedu.com", total: 10001, paid: 5000, waived: 0, issueDate: new Date(2026, 5, 15), dueDate: new Date(2026, 7, 15) },
+    { invoiceNo: "INV-2026-00002", email: "priya.deshmukh@demo.auraedu.com", total: 9001, paid: 9001, waived: 0, issueDate: new Date(2026, 5, 18), dueDate: new Date(2026, 7, 18) },
+    { invoiceNo: "INV-2026-00003", email: "rohan.kulkarni@demo.auraedu.com", total: 10001, paid: 4000, waived: 0, issueDate: new Date(2026, 5, 20), dueDate: new Date(2026, 8, 10) },
+    { invoiceNo: "INV-2026-00004", email: "sneha.patil@demo.auraedu.com", total: 10001, paid: 3000, waived: 0, issueDate: new Date(2026, 5, 22), dueDate: new Date(2026, 9, 15) },
+    { invoiceNo: "INV-2026-00005", email: "meera.iyer@demo.auraedu.com", total: 9001, paid: 0, waived: 0, issueDate: new Date(2026, 5, 10), dueDate: new Date(2026, 8, 5) },
+    { invoiceNo: "INV-2026-00006", email: "aditya.joshi@demo.auraedu.com", total: 10001, paid: 5000, waived: 0, issueDate: new Date(2026, 6, 8), dueDate: new Date(2026, 9, 1) },
+    { invoiceNo: "INV-2026-00007", email: "kabir.singh@demo.auraedu.com", total: 10001, paid: 0, waived: 0, issueDate: new Date(2026, 6, 20), dueDate: new Date(2026, 9, 20) },
+    { invoiceNo: "INV-2026-00008", email: "dev.verma@demo.auraedu.com", total: 9001, paid: 9001, waived: 0, issueDate: new Date(2026, 5, 5), dueDate: new Date(2026, 7, 5) },
   ];
   const invoiceIdByStudent = new Map<string, mongoose.Types.ObjectId>();
   let invoices = 0;
@@ -1758,13 +1758,13 @@ export async function seedDemoFinance(): Promise<void> {
     recordedAt: Date;
     recordedBy: mongoose.Types.ObjectId;
   }[] = [
-    { receiptNo: "RCP-202604-0001", email: "student@demo.myedou.com", amount: 5000, mode: "Cash", status: "success", recordedAt: new Date(2026, 3, 10), recordedBy: admin._id },
-    { receiptNo: "RCP-202605-0001", email: "priya.deshmukh@demo.myedou.com", amount: 9001, mode: "UPI", status: "success", recordedAt: new Date(2026, 4, 20), recordedBy: admin._id },
-    { receiptNo: "RCP-202605-0002", email: "rohan.kulkarni@demo.myedou.com", amount: 4000, mode: "Bank Transfer", status: "success", recordedAt: new Date(2026, 4, 25), recordedBy: staff._id },
-    { receiptNo: "RCP-202606-0001", email: "dev.verma@demo.myedou.com", amount: 9001, mode: "Bank Transfer", status: "success", recordedAt: new Date(2026, 5, 5), recordedBy: admin._id },
-    { receiptNo: "RCP-202606-0002", email: "sneha.patil@demo.myedou.com", amount: 3000, mode: "UPI", status: "success", recordedAt: new Date(2026, 5, 22), recordedBy: staff._id },
-    { receiptNo: "RCP-202607-0001", email: "aditya.joshi@demo.myedou.com", amount: 5000, mode: "UPI", status: "success", recordedAt: new Date(2026, 6, 8), recordedBy: staff._id },
-    { receiptNo: "RCP-202609-0001", email: "kabir.singh@demo.myedou.com", amount: 10001, mode: "UPI", status: "cancelled", recordedAt: new Date(2026, 8, 2), recordedBy: admin._id },
+    { receiptNo: "RCP-202604-0001", email: "student@demo.auraedu.com", amount: 5000, mode: "Cash", status: "success", recordedAt: new Date(2026, 3, 10), recordedBy: admin._id },
+    { receiptNo: "RCP-202605-0001", email: "priya.deshmukh@demo.auraedu.com", amount: 9001, mode: "UPI", status: "success", recordedAt: new Date(2026, 4, 20), recordedBy: admin._id },
+    { receiptNo: "RCP-202605-0002", email: "rohan.kulkarni@demo.auraedu.com", amount: 4000, mode: "Bank Transfer", status: "success", recordedAt: new Date(2026, 4, 25), recordedBy: staff._id },
+    { receiptNo: "RCP-202606-0001", email: "dev.verma@demo.auraedu.com", amount: 9001, mode: "Bank Transfer", status: "success", recordedAt: new Date(2026, 5, 5), recordedBy: admin._id },
+    { receiptNo: "RCP-202606-0002", email: "sneha.patil@demo.auraedu.com", amount: 3000, mode: "UPI", status: "success", recordedAt: new Date(2026, 5, 22), recordedBy: staff._id },
+    { receiptNo: "RCP-202607-0001", email: "aditya.joshi@demo.auraedu.com", amount: 5000, mode: "UPI", status: "success", recordedAt: new Date(2026, 6, 8), recordedBy: staff._id },
+    { receiptNo: "RCP-202609-0001", email: "kabir.singh@demo.auraedu.com", amount: 10001, mode: "UPI", status: "cancelled", recordedAt: new Date(2026, 8, 2), recordedBy: admin._id },
   ];
   let payments = 0;
   for (const p of paymentSeeds) {
@@ -1826,12 +1826,12 @@ export async function seedDemoFinance(): Promise<void> {
   }
 
   /* Waivers — one approved (Meera), one pending (Kabir) */
-  const meera = studentId("meera.iyer@demo.myedou.com");
+  const meera = studentId("meera.iyer@demo.auraedu.com");
   if (meera) {
     const waiver = await WaiverModel.create({
       waiverNo: "WAV-2026-0001",
       studentId: meera,
-      invoiceId: invoiceIdByStudent.get("meera.iyer@demo.myedou.com") ?? undefined,
+      invoiceId: invoiceIdByStudent.get("meera.iyer@demo.auraedu.com") ?? undefined,
       amount: 2000,
       reason: "Sibling discount — elder sister is an alumnus.",
       status: "approved",
@@ -1844,12 +1844,12 @@ export async function seedDemoFinance(): Promise<void> {
       await InvoiceModel.updateOne({ _id: waiver.invoiceId }, { $inc: { waived: waiver.amount } });
     }
   }
-  const kabir = studentId("kabir.singh@demo.myedou.com");
+  const kabir = studentId("kabir.singh@demo.auraedu.com");
   if (kabir) {
     await WaiverModel.create({
       waiverNo: "WAV-2026-0002",
       studentId: kabir,
-      invoiceId: invoiceIdByStudent.get("kabir.singh@demo.myedou.com") ?? undefined,
+      invoiceId: invoiceIdByStudent.get("kabir.singh@demo.auraedu.com") ?? undefined,
       amount: 5000,
       reason: "Merit scholarship — district topper program.",
       status: "pending",
@@ -2184,7 +2184,7 @@ export async function seedDemoConnect(): Promise<void> {
       endHour: m.endHour,
       type: m.type,
       batchNames: m.batchNames,
-      link: `https://meet.myedou.com/${slug}-${Math.random().toString(36).slice(2, 6)}`,
+      link: `https://meet.auraedu.com/${slug}-${Math.random().toString(36).slice(2, 6)}`,
       security: {
         disableScreenshot: true,
         disableRecording: true,

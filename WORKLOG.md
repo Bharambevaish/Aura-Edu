@@ -1,4 +1,4 @@
-# WORKLOG — MyEdou POC
+# WORKLOG — AuraEdu POC
 
 Full chronological record of every material change made to the coaching suite POC.
 
@@ -9,7 +9,7 @@ Full chronological record of every material change made to the coaching suite PO
 - Scaffolded Next.js 16 app with TypeScript, Tailwind v4, MongoDB (local dev), app-router (`app/`).
 - Created `lib/db.ts` — single-connection Mongoose singleton, `MONGODB_URI` from env.
 - Created `lib/models/` for all initial entities: Student, Instructor, Course, Batch, Fee, Assignment, Test.
-- Seeded demo data (`lib/seed/demo.ts`): courses (NEET Comprehensive 2026, JEE Advanced 2026, Python for Beginners), batches (NEET Batch A, NEET Batch B, JEE Batch A, Python Batch), students (Aarav Sharma in NEET A, Priya Patel in NEET B, Kabir Mehta/Jia Singh/Ananya Kumar in NEET A; Rohan Gupta/Meera Nair in JEE A; Arjun Reddy in Python), fee invoices (Aarav ₹10,001 / ₹5,000 paid, Priya ₹10,000 / ₹3,000 paid), demo admin user (`admin@demo.myedou.com` / `Admin@123`).
+- Seeded demo data (`lib/seed/demo.ts`): courses (NEET Comprehensive 2026, JEE Advanced 2026, Python for Beginners), batches (NEET Batch A, NEET Batch B, JEE Batch A, Python Batch), students (Aarav Sharma in NEET A, Priya Patel in NEET B, Kabir Mehta/Jia Singh/Ananya Kumar in NEET A; Rohan Gupta/Meera Nair in JEE A; Arjun Reddy in Python), fee invoices (Aarav ₹10,001 / ₹5,000 paid, Priya ₹10,000 / ₹3,000 paid), demo admin user (`admin@demo.auraedu.com` / `Admin@123`).
 - Created shared UI layer (`components/ui/`): Button, Modal, Toast, StatCard, DataTable, PageHeader — consistent look across all admin pages.
 - Admin dashboard shell: `app/admin-dashboard/layout.tsx` with sidebar (`AdminSidebar.tsx`) + top bar, persistent across all admin pages.
 - Auth flow: `lib/actions/auth.ts` — loginAction (checks `MONGODB_URI` at call time), registerAction, logoutAction; cookie-based session via `cookies()`.
@@ -106,7 +106,7 @@ Full chronological record of every material change made to the coaching suite PO
 - `lib/models/Expense.ts`, `lib/models/Vendor.ts`, `lib/models/ExpenseCategory.ts`, `lib/models/Payment.ts`, `lib/models/Refund.ts`, `lib/models/Waiver.ts`, `lib/models/AuditLog.ts` — all created.
 
 **Seed:**
-- `seedDemoFinance()` — runs in `seedDemoData()` AFTER `seedDemoAssignments()` (which wipes notifications), BEFORE new fee seed; seeds Vendors, Expense Categories, 5 Expenses, Payments (one linked to the existing paid fee invoice), Refunds, Waivers; all AuditLog rows keyed to `admin@demo.myedou.com`.
+- `seedDemoFinance()` — runs in `seedDemoData()` AFTER `seedDemoAssignments()` (which wipes notifications), BEFORE new fee seed; seeds Vendors, Expense Categories, 5 Expenses, Payments (one linked to the existing paid fee invoice), Refunds, Waivers; all AuditLog rows keyed to `admin@demo.auraedu.com`.
 
 **Actions (25 finance):**
 `getExpenseCategories`, `createExpenseCategory`, `getVendors`, `createVendor`, `getExpenses`, `createExpense`, `updateExpenseStatus` (approve/reject/void — admin-only), `deleteExpense` (admin-only), `getExpenseApprovals`, `getFinanceOverview`, `getPayments`, `getPaymentStats`, `getIssuedInvoices`, `recordPayment`, `cancelPayment`, `getRefunds`, `createRefund`, `updateRefundStatus` (approve/reject/admin-only), `processRefund`, `getWaivers`, `createWaiver`, `updateWaiverStatus` (approve/reject/admin-only), `getAuditTrail`.

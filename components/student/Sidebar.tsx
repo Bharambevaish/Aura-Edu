@@ -106,7 +106,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
             <div>
               <span className="text-xl font-bold tracking-tight text-white flex items-center gap-1">
-                MyEdou<span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono">STUDENT</span>
+                AuraEdu<span className="text-xs px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-400 font-mono">STUDENT</span>
               </span>
               <p className="text-[10px] text-slate-400 font-medium">Empowering Excellence</p>
             </div>

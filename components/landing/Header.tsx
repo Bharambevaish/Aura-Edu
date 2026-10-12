@@ -39,7 +39,7 @@ export default function Header() {
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-xl tracking-tight text-white flex items-center gap-1">
-                MyEdou
+                AuraEdu
                 <span className="inline-block w-2 h-2 rounded-full bg-[#74B53C]"></span>
               </span>
               <span className="text-[10px] text-slate-400 -mt-1 tracking-wider uppercase">Institution Management Suite</span>
@@ -77,7 +77,7 @@ export default function Header() {
                       <GraduationCap className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="font-semibold text-white group-hover:text-[#74B53C] transition-colors">MyEdou Academy</div>
+                      <div className="font-semibold text-white group-hover:text-[#74B53C] transition-colors">AuraEdu Academy</div>
                       <div className="text-xs text-slate-400">For coaching, tuition & multi-branch classes (22 modules)</div>
                     </div>
                   </a>
@@ -91,7 +91,7 @@ export default function Header() {
                       <Building className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="font-semibold text-white group-hover:text-blue-400 transition-colors">MyEdou ERP</div>
+                      <div className="font-semibold text-white group-hover:text-blue-400 transition-colors">AuraEdu ERP</div>
                       <div className="text-xs text-slate-400">Full ERP for schools, colleges & universities (47 modules)</div>
                     </div>
                   </a>
@@ -106,7 +106,7 @@ export default function Header() {
                     </div>
                     <div>
                       <div className="font-semibold text-white group-hover:text-purple-400 transition-colors flex items-center justify-between">
-                        MyEdou HRM
+                        AuraEdu HRM
                         <span className="text-[10px] bg-purple-500/30 text-purple-300 px-1.5 py-0.5 rounded uppercase tracking-wider">Soon</span>
                       </div>
                       <div className="text-xs text-slate-400">Payroll, HR, recruitment & workforce (8 modules)</div>
@@ -119,8 +119,8 @@ export default function Header() {
             <a href="#modules" className="hover:text-white transition-colors">
               Modules
             </a>
-            <a href="#why-myedou" className="hover:text-white transition-colors">
-              Why MyEdou
+            <a href="#why-auraedu" className="hover:text-white transition-colors">
+              Why AuraEdu
             </a>
             <a href="#about" className="hover:text-white transition-colors">
               About
@@ -224,18 +224,18 @@ export default function Header() {
               Modules & Products
             </a>
             <a
-              href="#why-myedou"
+              href="#why-auraedu"
               onClick={() => setMobileMenuOpen(false)}
               className="text-slate-200 hover:text-white font-medium py-1"
             >
-              Why MyEdou
+              Why AuraEdu
             </a>
             <a
               href="#about"
               onClick={() => setMobileMenuOpen(false)}
               className="text-slate-200 hover:text-white font-medium py-1"
             >
-              About MyEdou
+              About AuraEdu
             </a>
             <a
               href="#contact"

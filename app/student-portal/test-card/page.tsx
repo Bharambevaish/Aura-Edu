@@ -91,7 +91,7 @@ export default function TestCardPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-800">
           <div>
             <span className="text-[10px] font-bold text-cyan-400 font-mono tracking-widest uppercase">
-              OFFICIAL ACADEMIC TRANSCRIPT • MYEDOU PORTAL
+              OFFICIAL ACADEMIC TRANSCRIPT • AURAEDU PORTAL
             </span>
             <h3 className="text-2xl font-black text-white">{profile.name}</h3>
             <p className="text-xs text-slate-400 font-mono">

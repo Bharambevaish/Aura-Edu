@@ -293,7 +293,7 @@ function LiveCertificate({
     <div className={`relative w-full max-w-sm aspect-[4/3] bg-white rounded-sm shadow-2xl ${frame} flex flex-col items-center p-5 text-center overflow-hidden`}>
       <div className="flex items-center gap-1.5">
         <Award size={12} className="text-emerald-600" />
-        <span className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">MyEdou Institution of Excellence</span>
+        <span className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">AuraEdu Institution of Excellence</span>
       </div>
       <span className="text-[11px] text-slate-800 font-bold uppercase tracking-wide mt-2">Certificate of Achievement</span>
       <span className="text-[8px] text-slate-500 mt-1.5">This is to certify that</span>
@@ -312,7 +312,7 @@ function LiveCertificate({
         </div>
         <div className="text-right">
           <span className="block text-[6px] text-slate-400 uppercase">Issued Digitally</span>
-          <span className="block text-[8px] font-bold text-emerald-700">MYEDOU</span>
+          <span className="block text-[8px] font-bold text-emerald-700">AURAEDU</span>
         </div>
       </div>
       <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">

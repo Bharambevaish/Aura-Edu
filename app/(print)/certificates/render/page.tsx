@@ -91,7 +91,7 @@ export default async function RenderCertificatePage({
             </div>
             <div className="text-center">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#5E9A2E" }}>
-                MyEdou Institution of Excellence
+                AuraEdu Institution of Excellence
               </p>
             </div>
           </div>

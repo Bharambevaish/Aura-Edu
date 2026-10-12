@@ -18,7 +18,7 @@ export default function Footer() {
                 E
               </div>
               <div className="flex flex-col">
-                <span className="font-bold text-xl text-white">MyEdou</span>
+                <span className="font-bold text-xl text-white">AuraEdu</span>
                 <span className="text-[10px] text-slate-500 uppercase tracking-widest -mt-1">Institution Management Suite</span>
               </div>
             </Link>
@@ -74,7 +74,7 @@ export default function Footer() {
                 <a href="#modules" className="hover:text-white transition-colors">Modules & Products</a>
               </li>
               <li>
-                <a href="#why-myedou" className="hover:text-white transition-colors">Why MyEdou</a>
+                <a href="#why-auraedu" className="hover:text-white transition-colors">Why AuraEdu</a>
               </li>
               <li>
                 <a href="#quote" className="hover:text-white transition-colors">Get Quotation</a>
@@ -90,7 +90,7 @@ export default function Footer() {
             <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider">COMPANY</h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <a href="#about" className="hover:text-white transition-colors">About MyEdou</a>
+                <a href="#about" className="hover:text-white transition-colors">About AuraEdu</a>
               </li>
               <li>
                 <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
@@ -100,12 +100,12 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://www.myedou.com"
+                  href="https://www.auraedu.com"
                   target="_blank"
                   rel="noreferrer"
                   className="hover:text-[#74B53C] transition-colors flex items-center gap-1"
                 >
-                  myedou.com <ArrowUpRight className="w-3 h-3" />
+                  auraedu.com <ArrowUpRight className="w-3 h-3" />
                 </a>
               </li>
               <li>
@@ -119,7 +119,7 @@ export default function Footer() {
             <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wider">REACH US</h4>
             <div className="space-y-2 text-xs text-slate-400">
               <div>Phone: +91 98765 00000</div>
-              <div>Email: support@demo.myedou.com</div>
+              <div>Email: support@demo.auraedu.com</div>
               <div className="text-[11px] leading-relaxed">
                 10, Knowledge Park, South City, MH 411006
               </div>
@@ -131,7 +131,7 @@ export default function Footer() {
         {/* Bottom Copyright Row */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <div>
-            © 2026 MyEdou · All rights reserved.
+            © 2026 AuraEdu · All rights reserved.
           </div>
 
           <div className="flex flex-wrap items-center gap-4 text-slate-400">

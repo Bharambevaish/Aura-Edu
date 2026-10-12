@@ -2,7 +2,7 @@
 
 import { Building2, UserPlus, ShoppingBag, FormInput, CheckSquare, Calculator, Sparkles, ArrowUpRight } from "lucide-react";
 
-export default function WhyMyEdou() {
+export default function WhyAuraEdu() {
   const features = [
     {
       num: "01",
@@ -28,7 +28,7 @@ export default function WhyMyEdou() {
     {
       num: "04",
       title: "Embeddable Form System",
-      desc: "A Google-Forms-style builder inside the portal. Publish on your own domain and have responses flow straight into MyEdou.",
+      desc: "A Google-Forms-style builder inside the portal. Publish on your own domain and have responses flow straight into AuraEdu.",
       icon: FormInput,
       color: "from-amber-500/20 to-orange-500/20 text-amber-400",
     },
@@ -49,7 +49,7 @@ export default function WhyMyEdou() {
   ];
 
   return (
-    <section id="why-myedou" className="py-24 bg-[#070B14] relative overflow-hidden">
+    <section id="why-auraedu" className="py-24 bg-[#070B14] relative overflow-hidden">
       {/* Background ambient lighting */}
       <div className="absolute top-1/2 left-0 w-96 h-96 bg-[#5E9A2E]/10 rounded-full blur-[150px] pointer-events-none" />
 
@@ -59,7 +59,7 @@ export default function WhyMyEdou() {
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#5E9A2E]/10 border border-[#5E9A2E]/30 text-xs font-bold text-[#74B53C] tracking-wider uppercase">
             <Sparkles className="w-3.5 h-3.5" />
-            WHY MYEDOU
+            WHY AURAEDU
           </div>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">
             One platform for everything an academy runs on

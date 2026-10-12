@@ -48,7 +48,7 @@ export default function Hero() {
 
             {/* Subheading */}
             <p className="text-lg sm:text-xl text-slate-300 font-normal leading-relaxed max-w-2xl">
-              From coaching academies to schools, colleges and universities — manage admissions, students, staff, attendance, examinations, fees, accounts and payroll. Three products, MyEdou Academy, ERP and HRM, with web portals and a mobile app.
+              From coaching academies to schools, colleges and universities — manage admissions, students, staff, attendance, examinations, fees, accounts and payroll. Three products, AuraEdu Academy, ERP and HRM, with web portals and a mobile app.
             </p>
 
             {/* Quick feature highlights */}
@@ -124,7 +124,7 @@ export default function Hero() {
                   </div>
                   <div className="text-xs font-mono text-slate-400 bg-white/5 px-3 py-1 rounded-full flex items-center gap-1.5">
                     <Activity className="w-3.5 h-3.5 text-[#74B53C] animate-pulse" />
-                    MyEdou demo portal
+                    AuraEdu demo portal
                   </div>
                 </div>
 

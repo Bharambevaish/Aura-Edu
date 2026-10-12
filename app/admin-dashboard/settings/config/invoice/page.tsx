@@ -44,7 +44,7 @@ export default function InvoiceConfigPage() {
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Registered Company Name *</label>
                 <input 
                   type="text" 
-                  defaultValue="MyEdou Educational Services Pvt. Ltd."
+                  defaultValue="AuraEdu Educational Services Pvt. Ltd."
                   className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
                 />
               </div>
@@ -80,7 +80,7 @@ export default function InvoiceConfigPage() {
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">Support Email</label>
                 <input 
                   type="email" 
-                  defaultValue="support@myedou.com"
+                  defaultValue="support@auraedu.com"
                   className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
                 />
               </div>

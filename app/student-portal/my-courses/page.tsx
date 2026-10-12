@@ -304,7 +304,7 @@ export default function MyCoursesPage() {
             {/* Security Watermark Background */}
             <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-5 rotate-[-30deg]">
               <span className="text-4xl md:text-5xl font-black text-cyan-400 tracking-widest font-mono select-none">
-                MYEDOU • {profile.admissionNo} • CONFIDENTIAL
+                AURAEDU • {profile.admissionNo} • CONFIDENTIAL
               </span>
             </div>
 

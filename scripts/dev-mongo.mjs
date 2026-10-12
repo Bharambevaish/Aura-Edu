@@ -41,7 +41,7 @@ const mongod = await MongoMemoryServer.create({
   },
 });
 
-const uri = mongod.getUri("myedou");
+const uri = mongod.getUri("auraedu");
 console.log(`Local MongoDB (persisted in .data/mongodb) running:`);
 console.log(`  ${uri}`);
 console.log("Keep this process running while using the app. Ctrl+C to stop.");

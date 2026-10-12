@@ -153,7 +153,7 @@ export default function ModulesNavigator() {
               }`}
             >
               <GraduationCap className="w-5 h-5" />
-              <span>MyEdou Academy</span>
+              <span>AuraEdu Academy</span>
               <span className="text-xs bg-black/20 px-2 py-0.5 rounded-full font-mono">22</span>
             </button>
 
@@ -169,7 +169,7 @@ export default function ModulesNavigator() {
               }`}
             >
               <Building className="w-5 h-5" />
-              <span>MyEdou ERP</span>
+              <span>AuraEdu ERP</span>
               <span className="text-xs bg-black/20 px-2 py-0.5 rounded-full font-mono">47</span>
             </button>
 
@@ -185,7 +185,7 @@ export default function ModulesNavigator() {
               }`}
             >
               <Users className="w-5 h-5" />
-              <span>MyEdou HRM</span>
+              <span>AuraEdu HRM</span>
               <span className="text-xs bg-purple-400/20 text-purple-300 border border-purple-400/30 px-2 py-0.5 rounded uppercase text-[10px]">
                 Soon
               </span>
@@ -200,7 +200,7 @@ export default function ModulesNavigator() {
             <div className="flex items-center gap-3">
               <Sparkles className="w-5 h-5 text-purple-400" />
               <span>
-                <strong>MyEdou HRM is launching soon.</strong> Here&apos;s a preview of what&apos;s coming. Want early access?
+                <strong>AuraEdu HRM is launching soon.</strong> Here&apos;s a preview of what&apos;s coming. Want early access?
               </span>
             </div>
             <a href="#quote" className="font-bold underline hover:text-white text-purple-300">

@@ -230,7 +230,7 @@ export default function ScheduleMeetingPage() {
                 <Shield size={12} /> Secure link auto-generated
               </p>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                A unique meet.myedou.com link is created when you schedule and is instantly available in the Meetings tab.
+                A unique meet.auraedu.com link is created when you schedule and is instantly available in the Meetings tab.
               </p>
             </div>
           </div>

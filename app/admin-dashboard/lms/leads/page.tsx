@@ -23,15 +23,15 @@ export default function AllLeadsPage() {
   const [showColumnsDropdown, setShowColumnsDropdown] = useState(false);
 
   const leads = [
-    { id: 1, name: 'Aarav Sharma', sub: 'Class 12', type: 'Student', lifecycle: 'New', priority: 'Medium', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500011', email: 'lead.demo11@demo.myedou.com', created: '6/25/2026' },
-    { id: 2, name: 'Priya Deshmukh', sub: 'HSC', type: 'Student', lifecycle: 'New', priority: 'High', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500012', email: 'lead.demo12@demo.myedou.com', created: '6/23/2026' },
-    { id: 3, name: 'Rohan Kulkarni', sub: 'B.Tech', type: 'Student', lifecycle: 'New', priority: 'High', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500013', email: 'lead.demo13@demo.myedou.com', created: '6/10/2026' },
-    { id: 4, name: 'Sneha Patil', sub: 'B.Tech Comp', type: 'Student', lifecycle: 'New', priority: 'Medium', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500014', email: 'lead.demo14@demo.myedou.com', created: '6/10/2026' },
-    { id: 5, name: 'Aditya Joshi', sub: 'B.Tech', type: 'Student', lifecycle: 'New', priority: 'High', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500015', email: 'lead.demo15@demo.myedou.com', created: '6/9/2026' },
-    { id: 6, name: 'Meera Iyer', sub: 'B.Sc', type: 'Student', lifecycle: 'Converted', priority: 'Medium', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500016', email: 'lead.demo16@demo.myedou.com', created: '6/8/2026' },
-    { id: 7, name: 'Kabir Singh', sub: 'BTech', type: 'Student', lifecycle: 'Converted', priority: 'High', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500017', email: 'lead.demo17@demo.myedou.com', created: '6/3/2026' },
-    { id: 8, name: 'Ananya Rao', sub: 'BTech', type: 'Student', lifecycle: 'Follow-up', priority: 'High', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500018', email: 'lead.demo18@demo.myedou.com', created: '6/3/2026' },
-    { id: 9, name: 'Dev Verma', sub: 'B.Com', type: 'Student', lifecycle: 'Follow-up', priority: 'Medium', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500019', email: 'lead.demo19@demo.myedou.com', created: '6/7/2026' },
+    { id: 1, name: 'Aarav Sharma', sub: 'Class 12', type: 'Student', lifecycle: 'New', priority: 'Medium', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500011', email: 'lead.demo11@demo.auraedu.com', created: '6/25/2026' },
+    { id: 2, name: 'Priya Deshmukh', sub: 'HSC', type: 'Student', lifecycle: 'New', priority: 'High', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500012', email: 'lead.demo12@demo.auraedu.com', created: '6/23/2026' },
+    { id: 3, name: 'Rohan Kulkarni', sub: 'B.Tech', type: 'Student', lifecycle: 'New', priority: 'High', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500013', email: 'lead.demo13@demo.auraedu.com', created: '6/10/2026' },
+    { id: 4, name: 'Sneha Patil', sub: 'B.Tech Comp', type: 'Student', lifecycle: 'New', priority: 'Medium', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500014', email: 'lead.demo14@demo.auraedu.com', created: '6/10/2026' },
+    { id: 5, name: 'Aditya Joshi', sub: 'B.Tech', type: 'Student', lifecycle: 'New', priority: 'High', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500015', email: 'lead.demo15@demo.auraedu.com', created: '6/9/2026' },
+    { id: 6, name: 'Meera Iyer', sub: 'B.Sc', type: 'Student', lifecycle: 'Converted', priority: 'Medium', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500016', email: 'lead.demo16@demo.auraedu.com', created: '6/8/2026' },
+    { id: 7, name: 'Kabir Singh', sub: 'BTech', type: 'Student', lifecycle: 'Converted', priority: 'High', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500017', email: 'lead.demo17@demo.auraedu.com', created: '6/3/2026' },
+    { id: 8, name: 'Ananya Rao', sub: 'BTech', type: 'Student', lifecycle: 'Follow-up', priority: 'High', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500018', email: 'lead.demo18@demo.auraedu.com', created: '6/3/2026' },
+    { id: 9, name: 'Dev Verma', sub: 'B.Com', type: 'Student', lifecycle: 'Follow-up', priority: 'Medium', source: 'WEB SELF REGISTER', owner: 'Unassigned', nextFollowUp: '-', phone: '9876500019', email: 'lead.demo19@demo.auraedu.com', created: '6/7/2026' },
   ];
 
   const getLifecycleColor = (lifecycle: string) => {

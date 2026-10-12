@@ -1,4 +1,4 @@
-# MyEdou — POC Demo Platform (Sales Demo)
+# AuraEdu — POC Demo Platform (Sales Demo)
 
 > **Mission:** A proof-of-concept web app for a coaching/institution management
 > platform. Its only job is to impress potential clients with ~25 demonstrable
