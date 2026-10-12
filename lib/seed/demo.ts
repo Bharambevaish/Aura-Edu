@@ -2,7 +2,6 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { UserModel } from "@/lib/models/User";
-import { SessionModel } from "@/lib/models/Session";
 import { TestModel } from "@/lib/models/Test";
 import { QuestionModel } from "@/lib/models/Question";
 import { AttemptModel } from "@/lib/models/Attempt";
@@ -24,7 +23,6 @@ import { AuditLogModel } from "@/lib/models/AuditLog";
 import { NoticeModel } from "@/lib/models/Notice";
 import { MeetingModel } from "@/lib/models/Meeting";
 import { CalendarEventModel } from "@/lib/models/CalendarEvent";
-import { parseUA } from "@/lib/ua";
 import type { Role } from "@/lib/models/User";
 
 export interface DemoAccount {
@@ -979,15 +977,13 @@ export async function seedDemoData(): Promise<void> {
   await seedDemoAssignments();
   await seedDemoAttendance();
   await seedDemoCourses();
-  await seedDemoSessions();
+  await seedDemoLoginState();
   await seedDemoFinance();
   await seedDemoConnect();
 }
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
-const SESSION_TTL = 7 * DAY;
-const hoursAgo = (h: number) => new Date(Date.now() - h * HOUR);
 
 /* ------------------------------------------------------------------ */
 /* Assignments (online worksheets + reminder notifications)             */
@@ -1428,116 +1424,30 @@ export async function seedDemoAttendance(): Promise<void> {
   console.log(`[seed] attendance registers=${registers} across ${byBatch.size} batches (5 weekdays each).`);
 }
 
-interface SeedSessionPlan {
-  offsetHours: number;
-  ua: string;
-}
-
 /**
- * Realistic login state for the demo so the Student Logins page looks alive:
- * stories per student (device(s), how long ago they signed in, blocked or not).
- * Sessions older than 7 days expire naturally and read as "Offline".
+ * Demo accounts that start out blocked, so the Student Logins page can show
+ * the Block/Unblock flow. Login *history* is never seeded any more: the
+ * `sessions` collection is written only by real sign-ins (auth.ts).
  */
-const LOGIN_PLAN: Record<
-  string,
-  { blocked?: boolean; lastLoginHours?: number; sessions?: SeedSessionPlan[] }
-> = {
-  "student@demo.auraedu.com": {
-    sessions: [
-      { offsetHours: 1, ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" },
-      { offsetHours: 5, ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0" },
-    ],
-    lastLoginHours: 1,
-  },
-  "priya.deshmukh@demo.auraedu.com": {
-    sessions: [
-      { offsetHours: 20, ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" },
-      { offsetHours: 26, ua: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15" },
-    ],
-    lastLoginHours: 20,
-  },
-  "rohan.kulkarni@demo.auraedu.com": {
-    sessions: [
-      { offsetHours: 2, ua: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36" },
-    ],
-    lastLoginHours: 2,
-  },
-  "sneha.patil@demo.auraedu.com": {
-    sessions: [
-      { offsetHours: 26, ua: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15" },
-    ],
-    lastLoginHours: 26,
-  },
-  "meera.iyer@demo.auraedu.com": {
-    sessions: [
-      { offsetHours: 30, ua: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0" },
-    ],
-    lastLoginHours: 30,
-  },
-  "aditya.joshi@demo.auraedu.com": {
-    sessions: [
-      { offsetHours: 9 * 24, ua: "Mozilla/5.0 (X11; Linux x86_64; rv:126.0) Gecko/20100101 Firefox/126.0" },
-    ],
-    lastLoginHours: 9 * 24,
-  },
-  "kabir.singh@demo.auraedu.com": {},
-  "ananya.rao@demo.auraedu.com": {
-    blocked: true,
-    sessions: [
-      { offsetHours: 5 * 24, ua: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36" },
-    ],
-    lastLoginHours: 5 * 24,
-  },
-  "dev.verma@demo.auraedu.com": {
-    blocked: true,
-  },
-  "ishita.nair@demo.auraedu.com": {},
-};
+const BLOCKED_DEMO_STUDENTS = ["ananya.rao@demo.auraedu.com", "dev.verma@demo.auraedu.com"];
 
-/** Writes the seeded sessions + user login fields so the Logins tab has live data. */
-export async function seedDemoSessions(): Promise<void> {
+/** Resets per-student login state (block flag + lockout counters) for a clean demo. */
+export async function seedDemoLoginState(): Promise<void> {
   await connectDB();
-  const ids = await seedDemoUsers();
-  const now = Date.now();
-
-  let ipSuffix = 10;
-  for (const [email, plan] of Object.entries(LOGIN_PLAN)) {
-    const userId = ids.get(email);
-    if (!userId) continue;
-
-    await SessionModel.deleteMany({ userId });
-
-    for (const s of plan.sessions ?? []) {
-      const startedAt = hoursAgo(s.offsetHours);
-      const expiresAt = new Date(startedAt.getTime() + SESSION_TTL);
-      await SessionModel.create({
-        sessionId: crypto.randomUUID(),
-        userId,
-        email,
-        device: parseUA(s.ua),
-        ip: `203.0.113.${String(ipSuffix++)}`,
-        active: true,
-        startedAt,
-        lastSeenAt: startedAt,
-        expiresAt,
-      });
-    }
-
-    const set: Record<string, unknown> = { isBlocked: plan.blocked ?? false };
-    const unset: Record<string, unknown> = {};
-    if (plan.lastLoginHours != null) set.lastLoginAt = hoursAgo(plan.lastLoginHours);
-    else unset.lastLoginAt = "";
-    if (plan.sessions?.[0]) set.lastDevice = parseUA(plan.sessions[0].ua);
-    else unset.lastDevice = "";
-    await UserModel.updateOne(
-      { email },
-      Object.keys(unset).length ? { $set: set, $unset: unset } : { $set: set },
-    );
-  }
-
-  // Anything not covered (e.g. old rows from a prior seed) is untouched only if
-  // pristine; this guard keeps already-seeded state recognizable across reseeds.
-  console.log(`[seed] wrote login sessions for ${Object.keys(LOGIN_PLAN).length} students (t=${now}).`);
+  await UserModel.updateMany(
+    { isDemo: true },
+    { $set: { isBlocked: false, failedAttempts: 0, lockoutUntil: null } },
+  );
+  // Clean slate for the Logins screen; real sign-ins repopulate these.
+  await UserModel.updateMany(
+    { isDemo: true, role: "student" },
+    { $unset: { lastLoginAt: "", lastDevice: "" } },
+  );
+  await UserModel.updateMany(
+    { email: { $in: BLOCKED_DEMO_STUDENTS } },
+    { $set: { isBlocked: true } },
+  );
+  console.log(`[seed] login state: ${BLOCKED_DEMO_STUDENTS.length} demo students blocked; no sessions seeded.`);
 }
 
 /* ------------------------------------------------------------------ */
