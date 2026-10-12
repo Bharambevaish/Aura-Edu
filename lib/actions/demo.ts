@@ -7,8 +7,14 @@
  * lifecycle action, not an auth action — auth now only owns login/logout.
  * Only removes accounts flagged isDemo and their coupled records, so any
  * manually created admin/student never gets destroyed by the demo button.
+ *
+ * Security: server actions are public POST endpoints — hiding the button is
+ * not protection. The admin gate below runs before any DB access, so a
+ * logged-out caller is redirected to /login and a staff/student caller to "/",
+ * with nothing deleted.
  */
 
+import { requireRole } from "@/lib/dal";
 import { connectDB } from "@/lib/db";
 import { UserModel } from "@/lib/models/User";
 import { SessionModel } from "@/lib/models/Session";
@@ -27,6 +33,7 @@ import { AuditLogModel } from "@/lib/models/AuditLog";
 import { seedDemoData } from "@/lib/seed/demo";
 
 export async function resetDemoData(): Promise<void> {
+  await requireRole(["admin"]);
   await connectDB();
 
   await ResultModel.deleteMany({});

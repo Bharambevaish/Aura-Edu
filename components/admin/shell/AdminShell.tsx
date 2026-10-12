@@ -32,7 +32,7 @@ export default function AdminShell({
           style={{ paddingLeft: isCollapsed ? '80px' : '260px' }}
         >
           <AdminHeader user={user} />
-          <DemoBanner tone="emerald" />
+          <DemoBanner tone="emerald" canReset={user.role === "admin"} />
           <main className="flex-1 p-6 overflow-x-hidden">
             <div className="mx-auto max-w-7xl">{children}</div>
           </main>

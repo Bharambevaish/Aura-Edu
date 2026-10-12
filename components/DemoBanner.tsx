@@ -6,7 +6,17 @@ import { resetDemoData } from "@/lib/actions/demo";
 
 type Tone = "emerald" | "cyan";
 
-export default function DemoBanner({ tone = "emerald" }: { tone?: Tone }) {
+/**
+ * `canReset` only hides the button for roles that cannot use it (UX). The real
+ * enforcement is the admin gate inside `resetDemoData()` itself.
+ */
+export default function DemoBanner({
+  tone = "emerald",
+  canReset = false,
+}: {
+  tone?: Tone;
+  canReset?: boolean;
+}) {
   const [dismissed, setDismissed] = useState(false);
   const [, formAction, pending] = useActionState(resetDemoData, null);
 
@@ -23,16 +33,18 @@ export default function DemoBanner({ tone = "emerald" }: { tone?: Tone }) {
         <FlaskConical className="w-3.5 h-3.5" />
         Demo preview — sample accounts are seeded, not real billing data.
       </span>
-      <form action={formAction}>
-        <button
-          type="submit"
-          disabled={pending}
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-60"
-        >
-          <RotateCcw className={`w-3.5 h-3.5 ${pending ? "animate-spin" : ""}`} />
-          {pending ? "Resetting…" : "Reset demo data"}
-        </button>
-      </form>
+      {canReset && (
+        <form action={formAction}>
+          <button
+            type="submit"
+            disabled={pending}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 transition-colors disabled:opacity-60"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${pending ? "animate-spin" : ""}`} />
+            {pending ? "Resetting…" : "Reset demo data"}
+          </button>
+        </form>
+      )}
       <button
         type="button"
         onClick={() => setDismissed(true)}
