@@ -18,6 +18,8 @@ import type { NextConfig } from "next";
  *  - HSTS fires only over HTTPS (prod/Vercel); local http dev skips it.
  */
 const nextConfig: NextConfig = {
+  // Don't advertise the framework/runtime (no X-Powered-By header at all).
+  poweredByHeader: false,
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
@@ -47,9 +49,6 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-          // Strip extra headers that describe our framework/runtime — avoid
-          // handing reconnaissance data to attackers.
-          { key: "X-Powered-By", value: "AuraEdu" },
           ...(isProd
             ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]
             : []),

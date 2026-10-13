@@ -18,6 +18,8 @@ import { headers } from "next/headers";
 import { AuthError } from "next-auth";
 import { auth, signIn, signOut } from "@/auth";
 import { endSession, loginGateToken } from "@/lib/session-registry";
+import { canAccessPath } from "@/lib/permissions";
+import type { Role } from "@/lib/models/User";
 import { connectDB } from "@/lib/db";
 import { UserModel } from "@/lib/models/User";
 import { LoginSchema, type LoginState } from "@/lib/validation";
@@ -118,9 +120,26 @@ export async function login(
   // Send the user to the portal matching their role. The redirect target is
   // derived server-side from the DB — never taken from a client parameter.
   const user = await UserModel.findOne({ email }).select("role").lean();
-  const destination = user?.role === "student" ? "/student-portal" : "/admin-dashboard";
+  const role = (user?.role ?? "student") as Role;
+  const home = role === "student" ? "/student-portal" : "/admin-dashboard";
+  const destination = safeCallback(formData.get("callbackUrl"), role) ?? home;
 
   redirect(destination);
+}
+
+/**
+ * Accept a post-login redirect only if it is a local path inside the user's
+ * own portal and allowed for their role — never an absolute or
+ * protocol-relative URL (open-redirect protection).
+ */
+function safeCallback(value: FormDataEntryValue | null, role: Role): string | null {
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) {
+    return null;
+  }
+  const path = value.split(/[?#]/)[0];
+  if (role === "student") return path === "/student-portal" || path.startsWith("/student-portal/") ? value : null;
+  const inDashboard = path === "/admin-dashboard" || path.startsWith("/admin-dashboard/");
+  return inDashboard && canAccessPath(role, path) ? value : null;
 }
 
 export async function logoutAction(): Promise<void> {

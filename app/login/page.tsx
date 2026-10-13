@@ -34,7 +34,10 @@ function LoginSelector() {
   const [activeTab, setActiveTab] = useState<"student" | "admin" | "staff">("student");
   const [state, formAction, pending] = useActionState(login, null);
   // Set by /session-ended after a block, force logout or expiry.
-  const sessionEnded = useSearchParams().get("reason") === "session-ended";
+  const searchParams = useSearchParams();
+  const sessionEnded = searchParams.get("reason") === "session-ended";
+  // Where the proxy was sending the user; validated server-side in `login`.
+  const callbackUrl = searchParams.get("callbackUrl") ?? "";
 
   return (
     <div className="min-h-screen bg-[#070B14] text-slate-100 flex flex-col justify-between relative overflow-hidden">
@@ -109,6 +112,7 @@ function LoginSelector() {
         {/* Form Container Card */}
         <div className="p-8 rounded-3xl glass-panel border border-white/15 shadow-2xl max-w-lg mx-auto">
           <form action={formAction} className="space-y-4">
+            <input type="hidden" name="callbackUrl" value={callbackUrl} />
 
             {/* Student Login Form */}
             {activeTab === "student" && (
@@ -259,6 +263,7 @@ function LoginSelector() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {(["student", "admin", "staff"] as const).map((role) => (
                 <form key={role} action={formAction}>
+                  <input type="hidden" name="callbackUrl" value={callbackUrl} />
                   <input type="hidden" name="email" value={DEMO_LOGINS[role].email} />
                   <input type="hidden" name="password" value={DEMO_LOGINS[role].password} />
                   <button
