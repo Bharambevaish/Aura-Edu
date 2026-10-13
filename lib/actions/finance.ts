@@ -714,15 +714,37 @@ export async function recordPayment(input: unknown): Promise<{ ok: boolean; mess
   const { user } = await requireRole(["admin", "staff"]);
   const parsed = PaymentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid payment details." };
+  if (!mongoose.isValidObjectId(parsed.data.studentId)) return { ok: false, message: "Select a valid student." };
+  if (parsed.data.invoiceId && !mongoose.isValidObjectId(parsed.data.invoiceId)) {
+    return { ok: false, message: "Pick a valid invoice." };
+  }
   await connectDB();
   const student = await UserModel.findOne({ _id: parsed.data.studentId, role: "student" }).lean();
   if (!student) return { ok: false, message: "Select a valid student." };
 
   let invoiceId: mongoose.Types.ObjectId | undefined;
   if (parsed.data.invoiceId) {
-    const invoice = await InvoiceModel.findById(parsed.data.invoiceId).lean();
-    if (!invoice) return { ok: false, message: "Pick a valid invoice." };
+    // The invoice must belong to this student — otherwise a payment recorded
+    // for one student would reduce another student's balance.
+    const invoice = await InvoiceModel.findOne({ _id: parsed.data.invoiceId, studentId: student._id }).lean();
+    if (!invoice) return { ok: false, message: "That invoice does not belong to the selected student." };
+    const balance = invoice.total - invoice.paid - invoice.waived;
+    if (parsed.data.amount > balance) {
+      return { ok: false, message: `Amount exceeds the balance on ${invoice.invoiceNo} (₹${Math.max(0, balance).toLocaleString("en-IN")}).` };
+    }
     invoiceId = invoice._id as mongoose.Types.ObjectId;
+  }
+
+  // Apply to the invoice first with a conditional update so two concurrent
+  // payments can never push paid + waived past the total.
+  if (invoiceId) {
+    const applied = await InvoiceModel.updateOne(
+      { _id: invoiceId, $expr: { $lte: [{ $add: ["$paid", "$waived", parsed.data.amount] }, "$total"] } },
+      { $inc: { paid: parsed.data.amount } },
+    );
+    if (applied.modifiedCount === 0) {
+      return { ok: false, message: "The invoice balance changed — refresh and try again." };
+    }
   }
 
   const now = new Date();
@@ -745,10 +767,6 @@ export async function recordPayment(input: unknown): Promise<{ ok: boolean; mess
     recordedBy: new mongoose.Types.ObjectId(user.id),
     recordedAt: now,
   });
-
-  if (invoiceId) {
-    await InvoiceModel.updateOne({ _id: invoiceId }, { $inc: { paid: parsed.data.amount } });
-  }
 
   await writeAudit(user, "recorded payment", `${receiptNo} — ${student.name} (₹${parsed.data.amount})`);
   return { ok: true, message: `Payment recorded (${receiptNo}).`, };
