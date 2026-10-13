@@ -180,6 +180,6 @@ admin signed in.
 
 ## TODO next
 
-See `TASKLIST.md` §8 and `PROJECT_STATUS.md` §5 (Phase 2): Leads +
+See `TASKLIST.md` §2–3 (Stages A–F): Phase 1 close-out, go-live, Leads +
 auto-conversion, Online Admissions backend, live admin dashboard/reports,
 timetable, remaining simulated student-portal widgets.

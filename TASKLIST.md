@@ -1,290 +1,268 @@
-# AuraEdu — POC Demo Platform (Sales Demo)
+# AuraEdu — Master Task List
 
-> **Mission:** A proof-of-concept web app for a coaching/institution management
-> platform. Its only job is to impress potential clients with ~25 demonstrable
-> modules so they choose which ones they want built for real. Speed to a
-> demoable state matters more than production depth.
+> **Mission:** a coaching/institution management platform, currently a
+> **sales-demo POC**: ~25 demonstrable modules so prospects can pick which ones
+> get built for real. A demo that works end-to-end beats 25 half-built screens.
+
+This is the **single task list** for the project: every completed and pending
+task, the recommended order to finish, and the rules for working on it.
+History of *how* things were built lives in `WORKLOG.md`; the original audit
+lives in `PROJECT_STATUS.md`.
+
+**Legend:** `- [x] ~~struck through~~` = done · `- [ ]` = to do ·
+**(you)** = needs an account, a decision or an action from the project owner ·
+effort is a rough single-developer estimate.
 
 ---
 
-## 1. Critical context (read first, every session)
+## 1. Snapshot (2026-10-13)
 
-- **Framework: Next.js 16.3.5 + React 19 + TypeScript + Tailwind v4** (workspace root).
-- **This is NOT the Next.js from training data.** APIs, conventions and file
-  structure differ. Read the relevant guide in `node_modules/next/dist/docs/`
-  **before writing any code**. Key gotchas already confirmed:
-  - `middleware.ts` is now **`proxy.ts`** (project root).
-  - `cookies()` / `headers()` are **async** (`await cookies()`).
-  - Server Actions (`"use server"`) must be treated like public endpoints and do
-    their own auth check.
-  - A `route.ts` cannot exist at the same path as a `page.tsx` — API endpoints
-    live under `app/api/*`.
-  - Forms: React 19 `useActionState` + `<form action={...}>`.
-- **Existing scaffold:** the repo already contains a large, polished admin
-  dashboard UI (layouts, sidebar, branch switcher, dozens of admin screens) plus
-  student portal, student registration and login pages — currently
-  mock/UI-only. **Reusing this is the biggest speed lever. Verify with an
-  inventory before rebuilding anything.**
-- Scripts: `npm run dev` (local), `npm run build` (must stay green), `npm run
-  lint`, `npm run start`.
+| Area | Status |
+|---|---|
+| Foundation (auth, DB, seed, UI kit, security headers) | ✅ Done |
+| Live-DB modules | ✅ Students, Student Logins, Batches, Courses, Attendance, Tests, Assignments, Certificates, Finance (10 screens), Communications (5 screens) |
+| Student portal | ✅ Own profile, fees + pay, courses, store, tests, assignments, attendance · ⚠️ a few widgets still on demo data |
+| Phase 1 security & core fixes | ✅ Done on branch `phase1-security` (not merged into `main` yet) |
+| Demo-story gaps | ❌ Leads + lead→student conversion, Online Admissions backend, live admin dashboard |
+| Static-UI modules | ❌ Timetable, Reports, Task Manager, Form Builder, Settings, Master Data, Multi-branch |
+| Not built at all | ❌ Payroll, Leave Management, staff self-service |
+| Deployment | ❌ No Atlas, no Vercel link, no CI |
 
-## 2. Locked decisions
+---
 
-- **Stack:** full-stack Next.js (no separate Express server). MongoDB Atlas +
-  Mongoose. TypeScript everywhere.
-- **Auth:** use a battle-tested library (Auth.js / Better Auth), **never hand-roll
-  crypto**. Password hashing: argon2id or bcrypt.
-- **Sessions:** signed/encrypted cookie (jose), `httpOnly` + `Secure` +
-  `SameSite=Lax`, short expiry, verified in a single Data Access Layer (DAL) on
-  every action. `proxy.ts` used only for redirect UX, never as the only check.
-- **Validation:** Zod on the server for every form/mutation.
-- **Demo mode:** seeded fake data (20+ realistic students/staff), **one-click role
-  login** ("Explore as Admin" / "Explore as Student"), and a **"Reset demo data"**
-  button so every sales call starts clean.
-- **Deployment:** live preview link on Vercel (free tier) so demos work anywhere.
-- **Files/uploads:** object storage (S3/Blob) with provider-side encryption, not
-  MongoDB.
+## 2. Recommendation — the flow to finish the project
 
-## 3. Decisions (resolved)
+The product's job is to **win demos**, so the order is: close the security
+loose ends → get a live link → finish the one demo story end-to-end → widen to
+every sidebar module → harden and polish. Production-grade integrations
+(payments, email, uploads) wait until a client picks modules, so effort is not
+spent on modules nobody buys.
 
-- [x] Reuse the existing admin-dashboard scaffold — yes.
-- [ ] Demo delivery: online/live link (recommended) vs offline laptop — still
-      open (no Vercel deployment yet).
-- [x] Auth library: **Auth.js v5** (Credentials + JWT) with a server-side
-      session registry for revocation (`lib/session-registry.ts`).
-- [x] `npm run build` + `npm run lint` + `npx tsc --noEmit` must pass before
-      any merge.
+| Stage | Goal | Exit criteria | Effort |
+|---|---|---|---|
+| **A. Close out Phase 1** | Safe, clean base on `main` | Git history purged, branch merged, known money/credential bugs fixed, CI green on every push | 1–2 days |
+| **B. Go live early** | Every demo runs from a link | Atlas + Vercel live, demo path works on the live link, rate limiter works on serverless | 1–2 days **(you: accounts)** |
+| **C. Complete the demo story** | The Definition of Done (§6) works start to finish | Lead → student → test → grading → certificate → reset, with no demo-only data on the way | ~1 week |
+| **D. Breadth sweep** | Every sidebar module *does something* visible | No dead buttons or static-only pages left in the sidebar | 1–2 weeks |
+| **E. Harden & polish** | Confidence on demo day | e2e test of the demo path, mobile pass, demo scripts written | ~1 week |
+| **F. Productionize (per client)** | Turn chosen modules into a real product | Only for modules a client signs for | per module |
 
-## 4. Demo strategy — every module mapped to build depth
+**Why this order**
+- **A before anything else:** a payment can currently land on the wrong
+  student's invoice, and imported students share one password. Fix the base
+  before building on it.
+- **B early, not last:** the app has only ever run locally. Serverless changes
+  behaviour (the in-memory rate limiter stops working, cold starts, env
+  secrets). Finding that on demo day is the expensive way. If accounts aren't
+  ready, start C in parallel and come back.
+- **C before D:** one flawless story sells better than breadth. Leads →
+  conversion is the advertised "wow" and is still missing.
+- **D after C:** most remaining modules are display-only. Real data behind
+  them is quick once the core flows exist.
+- **F last:** building payment gateways or SMS for modules nobody buys is waste.
 
-| Module | How we demo it | Depth |
-|---|---|---|
-| Student / Staff Management | Admin CRUD tables, search/filter, seeded data; staff vs admin permissions (`lib/permissions.ts`) | Students: **Working** (import/export + bulk). Staff: read-only roster |
-| Course / Batch / Timetable | DB Course model behind ONE "Courses" admin page with two internal tabs: Content = curriculum tree (modules→lessons CRUD + reorder); Center = live storefront (published/paid/price/badge, enrolled count + revenue). 3 courses seeded w/ full curriculum. Timetable not built yet | **Working** (Course part) — Timetable pending |
-| Attendance | Per-batch daily register: pick batch+date, mark P/A/Late grid, Mark-All + save, month strip, CSV, student-side live % | **Working** |
-| Assignments | Online worksheet: student solves in-app, faculty marks + verdict + note, reminder notifications | **Working** |
-| Batches | Cohorts with course/capacity/timeline; assign/move students (batch + course synced), delete refused while enrolled | **Working** |
-| Online Admissions | Real multi-step form → creates record | Pending — `/register` is UI only |
-| Lead Mgmt + Auto-Conversion | Leads table; "Convert" turns lead into student | Pending — static table, no Lead model |
-| Certificate Generator | Stateless PDF generator: pick student (from live record), choose template, live preview, print-to-PDF A4 via `/certificates/render`; student portal downloads same route — nothing stored | **Working** |
-| Salary & Payroll | Payslip simulator (inputs → computed) | Not built |
-| Leave Management | Request from one demo account, approve from another | Not built |
-| Fees Collection / Accounts | Full DB-backed Finance module (10 tabs): Expenses (create/approve/reject/void/delete), Expense Approvals queue, Vendors + Expense Categories CRUD, Overview (collected/outstanding/overdue/monthly bars/expense split), Payments (record w/ invoice picker, cancel reverts invoice), Invoices (auto-sync from active students + seed), Refunds (request→approve→process→complete, adjusts invoice), Waivers (request→approve/reject, adjusts invoice), Audit Trail (append-only log of every finance action). Financing law: admin+staff create/pay/waive/refund; admin-only approve/reject/void/delete/process. Seeded consistently with student-portal fee story (Aarav ₹10,001/<₹5,000 paid). | **Working — live DB** |
-| Internal Task Manager | Kanban board, demo tasks | Static UI |
-| Analytical Reports | Real charts from seed data | Static UI |
-| Test Management (MCQ/written/proctoring) | Timer, MCQ auto-graded, admin grades written, proctoring tile | **Working (crown jewel)** |
-| Notice & Communication | Admin authors broadcasts (targeted batch/staff) → one Notification row per student, live in the portal hub; notice board with category/audience filters, pin/important, deliver+read stats; groups page = broadcast-to-batch composer; calendar center (Month/Week/Day/Agenda, create/delete events); meetings scheduler + live list (join link, start/mark complete/cancel/delete); fan-out reads derived via aggregation; deliver/read derived from Notification rows; audit-logged | **Working — live DB** |
-| Embeddable Form Builder | Drag-drop builder + live form preview | Static UI |
-| Connect Suite (WhatsApp/Zoom/Live) | Meeting scheduler ✓, calendar events ✓, "Open Zoom" link ✓ (scripted chat still simulated) | Working core, chat simulated |
-| Multi-Branch Management | Branch switcher that rescopes on-screen data | Not built (settings page static) |
-| Student Portal | Signed-in student's profile, fees (pay own invoice), courses, store, tests, assignments, attendance | **Working — live DB** (some widgets still simulated) |
+**If time is tight**, do A → C → B and demo from a laptop. Skip D/E items that
+aren't on the demo path.
 
-~7 working modules carry the demo; everything else is polished simulation on seed
-data. That is a better demo than 25 half-broken modules.
+---
 
-## 5. Architecture
+## 3. Task list
 
-```
-Browser → Vercel (Next.js 16 / Node)
-  ├─ app/(marketing)         → Server Components, static/ISR (SEO)
-  ├─ app/login, register     → Server Actions + session cookies
-  ├─ app/student-portal      → auth-checked (tests, results)
-  ├─ app/admin-dashboard     → admin RBAC (tests, blogs, students, grading)
-  └─ app/api/*               → Route Handlers (client-fetch cases)
-        → MongoDB Atlas (mongoose models + seed data)
-        → Object storage (uploads, encrypted, private + signed URLs)
-```
+### ✅ Done — Foundation
+- [x] ~~Next.js 16 + React 19 + TypeScript + Tailwind v4 scaffold; landing page with marketing sections~~
+- [x] ~~MongoDB + Mongoose connection singleton; local Mongo runner (`npm run mongo`)~~
+- [x] ~~Auth.js v5 Credentials login, JWT cookie (httpOnly, SameSite=Lax, 7-day), typed session~~
+- [x] ~~bcrypt cost 12; timing-safe dummy hash against user enumeration; generic error messages~~
+- [x] ~~Login rate limiting + lockout (5 fails / 10 min → 15 min lock); failure counters on the user~~
+- [x] ~~Central DAL `requireRole()`; layout gates; edge `proxy.ts` redirect gate~~
+- [x] ~~Zod validation on server-action inputs~~
+- [x] ~~Security headers: CSP, nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy, HSTS~~
+- [x] ~~One-click role logins (Admin / Staff / Student), demo banner, "Reset demo data"~~
+- [x] ~~Realistic seed dataset (13 users, 4 batches, 3 courses, tests, assignments, attendance, finance, communications)~~
+- [x] ~~Shared UI kit (`components/ui`), glass-panel dark theme, admin URLs reorganized to mirror the sidebar~~
 
-Organize code as: `lib/` (db, session, dal, validation), `actions/` (server
-actions), `components/`, `app/` routes. Keep the DAL as the single place that
-both fetches data **and** checks permissions.
+### ✅ Done — Modules on the live database
+- [x] ~~**Student Corner:** CRUD, 4-step wizard, search/filter/sort/pagination, Excel/CSV import + export, bulk assign, bulk Generate Login, simulated Send Credentials~~
+- [x] ~~**Student Logins:** session list, devices, Block/Unblock, sign out one or all devices, export~~
+- [x] ~~**Batches:** create/edit/delete (guarded), assign/move/remove students, derived status, over-capacity flags~~
+- [x] ~~**Courses:** curriculum tree (modules → lessons CRUD + reorder) and storefront settings (price, badge, publish, enrolled, revenue)~~
+- [x] ~~**Attendance:** per-batch daily register, Mark-All, month strip, CSV; student live %~~
+- [x] ~~**Test Management:** create wizard (MCQ single/multi + written), fullscreen exam with auto-submit after 3 tab switches, MCQ auto-grade, staff written grading, per-test reports, test cards with printable report card~~
+- [x] ~~**Assignments:** create worksheet → reminder notifications → student solves and submits → review with marks, verdict and note~~
+- [x] ~~**Certificates:** stateless generator (3 templates, live preview, A4 print-to-PDF), shared by admin and student~~
+- [x] ~~**Finance:** overview, invoices, payments, expenses + create, approval queue, categories, vendors, refunds, waivers, audit trail~~
+- [x] ~~**Communications:** dashboard, targeted broadcasts with read stats, batch groups, meetings + scheduler, calendar (Month/Week/Day/Agenda)~~
+- [x] ~~**Staff Corner:** read-only staff roster~~
+- [x] ~~**Student Notifications hub** on real data~~
 
-## 6. Data model (collections)
+### ✅ Done — Phase 1: security & core fixes (branch `phase1-security`)
+- [x] ~~Demo reset restricted to admins (it was callable by anyone, even logged out)~~
+- [x] ~~Student portal loads the **signed-in** student's profile, fees and courses (was hard-coded to one demo student)~~
+- [x] ~~Students pay their own invoice from the portal (audit-logged, overpayment-guarded)~~
+- [x] ~~My Courses, Learn player, Course Store and enrollment read the real course catalog; non-enrolled courses refused~~
+- [x] ~~Student profile edit (contact fields) and password change persist~~
+- [x] ~~Rebrand MyEdou → AuraEdu (copy, domains, certificate IDs, DB name, logo)~~
+- [x] ~~Previous developers' personal data removed from files; authors anonymized in rewritten history~~
+- [x] ~~Block / force logout / account deletion take effect on the next request (DB-checked sessions)~~
+- [x] ~~Login gate: the Auth.js callback can no longer be used to skip the rate limiter~~
+- [x] ~~Student Logins shows real sign-in history (no fabricated sessions)~~
+- [x] ~~Staff vs admin permissions: role-filtered sidebar, server-gated admin-only sections, admin-only destructive actions~~
+- [x] ~~Reset keeps the clicking admin signed in~~
+- [x] ~~Docs brought in line with the code (`WORKLOG.md`, `README.md`, `PROJECT_STATUS.md`, this file)~~
 
-**Built (23):** `users` (role admin|staff|student; student profile embedded) ·
-`sessions` (sign-in registry, revocation) · `courses` (embedded modules →
-lessons, `enrolledStudents`) · `batches` · `attendance` · `tests` ·
-`questions` · `attempts` · `results` · `assignments` · `submissions` ·
-`notifications` · `invoices` · `payments` · `refunds` · `waivers` ·
-`expenses` · `expensecategories` · `vendors` · `auditlogs` · `notices` ·
-`meetings` · `calendarevents`
+### Stage A — Close out Phase 1 (1–2 days)
+- [ ] **(you)** Purge the old git history locally: delete `refs/original/*`, remove the `origin` remote, expire the reflog, `git gc` (exact commands in the Phase 1 report)
+- [ ] **(you)** Choose the new git remote (your own GitHub repo) and push `main` + `phase1-security`
+- [ ] Merge `phase1-security` → `main` through a PR
+- [ ] **Bug:** admin "Record Payment" doesn't check that the invoice belongs to the selected student, so a payment can land on another student's invoice
+- [ ] **Bug:** imported students all get the password `Student@123`. Generate a random password per student and force a change on first login
+- [ ] DTO audit: confirm no action returns `passwordHash`, lockout counters or ID-proof numbers to the browser
+- [ ] CI: GitHub Actions running `tsc`, `lint` and `build` on every push/PR; protect `main`
+- [ ] Set `poweredByHeader: false` (currently overwritten with a custom value instead of removed)
+- [ ] Honour `callbackUrl` after login (the proxy sets it, login ignores it)
+- [ ] Verify "Reset demo data" also restores batches, courses, attendance and assignments created during a demo
 
-**Planned, not built:** `leads` (status → auto-conversion) · `tasks` ·
-`payroll` · `blogPosts` · `contentBlocks` · `timetable`
+### Stage B — Go live early (1–2 days)
+- [ ] **(you)** MongoDB Atlas cluster, DB user, network access; enable backups
+- [ ] **(you)** Vercel project; set `MONGODB_URI`, `AUTH_SECRET` (fresh), `AUTH_URL`
+- [ ] Replace the in-memory login rate limiter with a shared store (Upstash Redis or a Mongo TTL collection). It doesn't work across serverless instances
+- [ ] Seed the live DB; smoke-test the one-click logins, a student payment, Block, and Reset on the live link
+- [ ] Decide demo delivery: live link (recommended) vs laptop **(you)**
 
-Rule: schema first, then screens. New module = new collection, never a rewrite.
+### Stage C — Complete the demo story (~1 week)
+- [ ] **Leads:** `Lead` model (source, status pipeline, notes), list/filter/create/update actions, wire `lms/leads`
+- [ ] **Lead → student conversion:** one action creates the student user, invoice and batch assignment, then marks the lead converted (the headline "wow")
+- [ ] **Online Admissions:** wire the `/register` wizard to a rate-limited, Zod-validated action that creates a lead (status `applied`)
+- [ ] **Live admin dashboard home:** real counts (students, collections, outstanding, attendance %, pass rate, pending approvals) instead of static numbers
+- [ ] **Student portal leftovers on demo data:** notification bell feed, dashboard "Recent Test Score" / "Upcoming Tests" / certificate count, Certificates list, Schedule page
+- [ ] **Lesson progress:** progress model + working "Mark Complete" + real % on My Courses
+- [ ] **Decide (you):** who grades written answers. The Definition of Done says "admin grades", but the code allows staff only
+- [ ] Remove dead links: "Forgot Password?" (`#`) and footer Privacy Policy (`/privacy-policy` has no page)
+- [ ] Write the 5-minute demo script for the full story
 
-## 7. Security baseline (do not skip for the POC)
+### Stage D — Breadth sweep (1–2 weeks)
+- [ ] **Timetable / schedules:** per-batch slots model → admin date-wise, batch and meeting schedules → student Schedule page
+- [ ] **Reports:** Reports Hub charts from real aggregates (fees, attendance, results, enrollments); retire "Legacy Reports" or wire it
+- [ ] **Staff experience:**
+  - [ ] Staff CRUD in Staff Corner
+  - [ ] Assign staff to batches/courses
+  - [ ] Staff see "my batches" first
+  - [ ] Staff profile and password change
+- [ ] **Settings that matter:** institute profile and invoice/tax config that actually feed invoices; Permissions page reflecting `lib/permissions.ts`
+- [ ] **Internal Task Manager:** `Task` model + Kanban CRUD
+- [ ] **Salary & Payroll simulator:** inputs → computed payslip, printable
+- [ ] **Leave Management:** staff request → admin approve
+- [ ] **Multi-branch:** branch switcher that scopes students, finance and dashboards
+- [ ] **Embeddable Form Builder:** persisted form schema + live preview (+ submissions feeding leads)
+- [ ] **Master Data Center** wired to real lookups (courses, categories, branches)
+- [ ] Audit log for non-finance admin actions (student CRUD, block/logout, batch moves, test publish)
+- [ ] Connect scripted chat / WhatsApp simulation
 
-- [x] Passwords hashed (bcrypt cost 12), never stored/transmitted in plain
-- [x] Auth.js JWT session cookie: httpOnly + SameSite=Lax, secure over HTTPS,
-  7-day expiry (no Session table needed for the POC)
-- [x] Auth check via DAL (`requireRole`) on every Server Action / layout gate +
-  edge `proxy.ts` (redirect UX only — never the sole check)
-- [x] Session revocation: every request re-checks the session row + user
-  (blocked / deleted / current role) in the DB, so Block and Force logout
-  apply immediately
-- [x] Login gate: Auth.js credentials callback only accepts attempts coming
-  through the rate-limited `login` action
-- [x] Role separation: admin-only routes + actions (`lib/permissions.ts`,
-  `requireAdminPage()`); demo reset admin-only
-- [x] Zod validation server-side on all input
-- [x] Rate limiting + lockout on login (in-memory, 5/10 min → 15 min lock) +
-  timing-safe anti user-enumeration (dummy bcrypt hash)
-- [ ] DTO projection: never send passwordHash/PII/private URLs to the client
-- [ ] Uploads: size/type limits → object storage, private + signed URLs
-- [x] Secrets only in env vars; `.env` gitignored; `.env.example` committed
-- [x] HTTPS everywhere (Vercel default) + security headers (CSP/nosniff/
-  X-Frame-Options DENY/Referrer-Policy/Permissions-Policy/HSTS)
-- [ ] Audit log for admin actions  (finance + connect + student-portal
-  payments are audit-logged; student CRUD / block / batch moves are not yet)
-- [ ] Distributed rate limiting (current limiter is in-memory, per instance)
-- [ ] Imported students get a shared default password — generate per-student
-  credentials + force change on first login
-- [ ] Backups enabled (Atlas) — restore drill before any real data
+### Stage E — Harden & polish (~1 week)
+- [ ] Playwright e2e test of the full demo story (§6) running in CI
+- [ ] Unit tests for MCQ grading, finance math (balances, refunds, waivers) and the session/permission gates
+- [ ] Tighten CSP (nonces; drop `unsafe-eval` in production)
+- [ ] Mobile responsiveness pass (admin and student)
+- [ ] Performance pass (slow pages, indexes, N+1 queries)
+- [ ] Richer seed data (20+ students, more history) for fuller charts
+- [ ] Demo-day checklist: one-click login, reset, tour path through the wow modules
 
-## 8. Build phases (tasklist)
+### Stage F — Productionize (only for modules a client buys)
+- [ ] File uploads to object storage (assignment attachments, avatars) with size/type limits and signed URLs
+- [ ] Real credential/notification delivery (email provider; SMS/WhatsApp later)
+- [ ] Payment gateway for student fees and course store (currently simulated checkout)
+- [ ] Password reset by email
+- [ ] Backup restore drill before any real data
+- [ ] Data retention / privacy policy page; DPDP-style consent for student data
 
-### Phase 0 — Setup & decisions
-- [x] Resolve the open decisions above (except demo delivery / deployment)
-- [x] Inventory existing scaffold (what to reuse vs rebuild)
-- [ ] MongoDB Atlas cluster + connection string in `.env`  (local Mongo seeded; Atlas = config swap later)
-- [x] Create seed-data strategy + realistic sample dataset
-- [ ] Task board split of modules across the team
+---
 
-### Phase 1 — The shell
-- [x] One-click role login (Admin / Student) + real auth wiring
-- [x] Admin dashboard shell + student dashboard shell wired to auth
-- [x] Demo banner + "Reset demo data" button
-- [x] Auth hardening: bcrypt 12, rate-limit + lockout on login, anti user-
-  enumeration, light login audit (lastLoginAt/failedAttempts/lockoutUntil),
-  typed next-auth session, CSP/security headers, edge `proxy.ts` gate via
-  `next-auth/jwt` (deployed checks done; see WORKLOG "Security Hardening")
-- [ ] Deploy preview link live on Vercel  (blocked: need Vercel account/CLI)
+## 4. Module status map
 
-### Phase 1b — Security & core fixes (2026-10-12, branch `phase1-security`)
-- [x] Demo reset restricted to admins
-- [x] Student portal loads the signed-in student's profile, fees, courses
-- [x] Rebrand to AuraEdu; previous contributors anonymized in history
-- [x] Immediate revocation on Block / Force logout / deletion; login gate
-- [x] Student Logins shows real sign-in history (no seeded sessions)
-- [x] Staff vs admin permissions (sidebar, route layouts, server actions)
-- [x] Docs refreshed (`WORKLOG.md`, `TASKLIST.md`, `README.md`, `PROJECT_STATUS.md`)
+| Module | Status |
+|---|---|
+| Student Management | **Working** (live DB) |
+| Student Logins / sessions | **Working** (real sign-ins, immediate revocation) |
+| Batches | **Working** |
+| Courses (content + storefront) | **Working** |
+| Attendance | **Working** |
+| Test Management | **Working** (crown jewel) |
+| Assignments + notifications | **Working** |
+| Certificates | **Working** (stateless generator) |
+| Finance (10 screens) | **Working** (one admin payment bug, Stage A) |
+| Communications (5 screens) | **Working** (chat simulated) |
+| Student Portal | **Working** (some widgets on demo data, Stage C) |
+| Staff permissions | **Working** · staff CRUD/self-service pending (Stage D) |
+| Leads + conversion | Pending (Stage C) |
+| Online Admissions | UI only (Stage C) |
+| Admin dashboard home | Static (Stage C) |
+| Timetable / schedules | Static (Stage D) |
+| Reports | Static (Stage D) |
+| Task Manager · Form Builder · Master Data · Settings | Static (Stage D) |
+| Multi-branch | Not built (Stage D) |
+| Payroll · Leave Management | Not built (Stage D) |
 
-### Phase 2 — Crown jewels (the wow)
-- [x] Test Management: create tests (admin+staff; MCQ single/multi-correct +
-  written), student takes exam under fullscreen lock with 3 tab-switch auto-
-  submit, MCQ auto-grade, staff-only written grading, admin reports/test-cards
-  (rebuilt end-to-end after the "Create Test was a dead stub / nothing to
-  grade" feedback; lint + build + seed green; UX pass in progress)
-- [x] Test Management dark-theme pass: all 5 admin test pages converted from
-  the stale light theme to the glass-panel dark system — tests list, create
-  wizard, per-test report, written grading, and test-cards (real View modal +
-  grid/list toggle; wired the previously dead Course/Batch filter selects).
-  Back-end untouched; `npx tsc`, `npm run lint`, `npm run build` green (66/66).
-- [x] Create Test form UX: Subject/Course/Batch are now live autocompletes
-  (`components/ui/Combobox.tsx`) populated from real students + past tests via
-  new `getTestFormContext()` action — course-scoped batch filtering, student
-  counts, custom batches allowed, duration presets, 40% pass-marks quick-fill,
-  past-start guard. Server schema unchanged; tsc/lint/build green (66/66).
-- [x] Test cards tab: accurate from seeded `results` — new
-  `getAdminTestCardDetail(studentId)` per-student transcript (batch rank,
-  %, PASSED/AT RISK, grade, percentile, grading-pending count); working Filter
-  panel (name/email search + live batch select with counts), real pagination
-  (9/page), full report-card View modal, and Download PDF now actually prints
-  a light report card (`#print-card` + `@media print` CSS). No seed changes;
-  tsc/lint/build green (66/66).
-- [x] Assignments module (online worksheet + reminder notifications): 3 new
-  collections (`Assignment` with embedded questions, `Submission` 1-per-student,
-  `Notification` per-user feed) + `lib/validation.ts` schemas +
-  `lib/actions/assignments.ts` (admin overview/detail/review; student
-  list/solve/submit; notifications list/read). Seeds: 6 worksheets across
-  NEET/JEE batches at varying statuses, mixed pending_review/reviewed
-  submissions, and the legacy hub notifications re-seeded as real docs +
-  genuine assignment reminders. Admin: dark-glass list with real stats, detail
-  modal with in-drawer grading (marks + verdict + short note). Create page:
-  real one-screen form reusing Combobox + `getTestFormContext`, total = sum of
-  question marks, publish pushes a reminder Notification to every student in
-  the batch. Student: DB-backed list with Pending/Overdue/Submitted/Reviewed
-  states, new solve route `student-portal/assignments/[assignmentId]` (answer
-  all → submit → pending_review → reviewed feedback), Notifications Hub +
-  dashboard pending count now read the DB. tsc/lint/build green (66/66).
-- [x] Batches module: new `Batch` model (name unique, course, capacity, dates,
-  description — status derives from dates at read time) + `CreateBatchSchema`
-  (`end > start`) + `lib/actions/batches.ts` (role-gated: list with real stats
-  incl. unassigned/orphan, detail with roster + assignable pool, create/update,
-  assign — sets batch AND course on students — remove, delete refused while
-  enrolled). `seedDemoBatches()` upserts the 4 batches matching the student
-  batch strings (NEET A/B, JEE A, Python). Admin pages: dead static stubs →
-  dark-glass list with search + derived Status pills + Overfull flags, real
-  StatCard grid, Overview/Students tabs (roster with assign/move/remove),
-  working Create form (course Combobox + type=date), Edit modal (rename/
-  course-change propagates to enrolled students), guarded Delete confirm.
-  Assign modal segmented: Unassigned (default, green) vs "In another batch"
-  (collapsed, amber, explicit MOVE copy) to avoid confusion when most students
-  are already in a seed batch. `getBatches()` auto-syncs: student batch strings
-  without a matching `Batch` doc get one created at read time (derived course/
-  dates), so batches the seed assigns are always visible without a re-seed.
-  tsc/lint/build green (66/66).
-- [x] Student Management (LMS Student Corner): full CRUD on the real `users`
-  collection (role: student) — 4-step add/edit wizard, profile view modal,
-  delete, search/filters/sort/pagination, Excel/CSV template download, import
-  (upsert by email), export (.xlsx), bulk Assign Branch/Course/Batch, bulk
-  Generate Login (one-time creds) + simulated Send Credentials, headlime stats.
-  Uses `xlsx` (SheetJS) client-side; User model + seed extended with student
-  profile fields (see WORKLOG "Student Corner")
-- [x] Student Logins (session management): real login/session registry — new
-  `sessions` collection, blocked-account support (`isBlocked`), live metrics
-  (active/multi-device/blocked/total), grid + list views, Devices modal with
-  per-device sign-out, Block/Unblock, force logout, export. Auth kept BASIC for
-  the demo (seeded sessions; no device capture/session-doc at login; Block
-  grounds signed-out logins only) — see WORKLOG "Demo stabilization"
-- [ ] Online Admissions multi-step form (UI exists; no backend)
-- [ ] Lead Management + auto-conversion (lead → student) — next up
-- [x] Certificate generator: **stateless PDF generator** (rev. 2 — no storage).
-  `getCertificateOptions()` feeds the admin Generate page (live student search
-  w/ auto-filled course, template picker, issue date, real-time preview); the
-  print-to-PDF A4 route at `/certificates/render` is query-param driven
-  (`?student&course&batch&template&date&credential`) and renders the sheet on
-  demand. Admin Certificate Center is a template showcase (3 designs with
-  mockups); student portal list stays context-driven and downloads the same
-  render route. Deliberately stateless for the demo — nothing is stored/issued,
-  just downloaded. See WORKLOG "Certificates module — stateless PDF generator (rev 2)".
+---
 
-### Phase 3 — The sweep (simulation)
-- [x] Admin codebase reorganization: URLs mirror sidebar groups
-  (`lms/*`, `finance/*`, `connect`, `reports`, `administration/*`,
-  `settings/*`), shared `components/ui/` kit + glass-panel theme on all admin
-  pages, `lib/` split by audience (actions/tests/*, services/tests,
-  actions/demo, actions/staff), Staff Corner page resurrected (see WORKLOG
-  "Admin panel reorganization")
-- [x] Students CRUD on seed data (Student Corner — Phase 2). Batches, Assignments and
-  Attendance are real DB modules (Phase 2 additions) — only staff/courses CRUD simulation
-  remains in this sweep.
-- [x] Fees + accounts (Finance module, live DB)
-- [ ] Payroll simulator
-- [x] Notices / broadcasts (live DB)
-- [ ] Task manager, form builder, reports/charts (static UI)
-- [x] Connect scheduler, calendar, meeting links (live DB)
-- [ ] Connect scripted chat / WhatsApp
-- [ ] Multi-branch switcher
+## 5. Security baseline
 
-### Phase 4 — Demo-day polish
-- [ ] Rich realistic seed data
-- [ ] Mobile responsiveness pass
-- [ ] Performance + build green
-- [ ] Demo checklist (login 1-click, reset, tour path through the wow modules)
+- [x] ~~Passwords hashed with bcrypt (cost 12)~~
+- [x] ~~JWT cookie httpOnly + SameSite=Lax, secure over HTTPS, 7-day expiry~~
+- [x] ~~`requireRole()` on every server action and layout; `proxy.ts` is redirect UX only~~
+- [x] ~~Every request re-checks session + user in the DB (Block / Force logout apply immediately)~~
+- [x] ~~Login gate: only the rate-limited login action can authenticate~~
+- [x] ~~Admin-only routes and actions separated from staff~~
+- [x] ~~Zod validation on server inputs~~
+- [x] ~~Login rate limit + lockout; anti user-enumeration~~
+- [x] ~~Secrets only in env; `.env` gitignored; `.env.example` committed~~
+- [x] ~~Security headers (CSP, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS)~~
+- [ ] Per-student credentials on import + forced first-login change (Stage A)
+- [ ] DTO projection audit (Stage A)
+- [ ] Distributed rate limiting (Stage B)
+- [ ] Audit log for all admin actions (Stage D)
+- [ ] Strict CSP without `unsafe-eval` (Stage E)
+- [ ] Uploads: limits, object storage, signed URLs (Stage F)
+- [ ] Atlas backups + restore drill (Stage B / F)
 
-## 9. Team workflow
+---
 
-- Git: `main` protected (via PRs); one branch per module/feature.
-- Gate: `npm run lint` + `npm run build` pass before merge — always.
-- Demo everywhere from the live/staging link, never from a laptop only.
-- Every module gets a 5-minute demo script once done.
+## 6. Definition of done (demo day)
 
-## 10. Definition of done (demo day)
+One-click Admin login → every sidebar module does something visible → a
+**lead converts to a student** → the student takes an MCQ test and is
+auto-scored → a written answer is graded → a certificate is generated →
+**Reset demo data** → clean state for the next client. Build green, live link up.
 
-One-click Admin login → navigate any of the 25 modules → each does something
-visible → lead converts to student → student takes an MCQ test, gets auto-scored
-→ admin grades a written answer → certificate generated → reset button → clean
-state for the next client. Build green, live link up.
+Blocked today by: Leads + conversion (Stage C), the live link (Stage B), the
+grading-role decision (Stage C), static modules (Stage D).
+
+---
+
+## 7. Working rules & critical context
+
+- **Next.js 16 is not the Next.js from training data.** Read
+  `node_modules/next/dist/docs/` before writing code. Confirmed gotchas:
+  `middleware.ts` is `proxy.ts`; `cookies()` / `headers()` are async; server
+  actions are public endpoints and must call `requireRole()` themselves; a
+  `route.ts` can't share a path with a `page.tsx`; forms use `useActionState`.
+- **Auth:** `requireRole()` / `requireAdminPage()` in `lib/dal.ts` are the
+  only gates. Admin-only routes live in `lib/permissions.ts`. Take the user id
+  from the session, never from the client.
+- **Data:** schema first, then screens. A new module gets a new collection,
+  never a rewrite. Every money or account mutation writes an `AuditLog` row.
+- **Gate:** `npx tsc --noEmit` + `npm run lint` + `npm run build` must pass
+  before any merge.
+- **Git:** one branch per feature, PR into `main`, one commit per logical change.
+- **Local dev:** `npm run mongo` → `npm run seed` → `npm run dev`. The DB name
+  is `auraedu`.
+- Demo from the live link once it exists; every module gets a 5-minute demo script.
+
+---
+
+## 8. Decisions needed from you
+
+1. **Hosting accounts:** Atlas + Vercel (Stage B), and the new git remote (Stage A).
+2. **Target:** stay a sales-demo POC, or is there a client who has picked
+   modules? A real client moves their modules to Stage F and skips most of D.
+3. **Grading:** may admins grade written answers, or staff only?
+4. **Email/SMS provider** (only when Stage F starts).
