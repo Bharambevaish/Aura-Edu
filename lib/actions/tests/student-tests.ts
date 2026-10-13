@@ -19,6 +19,7 @@ import { TestModel } from "@/lib/models/Test";
 import { QuestionModel } from "@/lib/models/Question";
 import { AttemptModel } from "@/lib/models/Attempt";
 import { ResultModel } from "@/lib/models/Result";
+import { UserModel } from "@/lib/models/User";
 import { SubmitTestSchema } from "@/lib/validation";
 import {
   fmtDate,
@@ -48,15 +49,37 @@ export type TestCardDTO = {
   testId?: string;
 };
 
+/** The signed-in student's batch (tests are targeted at one batch each). */
+async function myBatch(userId: string): Promise<string> {
+  const me = await UserModel.findById(userId).select("batch").lean();
+  return me?.batch ?? "";
+}
+
+/**
+ * A student may open a test that targets their own batch, or one they have
+ * already attempted (keeps history visible after a batch move).
+ */
+async function canAccessTest(userId: string, test: { _id: Types.ObjectId; batch: string }): Promise<boolean> {
+  if (test.batch && test.batch === (await myBatch(userId))) return true;
+  return !!(await AttemptModel.exists({ testId: test._id, userId }));
+}
+
 /** Student tests list (dashboard cards): real attempts + transcripts merged with test metadata. */
 export async function getStudentTests(): Promise<TestCardDTO[]> {
   const { user } = await requireRole(["student"]);
   await connectDB();
 
   const now = new Date();
-  const tests = await TestModel.find().sort({ startAt: -1 }).limit(20).lean();
   const attempts = await AttemptModel.find({ userId: user.id }).lean();
   const results = await ResultModel.find({ userId: user.id }).lean();
+  // Only tests for this student's batch, plus any they already attempted.
+  const batch = await myBatch(user.id);
+  const tests = await TestModel.find({
+    $or: [{ batch }, { _id: { $in: attempts.map((a) => a.testId) } }],
+  })
+    .sort({ startAt: -1 })
+    .limit(20)
+    .lean();
 
   const out: TestCardDTO[] = [];
 
@@ -136,8 +159,8 @@ export async function getTestIntro(testId: string): Promise<TestIntro> {
   const { user } = await requireRole(["student"]);
   await connectDB();
 
-  const test = await TestModel.findById(testId).lean();
-  if (!test) redirect("/student-portal/tests");
+  const test = Types.ObjectId.isValid(testId) ? await TestModel.findById(testId).lean() : null;
+  if (!test || !(await canAccessTest(user.id, test))) redirect("/student-portal/tests");
 
   const submitted = await hasSubmittedAttempt(test._id, user.id);
   if (submitted) {
@@ -210,8 +233,8 @@ export async function startStudentTest(testId: string): Promise<StartTestResult>
   const { user } = await requireRole(["student"]);
   await connectDB();
 
-  const test = await TestModel.findById(testId).lean();
-  if (!test) redirect("/student-portal/tests");
+  const test = Types.ObjectId.isValid(testId) ? await TestModel.findById(testId).lean() : null;
+  if (!test || !(await canAccessTest(user.id, test))) redirect("/student-portal/tests");
 
   const result = await findResult(test._id, user.id);
   const submitted = await hasSubmittedAttempt(test._id, user.id);
