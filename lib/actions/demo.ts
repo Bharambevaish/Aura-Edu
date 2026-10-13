@@ -31,6 +31,10 @@ import { PaymentModel } from "@/lib/models/Payment";
 import { RefundModel } from "@/lib/models/Refund";
 import { WaiverModel } from "@/lib/models/Waiver";
 import { AuditLogModel } from "@/lib/models/AuditLog";
+import { BatchModel } from "@/lib/models/Batch";
+import { CourseModel } from "@/lib/models/Course";
+import { AttendanceModel } from "@/lib/models/Attendance";
+import { AssignmentModel } from "@/lib/models/Assignment";
 import { seedDemoData } from "@/lib/seed/demo";
 
 export async function resetDemoData(): Promise<void> {
@@ -51,5 +55,11 @@ export async function resetDemoData(): Promise<void> {
   await ExpenseModel.deleteMany({});
   await ExpenseCategoryModel.deleteMany({});
   await VendorModel.deleteMany({});
+  // Academic data is upserted by the seed, so anything created during a demo
+  // (new batches, courses, registers, worksheets) would otherwise survive.
+  await AssignmentModel.deleteMany({});
+  await AttendanceModel.deleteMany({});
+  await CourseModel.deleteMany({});
+  await BatchModel.deleteMany({});
   await seedDemoData();
 }
