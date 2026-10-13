@@ -178,6 +178,40 @@ rejected; Student Logins lists only real sign-ins; staff cannot see or open
 admin-only sections (direct URL redirects with a notice); Reset keeps the
 admin signed in.
 
+## Stage A — Phase 1 close-out (2026-10-13)
+
+Branch `stage-a-closeout` (from `phase1-security`), one commit per item:
+
+- **Record Payment ownership** — `recordPayment` now requires the invoice to
+  belong to the selected student, caps the amount at the invoice balance and
+  applies it with a conditional `$inc` (no overpay under concurrency).
+- **Credentials** — `User.mustChangePassword`. Set by create student, import
+  and Generate Login. Import issues a unique random password per new student
+  (shown once in the credentials dialog). `app/student-portal/layout.tsx` renders
+  `components/student/ForcePasswordChange.tsx` until `changeMyPassword` clears
+  the flag. Also fixed: Generate Login / Send Credentials passed the wrong
+  argument shape (never worked); import refused for non-student emails;
+  edit-student email clash checked before writing.
+- **Tests scoped to batch** — `getStudentTests` / `getTestIntro` /
+  `startStudentTest` limited to the student's batch or tests already attempted.
+- **Login redirect** — `callbackUrl` honoured only for local paths in the
+  user's own portal (`safeCallback` in `lib/actions/auth.ts`).
+  `poweredByHeader: false`.
+- **Reset coverage** — reset clears batches, courses, attendance and
+  assignments before re-seeding.
+- **CI** — `.github/workflows/ci.yml` (tsc, lint, build).
+- **DTO audit** — no password hashes, lockout data or answer keys reach the
+  client; admin student detail keeps the full ID-proof number (needed by the
+  edit form).
+
+Verified locally (isolated in-memory Mongo, browser + curl): Generate Login
+dialog shows a one-time password; old password rejected; temp password lands on
+the forced-change screen for every portal URL; after changing, the portal
+loads and the flag is cleared; a JEE student sees no NEET tests and a NEET test
+URL bounces back; `callbackUrl` to `/admin-dashboard/finance/payments` lands
+there, a `//evil.example` callback is ignored; no `X-Powered-By` header; reset
+removes a demo-created batch and course and restores 4 batches / 3 courses.
+
 ## TODO next
 
 See `TASKLIST.md` §2–3 (Stages A–F): Phase 1 close-out, go-live, Leads +

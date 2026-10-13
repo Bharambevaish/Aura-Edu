@@ -15,18 +15,19 @@ effort is a rough single-developer estimate.
 
 ---
 
-## 1. Snapshot (2026-10-13)
+## 1. Snapshot (2026-10-13, after Stage A code work)
 
 | Area | Status |
 |---|---|
 | Foundation (auth, DB, seed, UI kit, security headers) | ✅ Done |
 | Live-DB modules | ✅ Students, Student Logins, Batches, Courses, Attendance, Tests, Assignments, Certificates, Finance (10 screens), Communications (5 screens) |
 | Student portal | ✅ Own profile, fees + pay, courses, store, tests, assignments, attendance · ⚠️ a few widgets still on demo data |
-| Phase 1 security & core fixes | ✅ Done on branch `phase1-security` (not merged into `main` yet) |
+| Phase 1 security & core fixes | ✅ Done on branch `phase1-security` |
+| Stage A close-out | ✅ Code items done on branch `stage-a-closeout` · ⏳ owner items: history purge, new remote, PR merge, branch protection |
 | Demo-story gaps | ❌ Leads + lead→student conversion, Online Admissions backend, live admin dashboard |
 | Static-UI modules | ❌ Timetable, Reports, Task Manager, Form Builder, Settings, Master Data, Multi-branch |
 | Not built at all | ❌ Payroll, Leave Management, staff self-service |
-| Deployment | ❌ No Atlas, no Vercel link, no CI |
+| Deployment | ❌ No Atlas, no Vercel link · ✅ CI workflow written (runs once a GitHub remote exists) |
 
 ---
 
@@ -110,17 +111,20 @@ aren't on the demo path.
 - [x] ~~Reset keeps the clicking admin signed in~~
 - [x] ~~Docs brought in line with the code (`WORKLOG.md`, `README.md`, `PROJECT_STATUS.md`, this file)~~
 
-### Stage A — Close out Phase 1 (1–2 days)
+### Stage A — Close out Phase 1 (code done on branch `stage-a-closeout`)
 - [ ] **(you)** Purge the old git history locally: delete `refs/original/*`, remove the `origin` remote, expire the reflog, `git gc` (exact commands in the Phase 1 report)
-- [ ] **(you)** Choose the new git remote (your own GitHub repo) and push `main` + `phase1-security`
-- [ ] Merge `phase1-security` → `main` through a PR
-- [ ] **Bug:** admin "Record Payment" doesn't check that the invoice belongs to the selected student, so a payment can land on another student's invoice
-- [ ] **Bug:** imported students all get the password `Student@123`. Generate a random password per student and force a change on first login
-- [ ] DTO audit: confirm no action returns `passwordHash`, lockout counters or ID-proof numbers to the browser
-- [ ] CI: GitHub Actions running `tsc`, `lint` and `build` on every push/PR; protect `main`
-- [ ] Set `poweredByHeader: false` (currently overwritten with a custom value instead of removed)
-- [ ] Honour `callbackUrl` after login (the proxy sets it, login ignores it)
-- [ ] Verify "Reset demo data" also restores batches, courses, attendance and assignments created during a demo
+- [ ] **(you)** Choose the new git remote (your own GitHub repo) and push `main`, `phase1-security`, `stage-a-closeout`
+- [ ] **(you)** Merge `phase1-security` then `stage-a-closeout` → `main` through PRs; turn on branch protection requiring the CI check
+- [x] ~~**Bug:** admin "Record Payment" could apply a payment to another student's invoice. Now ownership-checked and overpayment-guarded~~
+- [x] ~~**Bug:** imported students all got `Student@123`. Now each gets a unique one-time password, and every admin-issued password forces a change at first sign-in~~
+- [x] ~~**Bug (found):** Generate Login / Send Credentials never worked (wrong argument shape from the page)~~
+- [x] ~~**Bug (found):** import could overwrite an admin/staff account sharing an email; edit-student email clash checked only after writing~~
+- [x] ~~**Bug (found):** students could list and sit other batches' tests by URL. Now limited to their own batch (plus tests already attempted)~~
+- [x] ~~DTO audit: no action returns `passwordHash` or lockout counters; exam answer keys are stripped server-side. Note: the admin student-detail view intentionally shows the full ID-proof number (the edit form round-trips it)~~
+- [x] ~~CI: GitHub Actions workflow running `tsc`, `lint` and `build` on every push/PR (`.github/workflows/ci.yml`)~~
+- [x] ~~`poweredByHeader: false` (no `X-Powered-By` header)~~
+- [x] ~~Honour `callbackUrl` after login, only for local paths inside the user's own portal (no open redirect)~~
+- [x] ~~"Reset demo data" now also clears batches, courses, attendance and assignments created during a demo~~
 
 ### Stage B — Go live early (1–2 days)
 - [ ] **(you)** MongoDB Atlas cluster, DB user, network access; enable backups
@@ -216,8 +220,11 @@ aren't on the demo path.
 - [x] ~~Login rate limit + lockout; anti user-enumeration~~
 - [x] ~~Secrets only in env; `.env` gitignored; `.env.example` committed~~
 - [x] ~~Security headers (CSP, nosniff, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS)~~
-- [ ] Per-student credentials on import + forced first-login change (Stage A)
-- [ ] DTO projection audit (Stage A)
+- [x] ~~Per-student credentials on import + forced first-login change~~
+- [x] ~~DTO projection audit (no password hashes / lockout data / answer keys to the client)~~
+- [x] ~~Students restricted to their own batch's tests~~
+- [x] ~~Post-login redirect limited to the user's own portal (no open redirect)~~
+- [ ] Mask ID-proof numbers in admin views (needs an "unchanged" edit flow first)
 - [ ] Distributed rate limiting (Stage B)
 - [ ] Audit log for all admin actions (Stage D)
 - [ ] Strict CSP without `unsafe-eval` (Stage E)
