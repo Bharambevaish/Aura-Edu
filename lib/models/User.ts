@@ -36,6 +36,8 @@ export interface UserDoc {
   isDemo?: boolean;
   /** Admin-controlled access block — checked at login and on every request. */
   isBlocked?: boolean;
+  /** Set when an admin issued/imported the password; the student must pick a new one. */
+  mustChangePassword?: boolean;
   /** Browser/OS of the most recent sign-in (the Student Logins card). */
   lastDevice?: { browser?: string; os?: string; deviceType?: string; userAgent?: string };
   /** Light audit trail — bumped on every successful sign-in. */
@@ -91,6 +93,7 @@ const userSchema = new mongoose.Schema<UserDoc>(
     idProofNumber: String,
     isDemo: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
+    mustChangePassword: { type: Boolean, default: false },
     lastDevice: {
       browser: String,
       os: String,

@@ -418,6 +418,8 @@ export default function StudentManagementPage() {
         return;
       }
       toast(`Imported: ${res.imported} new, ${res.updated} updated.`, "success");
+      // New students get unique one-time passwords — show them once, like Generate Login.
+      if (res.credentials.length) setCreds(res.credentials);
       if (res.errors.length) {
         toast(`Skipped ${res.errors.length} invalid row(s).`, "error");
         console.warn("Import row errors:", res.errors);
@@ -448,7 +450,7 @@ export default function StudentManagementPage() {
 
   const handleGenerateLogins = async () => {
     setGenLoading(true);
-    const res = await bulkGenerateLogins([...selected]);
+    const res = await bulkGenerateLogins({ ids: [...selected] });
     setGenLoading(false);
     if (res.ok && res.credentials) {
       setCreds(res.credentials);
@@ -459,7 +461,7 @@ export default function StudentManagementPage() {
   };
 
   const handleSendCredentials = async () => {
-    const res = await bulkSendCredentials([...selected]);
+    const res = await bulkSendCredentials({ ids: [...selected] });
     toast(res.message ?? (res.ok ? "Sent." : "Failed."), res.ok ? "success" : "error");
   };
 
@@ -1071,7 +1073,7 @@ export default function StudentManagementPage() {
           ))}
         </div>
         <p className="text-xs text-slate-500 mt-4">
-          Passwords are hashed in the database and shown here once. Send them using the Send Credentials action.
+          Passwords are hashed in the database and shown here once. Students must set a new password at first sign-in.
         </p>
       </Modal>
     </div>

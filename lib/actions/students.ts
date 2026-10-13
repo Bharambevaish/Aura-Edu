@@ -317,6 +317,8 @@ export async function createStudent(input: Record<string, unknown>): Promise<Stu
     role: "student",
     admissionNo,
     isDemo: false,
+    // The admin chose this password, so the student must replace it on first sign-in.
+    mustChangePassword: true,
     ...profile,
   });
 
@@ -341,6 +343,12 @@ export async function updateStudent(id: string, input: Record<string, unknown>):
   const { name, email, ...profileInput } = parsed.data;
   const profile = toStudentDoc(profileInput);
 
+  // Check for an email clash *before* writing (the unique index would throw).
+  if (email && email !== student.email) {
+    const clash = await UserModel.findOne({ email, _id: { $ne: student._id } }).lean();
+    if (clash) return { ok: false, message: `A user with ${email} already exists.` };
+  }
+
   await UserModel.updateOne(
     { _id: id },
     {
@@ -353,11 +361,6 @@ export async function updateStudent(id: string, input: Record<string, unknown>):
       },
     },
   );
-
-  if (email && email !== student.email) {
-    const clash = await UserModel.findOne({ email }).lean();
-    if (clash) return { ok: false, message: `A user with ${email} already exists.` };
-  }
 
   return { ok: true, message: "Student updated successfully." };
 }
@@ -434,7 +437,7 @@ export async function bulkGenerateLogins(input: unknown): Promise<BulkOutcome> {
   for (const s of students) {
     const password = randomPassword();
     const passwordHash = await bcrypt.hash(password, 12);
-    await UserModel.updateOne({ _id: s._id }, { $set: { passwordHash } });
+    await UserModel.updateOne({ _id: s._id }, { $set: { passwordHash, mustChangePassword: true } });
     credentials.push({ email: s.email, password });
   }
 
@@ -460,6 +463,8 @@ export type ImportResult = {
   imported: number;
   updated: number;
   errors: { email: string; reason: string }[];
+  /** One-time passwords for newly created students (shown once, never stored in plain). */
+  credentials: { email: string; password: string }[];
 };
 
 /** Status enums accepted case-insensitively on import, mapped to canonical. */
@@ -511,10 +516,11 @@ export async function importStudents(rows: Record<string, unknown>[]): Promise<I
   await connectDB();
 
   if (!Array.isArray(rows) || rows.length === 0) {
-    return { ok: false, imported: 0, updated: 0, errors: [] };
+    return { ok: false, imported: 0, updated: 0, errors: [], credentials: [] };
   }
 
   const errors: ImportResult["errors"] = [];
+  const credentials: ImportResult["credentials"] = [];
   let imported = 0;
   let updated = 0;
 
@@ -532,9 +538,13 @@ export async function importStudents(rows: Record<string, unknown>[]): Promise<I
     }
 
     const profile = toStudentDoc(parsed.data as unknown as Record<string, unknown>);
-    const passwordHash = await bcrypt.hash("Student@123", 12);
 
     const existing = await UserModel.findOne({ email: parsed.data.email }).lean();
+    if (existing && existing.role !== "student") {
+      // Never let a spreadsheet row overwrite an admin/staff account.
+      errors.push({ email: parsed.data.email, reason: "Email belongs to a non-student account." });
+      continue;
+    }
     if (existing) {
       await UserModel.updateOne(
         { _id: existing._id },
@@ -542,18 +552,22 @@ export async function importStudents(rows: Record<string, unknown>[]): Promise<I
       );
       updated++;
     } else {
+      // Unique one-time password per student (previously everyone got the same one).
+      const password = randomPassword();
       await UserModel.create({
         name: parsed.data.name ?? parsed.data.email.split("@")[0],
         email: parsed.data.email,
-        passwordHash,
+        passwordHash: await bcrypt.hash(password, 12),
         role: "student",
         admissionNo: await nextAdmissionNo(),
         isDemo: false,
+        mustChangePassword: true,
         ...profile,
       });
+      credentials.push({ email: parsed.data.email, password });
       imported++;
     }
   }
 
-  return { ok: true, imported, updated, errors };
+  return { ok: true, imported, updated, errors, credentials };
 }

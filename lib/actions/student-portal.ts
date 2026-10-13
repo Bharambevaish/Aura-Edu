@@ -133,7 +133,7 @@ export async function changeMyPassword(input: unknown): Promise<ProfileOutcome> 
   if (!valid) return { ok: false, message: "Current password is incorrect." };
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
-  await UserModel.updateOne({ _id: doc._id }, { $set: { passwordHash } });
+  await UserModel.updateOne({ _id: doc._id }, { $set: { passwordHash, mustChangePassword: false } });
   return { ok: true, message: "Password updated." };
 }
 

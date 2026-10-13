@@ -346,6 +346,7 @@ export async function seedDemoUsers(): Promise<Map<string, string>> {
           idProofNumber: account.idProofNumber,
           lastLoginAt: undefined,
           isDemo: true,
+          mustChangePassword: false,
         },
       },
       { upsert: true, returnDocument: "after" },

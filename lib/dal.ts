@@ -20,6 +20,8 @@ export interface SessionUser {
   name: string;
   email: string;
   role: Role;
+  /** Admin-issued password still in use — the student portal forces a change. */
+  mustChangePassword: boolean;
 }
 
 /**
@@ -79,6 +81,7 @@ export async function requireRole(
       name: access.name,
       email: access.email,
       role: access.role,
+      mustChangePassword: access.mustChangePassword,
     },
   };
 }

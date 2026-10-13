@@ -75,7 +75,7 @@ export async function endSession(sessionId: string): Promise<void> {
   await SessionModel.updateOne({ sessionId, active: true }, { $set: { active: false } });
 }
 
-export type AccessCheck = { name: string; email: string; role: Role };
+export type AccessCheck = { name: string; email: string; role: Role; mustChangePassword: boolean };
 
 /**
  * Is this (user, session) pair still allowed in? Returns the user's *current*
@@ -87,7 +87,7 @@ export async function checkAccess(userId: string, sessionId: string | undefined)
   await connectDB();
 
   const [user, session] = await Promise.all([
-    UserModel.findById(userId).select("name email role isBlocked").lean(),
+    UserModel.findById(userId).select("name email role isBlocked mustChangePassword").lean(),
     SessionModel.findOne({ sessionId, userId }).select("active expiresAt lastSeenAt").lean(),
   ]);
 
@@ -100,5 +100,5 @@ export async function checkAccess(userId: string, sessionId: string | undefined)
     SessionModel.updateOne({ sessionId }, { $set: { lastSeenAt: new Date(now) } }).catch(() => {});
   }
 
-  return { name: user.name, email: user.email, role: user.role };
+  return { name: user.name, email: user.email, role: user.role, mustChangePassword: !!user.mustChangePassword };
 }
