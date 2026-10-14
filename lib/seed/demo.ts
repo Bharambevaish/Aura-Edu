@@ -5,6 +5,8 @@ import { UserModel } from "@/lib/models/User";
 import { SessionModel } from "@/lib/models/Session";
 import { LessonProgressModel } from "@/lib/models/LessonProgress";
 import { TimetableSlotModel, type ClassMode } from "@/lib/models/TimetableSlot";
+import { LeaveRequestModel } from "@/lib/models/LeaveRequest";
+import { workingDaysBetween } from "@/lib/hr";
 import { LeadModel, type LeadPriority, type LeadSource, type LeadStage, type LeadType } from "@/lib/models/Lead";
 import { TestModel } from "@/lib/models/Test";
 import { QuestionModel } from "@/lib/models/Question";
@@ -1053,6 +1055,7 @@ export async function seedDemoData(): Promise<void> {
   await seedDemoBatches();
   await seedDemoTests();
   await seedDemoTimetable();
+  await seedDemoLeave();
   await seedDemoAssignments();
   await seedDemoAttendance();
   await seedDemoCourses();
@@ -2240,16 +2243,16 @@ const daysFromNow = (d: number) => new Date(Date.now() + d * 24 * 60 * 60 * 1000
  * a demo conversion creates a genuinely new account. Two "converted" leads
  * point at existing seeded students to show the history.
  *
- * Also removes student accounts created by converting demo leads during a
- * previous demo (any `@demo.auraedu.com` student not in DEMO_ACCOUNTS), so the
- * same leads can be converted again after "Reset demo data".
+ * Also removes accounts created during a previous demo (any
+ * `@demo.auraedu.com` student or staff not in DEMO_ACCOUNTS — e.g. converted
+ * leads, staff added in Staff Corner) so the demo repeats cleanly.
  */
 export async function seedDemoLeads(): Promise<void> {
   await connectDB();
 
   const seedEmails = DEMO_ACCOUNTS.map((a) => a.email);
   const strays = await UserModel.find({
-    role: "student",
+    role: { $in: ["student", "staff"] },
     email: { $regex: /@demo\.auraedu\.com$/, $nin: seedEmails },
   })
     .select("_id")
@@ -2392,4 +2395,45 @@ export async function seedDemoTimetable(): Promise<void> {
     })),
   );
   console.log(`[seed] timetable: ${rows.length} weekly classes across 4 batches.`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Leave                                                               */
+/* ------------------------------------------------------------------ */
+
+/** A few leave requests in every state; one approved unpaid leave shows up in payroll. */
+export async function seedDemoLeave(): Promise<void> {
+  await connectDB();
+  await LeaveRequestModel.deleteMany({});
+  const staff = await UserModel.find({ role: "staff", isDemo: true }).select("_id name").lean();
+  const who = (name: string) => staff.find((s) => s.name === name);
+  const now = new Date();
+  const d = (offset: number) => new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+  const plan: { name: string; type: "casual" | "sick" | "earned" | "unpaid"; from: Date; to: Date; reason: string; status: "pending" | "approved" | "rejected"; note?: string }[] = [
+    { name: "Ritu Sharma", type: "casual", from: d(-20), to: d(-19), reason: "Family function", status: "approved", note: "Enjoy!" },
+    { name: "Kunal Mehta", type: "unpaid", from: d(-6), to: d(-5), reason: "Personal travel", status: "approved", note: "Approved as loss of pay." },
+    { name: "Dr. Anil Verma", type: "sick", from: d(2), to: d(3), reason: "Minor surgery follow-up", status: "pending" },
+    { name: "Dr. Meenakshi Rao", type: "earned", from: d(10), to: d(14), reason: "Conference in Bengaluru", status: "pending" },
+    { name: "Neha Bhosale", type: "casual", from: d(-3), to: d(-3), reason: "Bank work", status: "rejected", note: "Month-end closing — please pick another day." },
+  ];
+  let n = 0;
+  for (const l of plan) {
+    const s = who(l.name);
+    if (!s) continue;
+    await LeaveRequestModel.create({
+      userId: s._id,
+      userName: s.name,
+      type: l.type,
+      from: l.from,
+      to: l.to,
+      days: Math.max(1, workingDaysBetween(l.from, l.to)),
+      reason: l.reason,
+      status: l.status,
+      decidedByName: l.status === "pending" ? "" : "System Administrator",
+      decidedAt: l.status === "pending" ? null : d(-1),
+      decisionNote: l.note ?? "",
+    });
+    n += 1;
+  }
+  console.log(`[seed] leave: ${n} requests (2 pending).`);
 }

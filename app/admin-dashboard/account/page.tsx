@@ -8,6 +8,8 @@ import React, { useEffect, useState } from "react";
 import { PageHeader, Button, useToast } from "@/components/ui";
 import { UserCircle, KeyRound, CalendarDays, Save } from "lucide-react";
 import { getMyAccount, updateMyAccount, changeOwnPassword, type MyAccount } from "@/lib/actions/account";
+import { getMyPayslip, type PayslipRow } from "@/lib/actions/payroll";
+import { PayslipView } from "@/components/admin/hr/PayslipView";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const inputCls =
@@ -21,6 +23,18 @@ export default function MyAccountPage() {
   const [phone, setPhone] = useState("");
   const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
   const [saving, setSaving] = useState(false);
+  const [payslip, setPayslip] = useState<PayslipRow | null>(null);
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
+
+  useEffect(() => {
+    let ignore = false;
+    getMyPayslip(month)
+      .then((p) => !ignore && setPayslip(p))
+      .catch(() => {});
+    return () => {
+      ignore = true;
+    };
+  }, [month]);
 
   useEffect(() => {
     let ignore = false;
@@ -126,6 +140,19 @@ export default function MyAccountPage() {
           </div>
         )}
       </div>
+
+      {payslip && (
+        <div className="glass-panel rounded-2xl p-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-white">My payslip</h2>
+            <div className="flex gap-2">
+              <input type="month" value={month} onChange={(e) => e.target.value && setMonth(e.target.value)} className="px-2 py-1 bg-slate-900/50 border border-slate-700 rounded-lg text-xs text-white" />
+              <Button size="sm" variant="secondary" onClick={() => window.print()}>Print</Button>
+            </div>
+          </div>
+          <PayslipView row={payslip} />
+        </div>
+      )}
     </div>
   );
 }

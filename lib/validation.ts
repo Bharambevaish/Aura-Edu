@@ -604,3 +604,19 @@ export const StaffSchema = z.object({
 export const UpdateOwnAccountSchema = z.object({
   phone: z.string().trim().max(25).regex(/^[+0-9\s()-]*$/, { message: "Phone may only contain digits, spaces, +, ( ) and -." }),
 });
+
+/* ------------------------------------------------------------------ */
+/* Leave                                                               */
+/* ------------------------------------------------------------------ */
+
+export const LeaveRequestSchema = z.object({
+  type: z.enum(["casual", "sick", "earned", "unpaid"]),
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Pick the first day." }),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Pick the last day." }),
+  reason: z.string().trim().min(3, { message: "Add a short reason." }).max(500),
+});
+
+export const LeaveDecisionSchema = z.object({
+  approve: z.boolean(),
+  note: z.string().trim().max(300).default(""),
+});

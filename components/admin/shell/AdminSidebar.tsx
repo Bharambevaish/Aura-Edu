@@ -107,10 +107,19 @@ const navigation: NavItem[] = [
     ],
   },
   {
+    label: 'My Workspace',
+    icon: UserCircle,
+    children: [
+      { label: 'My Account', href: '/admin-dashboard/account', icon: UserCircle },
+      { label: 'Leave', href: '/admin-dashboard/leave', icon: CalendarDays },
+    ],
+  },
+  {
     label: 'Administration',
     icon: Building2,
     children: [
       { label: 'Staff Corner', href: '/admin-dashboard/administration/staff', icon: Users },
+      { label: 'Payroll', href: '/admin-dashboard/administration/payroll', icon: Wallet },
       { label: 'Master Data Center', href: '/admin-dashboard/administration/master', icon: Target },
     ],
   },
