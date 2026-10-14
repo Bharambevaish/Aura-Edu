@@ -14,6 +14,7 @@ import { connectDB } from "@/lib/db";
 import { UserModel } from "@/lib/models/User";
 import { SessionModel, type SessionDoc } from "@/lib/models/Session";
 import { requireRole } from "@/lib/dal";
+import { writeAudit } from "@/lib/audit";
 
 export type SessionStatus = "Active" | "Offline" | "Blocked";
 
@@ -133,7 +134,7 @@ export async function getLoginOverview(): Promise<LoginOverview> {
 export async function toggleBlockUser(
   userId: string,
 ): Promise<{ ok: boolean; blocked?: boolean; message?: string }> {
-  await requireRole(["admin"]);
+  const { user } = await requireRole(["admin"]);
   await connectDB();
 
   const student = await UserModel.findById(userId)
@@ -152,6 +153,7 @@ export async function toggleBlockUser(
     );
   }
 
+  await writeAudit(user, blocked ? "blocked student" : "unblocked student", student.name);
   return {
     ok: true,
     blocked,
@@ -163,13 +165,14 @@ export async function toggleBlockUser(
 export async function forceLogoutUser(
   userId: string,
 ): Promise<{ ok: boolean; count?: number; message?: string }> {
-  await requireRole(["admin"]);
+  const { user } = await requireRole(["admin"]);
   await connectDB();
 
   const res = await SessionModel.updateMany(
     { userId, active: true },
     { $set: { active: false } },
   );
+  await writeAudit(user, "force-logged-out student", `${userId} (${res.modifiedCount} session(s))`);
   return {
     ok: true,
     count: res.modifiedCount,
@@ -181,7 +184,7 @@ export async function forceLogoutUser(
 export async function forceLogoutSession(
   sessionId: string,
 ): Promise<{ ok: boolean; message?: string }> {
-  await requireRole(["admin"]);
+  const { user } = await requireRole(["admin"]);
   await connectDB();
 
   const res = await SessionModel.updateOne(
@@ -189,5 +192,6 @@ export async function forceLogoutSession(
     { $set: { active: false } },
   );
   if (!res.modifiedCount) return { ok: false, message: "Session already ended." };
+  await writeAudit(user, "signed out a device", sessionId);
   return { ok: true, message: "Device signed out." };
 }

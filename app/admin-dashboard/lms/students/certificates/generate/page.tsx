@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { getCertificateOptions, type CertificateOptions } from "@/lib/actions/certificates";
+import { getCertificateOptions, issueCertificateLink, type CertificateOptions } from "@/lib/actions/certificates";
 import { Combobox } from "@/components/ui/Combobox";
 import { Button } from "@/components/ui/Button";
 import { CERTIFICATE_TEMPLATES, type CertificateTemplate } from "@/lib/certificates";
@@ -46,6 +46,7 @@ export default function GenerateCertificatePage() {
   const [course, setCourse] = useState("");
   const [template, setTemplate] = useState<CertificateTemplate>("premium_classic");
   const [issuedDate, setIssuedDate] = useState(todayISO());
+  const [issueError, setIssueError] = useState<string | null>(null);
 
   const [q, setQ] = useState("");
   const [singleId, setSingleId] = useState("");
@@ -91,16 +92,25 @@ export default function GenerateCertificatePage() {
 
   const canDownload = !!selectedStudent && course.trim().length > 0 && !!issuedDate;
 
-  const download = () => {
+  const download = async () => {
     if (!canDownload || !selectedStudent) return;
-    const params = new URLSearchParams({
-      student: selectedStudent.name,
+    // Open the tab synchronously (popup blockers allow that), then point it at
+    // the signed link the server issues.
+    const tab = window.open("", "_blank");
+    const res = await issueCertificateLink({
+      studentId: selectedStudent.id,
       course: course.trim(),
       template,
       date: fmt(issuedDate),
     });
-    if (selectedStudent.batch) params.set("batch", selectedStudent.batch);
-    window.open(`/certificates/render?${params.toString()}`, "_blank");
+    if (!res.ok || !res.url) {
+      tab?.close();
+      setIssueError(res.message);
+      return;
+    }
+    setIssueError(null);
+    if (tab) tab.location.href = res.url;
+    else window.location.href = res.url;
   };
 
   if (loading) {
@@ -243,8 +253,9 @@ export default function GenerateCertificatePage() {
             <Download size={16} />
             Download PDF
           </Button>
+          {issueError && <p className="text-xs text-rose-400 text-center">{issueError}</p>}
           <p className="text-[10px] text-slate-500 text-center -mt-2">
-            Opens a print-ready A4 certificate — use the browser&apos;s Save as PDF (it opens automatically).
+            Issues a signed, verifiable certificate and opens it print-ready — use the browser&apos;s Save as PDF.
           </p>
         </div>
 

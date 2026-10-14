@@ -14,6 +14,7 @@
 
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAudit } from "@/lib/audit";
 import { getSession } from "@/lib/dal";
 import { Types } from "mongoose";
 import { TestModel } from "@/lib/models/Test";
@@ -411,7 +412,7 @@ export async function createTest(
     }[];
   },
 ): Promise<CreateTestOutcome> {
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
 
   const parsed = CreateTestSchema.safeParse(input);
   if (!parsed.success) {
@@ -483,5 +484,6 @@ export async function createTest(
     });
   }
 
+  await writeAudit(user, "created test", parsed.data.title);
   return { ok: true, testId: String(test._id), title: parsed.data.title };
 }

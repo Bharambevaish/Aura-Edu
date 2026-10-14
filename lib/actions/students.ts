@@ -19,6 +19,7 @@
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAudit } from "@/lib/audit";
 import { nextAdmissionNo, randomPassword } from "@/lib/student-accounts";
 import { UserModel } from "@/lib/models/User";
 import { SessionModel } from "@/lib/models/Session";
@@ -286,7 +287,7 @@ function toStudentDoc(input: Record<string, unknown>) {
 }
 
 export async function createStudent(input: Record<string, unknown>): Promise<StudentOutcome> {
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
 
   const parsed = CreateStudentSchema.safeParse(input);
   if (!parsed.success) {
@@ -316,11 +317,12 @@ export async function createStudent(input: Record<string, unknown>): Promise<Stu
     ...profile,
   });
 
+  await writeAudit(user, "created student", `${parsed.data.name} (${admissionNo})`);
   return { ok: true, studentId: String(student._id), message: "Student added successfully." };
 }
 
 export async function updateStudent(id: string, input: Record<string, unknown>): Promise<StudentOutcome> {
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
 
   const parsed = UpdateStudentSchema.safeParse(input);
   if (!parsed.success) {
@@ -356,6 +358,7 @@ export async function updateStudent(id: string, input: Record<string, unknown>):
     },
   );
 
+  await writeAudit(user, "updated student", student.name);
   return { ok: true, message: "Student updated successfully." };
 }
 
@@ -378,6 +381,7 @@ export async function deleteStudent(id: string): Promise<StudentOutcome> {
   await ResultModel.deleteMany({ userId: id });
   await SessionModel.deleteMany({ userId: id });
 
+  await writeAudit(user, "deleted student", `${student.name} (${student.email})`);
   return { ok: true, message: "Student deleted." };
 }
 
@@ -394,7 +398,7 @@ export async function bulkAssignStudents(input: unknown): Promise<BulkOutcome> {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid bulk assignment." };
   }
 
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 
   const { ids, field, value } = parsed.data;
@@ -403,6 +407,7 @@ export async function bulkAssignStudents(input: unknown): Promise<BulkOutcome> {
     { $set: { [field]: value } },
   );
 
+  await writeAudit(user, "bulk-assigned students", `${field} = ${value} for ${res.modifiedCount} student(s)`);
   return { ok: true, count: res.modifiedCount, message: `Assigned ${field} to ${res.modifiedCount} student(s).` };
 }
 
@@ -413,7 +418,7 @@ export async function bulkGenerateLogins(input: unknown): Promise<BulkOutcome> {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Select at least one student." };
   }
 
-  await requireRole(["admin"]);
+  const { user } = await requireRole(["admin"]);
   await connectDB();
 
   const students = await UserModel.find({ _id: { $in: parsed.data.ids }, role: "student" }).lean();
@@ -426,6 +431,7 @@ export async function bulkGenerateLogins(input: unknown): Promise<BulkOutcome> {
     credentials.push({ email: s.email, password });
   }
 
+  await writeAudit(user, "regenerated student logins", credentials.map((c) => c.email).join(", "));
   return { ok: true, count: credentials.length, credentials, message: `Generated logins for ${credentials.length} student(s).` };
 }
 
@@ -497,7 +503,7 @@ function normalizeImportRow(raw: Record<string, unknown>): Record<string, unknow
 
 /** Bulk upsert from a parsed spreadsheet: create new students, update existing by email. */
 export async function importStudents(rows: Record<string, unknown>[]): Promise<ImportResult> {
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -554,5 +560,6 @@ export async function importStudents(rows: Record<string, unknown>[]): Promise<I
     }
   }
 
+  await writeAudit(user, "imported students", `${imported} new, ${updated} updated, ${errors.length} skipped`);
   return { ok: true, imported, updated, errors, credentials };
 }

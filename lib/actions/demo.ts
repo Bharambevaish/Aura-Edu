@@ -17,6 +17,7 @@
 
 import { auth } from "@/auth";
 import { requireRole } from "@/lib/dal";
+import { writeAudit } from "@/lib/audit";
 import { connectDB } from "@/lib/db";
 import { SessionModel } from "@/lib/models/Session";
 import { TestModel } from "@/lib/models/Test";
@@ -38,7 +39,7 @@ import { AssignmentModel } from "@/lib/models/Assignment";
 import { seedDemoData } from "@/lib/seed/demo";
 
 export async function resetDemoData(): Promise<void> {
-  await requireRole(["admin"]);
+  const { user } = await requireRole(["admin"]);
   const mySessionId = (await auth())?.user?.sessionId;
   await connectDB();
 
@@ -62,4 +63,5 @@ export async function resetDemoData(): Promise<void> {
   await CourseModel.deleteMany({});
   await BatchModel.deleteMany({});
   await seedDemoData();
+  await writeAudit(user, "reset demo data", "all demo records restored");
 }

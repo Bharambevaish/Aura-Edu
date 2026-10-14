@@ -23,6 +23,7 @@
 
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAudit } from "@/lib/audit";
 import { BatchModel } from "@/lib/models/Batch";
 import { UserModel } from "@/lib/models/User";
 import { CreateBatchSchema, AssignStudentsSchema } from "@/lib/validation";
@@ -257,7 +258,7 @@ export async function createBatch(input: unknown): Promise<BatchOutcome> {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid batch details." };
   }
 
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 
   const { name, course, capacity, startDate, endDate, description } = parsed.data;
@@ -276,6 +277,7 @@ export async function createBatch(input: unknown): Promise<BatchOutcome> {
     description: description ?? "",
   });
 
+  await writeAudit(user, "created batch", name);
   return { ok: true, id: String(doc._id), message: `Batch "${name}" created.` };
 }
 
@@ -286,7 +288,7 @@ export async function updateBatch(batchId: string, input: unknown): Promise<Batc
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid batch details." };
   }
 
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 
   const batch = await BatchModel.findById(batchId).lean();
@@ -331,6 +333,7 @@ export async function updateBatch(batchId: string, input: unknown): Promise<Batc
     );
   }
 
+  await writeAudit(user, "updated batch", name);
   return { ok: true, message: `Batch "${name}" updated.` };
 }
 
@@ -341,7 +344,7 @@ export async function assignStudentsToBatch(input: unknown): Promise<BatchOutcom
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Select at least one student." };
   }
 
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 
   const batch = await BatchModel.findById(parsed.data.batchId).select("name course").lean();
@@ -352,6 +355,7 @@ export async function assignStudentsToBatch(input: unknown): Promise<BatchOutcom
     { $set: { batch: batch.name, course: batch.course } },
   );
 
+  await writeAudit(user, "assigned students to batch", `${batch.name} (+${res.modifiedCount})`);
   return { ok: true, count: res.modifiedCount, message: `Added ${res.modifiedCount} student(s) to "${batch.name}".` };
 }
 
@@ -362,7 +366,7 @@ export async function removeStudentFromBatch(input: unknown): Promise<BatchOutco
     return { ok: false, message: "Select at least one student." };
   }
 
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 
   const res = await UserModel.updateMany(
@@ -370,12 +374,13 @@ export async function removeStudentFromBatch(input: unknown): Promise<BatchOutco
     { $unset: { batch: "" } },
   );
 
+  await writeAudit(user, "removed students from batch", `${res.modifiedCount} student(s)`);
   return { ok: true, count: res.modifiedCount, message: `Removed ${res.modifiedCount} student(s) from their batch.` };
 }
 
 /** Admin/staff: delete an empty batch (refused while students are enrolled). */
 export async function deleteBatch(batchId: string): Promise<BatchOutcome> {
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 
   const batch = await BatchModel.findById(batchId).lean();
@@ -390,5 +395,6 @@ export async function deleteBatch(batchId: string): Promise<BatchOutcome> {
   }
 
   await BatchModel.deleteOne({ _id: batch._id });
+  await writeAudit(user, "deleted batch", batch.name);
   return { ok: true, message: `Batch "${batch.name}" deleted.` };
 }

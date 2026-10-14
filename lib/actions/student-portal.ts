@@ -23,6 +23,8 @@ import { MeetingModel } from "@/lib/models/Meeting";
 import { CalendarEventModel } from "@/lib/models/CalendarEvent";
 import type { CourseDoc, CourseLesson } from "@/lib/models/Course";
 import { UpdateMyProfileSchema, ChangePasswordSchema } from "@/lib/validation";
+import { signedCertificateQuery } from "@/lib/certificate-signing";
+import { writeAudit } from "@/lib/audit";
 
 /* ------------------------------------------------------------------ */
 /* Profile                                                             */
@@ -139,6 +141,7 @@ export async function changeMyPassword(input: unknown): Promise<ProfileOutcome> 
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
   await UserModel.updateOne({ _id: doc._id }, { $set: { passwordHash, mustChangePassword: false } });
+  await writeAudit(user, "changed own password", user.email);
   return { ok: true, message: "Password updated." };
 }
 
@@ -340,6 +343,8 @@ export type MyCertificate = {
   course: string;
   issuedDate: string;
   credential: string;
+  /** Server-signed /certificates/render link (verifiable at /verify). */
+  renderUrl: string;
 };
 
 /**
@@ -357,7 +362,7 @@ export async function getMyCertificates(): Promise<MyCertificate[]> {
     ResultModel.find({ userId: me, fullyGraded: true }).select("testId title obtained submittedAt").lean(),
   ]);
 
-  const certs: MyCertificate[] = [];
+  const certs: Omit<MyCertificate, "renderUrl">[] = [];
 
   const progress = await LessonProgressModel.find({ userId: me, courseId: { $in: courses.map((c) => c._id) } })
     .select("courseId lessonId completedAt")
@@ -393,7 +398,20 @@ export async function getMyCertificates(): Promise<MyCertificate[]> {
     });
   }
 
-  return certs.sort((a, b) => b.issuedDate.localeCompare(a.issuedDate));
+  const me_ = await UserModel.findById(me).select("name batch").lean();
+  return certs
+    .sort((a, b) => b.issuedDate.localeCompare(a.issuedDate))
+    .map((c) => ({
+      ...c,
+      renderUrl: `/certificates/render?${signedCertificateQuery({
+        student: me_?.name ?? user.name,
+        course: c.kind === "completion" ? c.course : c.title.replace(/^Certificate of Achievement — /, ""),
+        batch: me_?.batch ?? "",
+        template: c.kind === "completion" ? "elegant_gold" : "modern_clean",
+        date: new Date(c.issuedDate).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" }),
+        credential: c.credential,
+      })}`,
+    }));
 }
 
 /* ------------------------------------------------------------------ */

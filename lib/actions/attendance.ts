@@ -23,6 +23,7 @@
 
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAudit } from "@/lib/audit";
 import { Types } from "mongoose";
 import { AttendanceModel } from "@/lib/models/Attendance";
 import { UserModel } from "@/lib/models/User";
@@ -251,6 +252,7 @@ export async function saveAttendanceRegister(input: unknown): Promise<Attendance
     { upsert: true },
   );
 
+  await writeAudit(user, "saved attendance", `${batch} · ${date} (P${present}/A${absent}/L${late})`);
   return { ok: true, counts: { present, absent, late } };
 }
 

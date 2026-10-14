@@ -13,6 +13,7 @@
 
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAudit } from "@/lib/audit";
 import { getSession } from "@/lib/dal";
 import { QuestionModel } from "@/lib/models/Question";
 import { AttemptModel } from "@/lib/models/Attempt";
@@ -97,7 +98,7 @@ export async function gradeWrittenAnswers(
   attemptId: string,
   grades: { questionId: string; marks: number }[],
 ): Promise<GradeOutcome> {
-  await requireRole(["staff"]);
+  const { user } = await requireRole(["staff"]);
   const validated = GradeWrittenSchema.safeParse({ attemptId, grades });
   if (!validated.success) {
     return { success: false, writtenScore: 0, score: 0, remainingWritten: 0, fullyGraded: false };
@@ -142,5 +143,6 @@ export async function gradeWrittenAnswers(
     },
   );
 
+  await writeAudit(user, "graded written answers", `${attempt.studentName} — written ${writtenScore}, total ${score}`);
   return { success: true, writtenScore, score, remainingWritten, fullyGraded };
 }

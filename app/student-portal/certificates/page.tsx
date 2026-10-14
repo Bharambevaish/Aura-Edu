@@ -14,23 +14,6 @@ import {
 const fmtIssued = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 
-/**
- * Build the render URL for an earned certificate. Certificates are derived
- * from real progress/results (getMyCertificates) and rendered on demand by
- * the print route — nothing is stored.
- */
-function renderUrl(profile: { name: string; batch: string }, cert: MyCertificate): string {
-  const params = new URLSearchParams({
-    student: profile.name,
-    course: cert.kind === "completion" ? cert.course : cert.title.replace(/^Certificate of Achievement — /, ""),
-    template: cert.kind === "completion" ? "elegant_gold" : "modern_clean",
-    date: fmtIssued(cert.issuedDate),
-    credential: cert.credential,
-  });
-  if (profile.batch) params.set("batch", profile.batch);
-  return `/certificates/render?${params.toString()}`;
-}
-
 export default function CertificatesPage() {
   const { profile } = useStudent();
   const [certificates, setCertificates] = useState<MyCertificate[] | null>(null);
@@ -122,7 +105,7 @@ export default function CertificatesPage() {
                   <Eye className="h-4 w-4" /> Preview Certificate
                 </button>
                 <a
-                  href={renderUrl(profile, cert)}
+                  href={cert.renderUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="p-2.5 rounded-xl bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
@@ -191,7 +174,7 @@ export default function CertificatesPage() {
                 Close Preview
               </button>
               <a
-                href={renderUrl(profile, selectedCert)}
+                href={selectedCert.renderUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-5 py-2.5 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 flex items-center gap-2 shadow-lg shadow-cyan-500/20"

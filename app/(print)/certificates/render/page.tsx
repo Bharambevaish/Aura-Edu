@@ -1,6 +1,8 @@
+import Link from "next/link";
+import { headers } from "next/headers";
 import { requireRole } from "@/lib/dal";
 import PrintClient from "./PrintClient";
-import { isCertificateTemplate } from "@/lib/certificates";
+import { verifyCertificate, signedCertificateQuery } from "@/lib/certificate-signing";
 
 export const dynamic = "force-dynamic";
 
@@ -10,12 +12,6 @@ const BORDER_COLOR = {
   elegant_gold: "#ca8a04",
 } as const;
 
-function clean(value: string | string[] | undefined, max = 120): string {
-  if (Array.isArray(value)) value = value[0];
-  if (typeof value !== "string") return "";
-  return value.slice(0, max).replace(/[\u0000-\u001f\u007f]/g, "");
-}
-
 export default async function RenderCertificatePage({
   searchParams,
 }: {
@@ -24,13 +20,27 @@ export default async function RenderCertificatePage({
   const p = await searchParams;
   await requireRole(["student", "admin", "staff"]);
 
-  const studentName = clean(p.student) || "Student Name";
-  const course = clean(p.course) || "Course Name";
-  const batch = clean(p.batch, 80);
-  const date = clean(p.date, 60) || new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
-  const credential = clean(p.credential, 40);
-  const requestedTemplate = clean(p.template, 30);
-  const template = isCertificateTemplate(requestedTemplate) ? requestedTemplate : "modern_clean";
+  // Only links issued (signed) by the server render — an edited URL is refused.
+  const { valid, fields } = verifyCertificate(p);
+  if (!valid) {
+    return (
+      <div className="min-h-screen bg-[#070B14] flex items-center justify-center p-6">
+        <div className="max-w-md text-center space-y-3 rounded-2xl border border-rose-500/30 bg-rose-500/5 p-8">
+          <p className="text-lg font-bold text-white">This certificate link isn&apos;t valid</p>
+          <p className="text-sm text-slate-400">
+            It was not issued by AuraEdu, or its details were changed after it was issued. Ask the institute to issue it again.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  const { student: studentName, course, batch, date, credential, template } = fields;
+
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const verifyPath = `/verify?${signedCertificateQuery(fields)}`;
+  const verifyUrl = host ? `${proto}://${host}${verifyPath}` : verifyPath;
 
   const border = BORDER_COLOR[template];
 
@@ -157,6 +167,11 @@ export default async function RenderCertificatePage({
               <p className="text-[8px] text-slate-500 mt-1">Authorised Signatory</p>
             </div>
           </div>
+
+          {/* Public verification link */}
+          <p className="absolute bottom-3 left-0 right-0 text-center text-[7px] text-slate-400 break-all px-10">
+            Verify this certificate: <Link href={verifyPath}>{verifyUrl}</Link>
+          </p>
 
           {/* Watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.018]">

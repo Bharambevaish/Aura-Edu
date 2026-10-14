@@ -85,7 +85,7 @@ export default function AuditTrailPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Audit Trail" subtitle="Append-only log of every financial action and system event." icon={<Shield size={20} className="text-emerald-400" />}>
+      <PageHeader title="Audit Trail" subtitle="Append-only log of financial, admission, academic and account actions." icon={<Shield size={20} className="text-emerald-400" />}>
         <Button variant="secondary" size="sm" onClick={() => fetchData().catch(() => {})}><RefreshCw size={16} /></Button>
         <Button size="sm" onClick={exportFile} disabled={loading || filtered.length === 0}><Download size={14} />Export</Button>
       </PageHeader>

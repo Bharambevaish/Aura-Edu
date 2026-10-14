@@ -23,6 +23,7 @@
 
 import { connectDB } from "@/lib/db";
 import { requireRole, getSession } from "@/lib/dal";
+import { writeAudit } from "@/lib/audit";
 import { Types } from "mongoose";
 import { AssignmentModel } from "@/lib/models/Assignment";
 import { SubmissionModel } from "@/lib/models/Submission";
@@ -175,7 +176,7 @@ export async function createAssignment(input: {
   dueDate: string;
   questions: { text: string; marks: number }[];
 }): Promise<CreateAssignmentOutcome> {
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
 
   const parsed = CreateAssignmentSchema.safeParse(input);
   if (!parsed.success) {
@@ -223,6 +224,7 @@ export async function createAssignment(input: {
     await NotificationModel.insertMany(reminder);
   }
 
+  await writeAudit(user, "published assignment", parsed.data.title);
   return { ok: true, id: String(assignment._id), title: parsed.data.title };
 }
 
@@ -233,7 +235,7 @@ export async function reviewSubmission(
   submissionId: string,
   input: { marks: number; verdict: "complete" | "needs_work"; note?: string },
 ): Promise<ReviewOutcome> {
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
 
   const validated = ReviewSubmissionSchema.safeParse({ submissionId, ...input });
   if (!validated.success) {
@@ -260,6 +262,7 @@ export async function reviewSubmission(
     },
   );
 
+  await writeAudit(user, "reviewed submission", `${submission.studentName} — ${validated.data.marks} marks`);
   return { ok: true };
 }
 

@@ -15,7 +15,7 @@
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
-import type { SessionUser } from "@/lib/dal";
+import { writeAudit } from "@/lib/audit";
 import { UserModel } from "@/lib/models/User";
 import { BatchModel } from "@/lib/models/Batch";
 import { NoticeModel } from "@/lib/models/Notice";
@@ -25,7 +25,6 @@ import type { MeetingDoc } from "@/lib/models/Meeting";
 import { CalendarEventModel } from "@/lib/models/CalendarEvent";
 import type { CalendarEventDoc } from "@/lib/models/CalendarEvent";
 import { NotificationModel } from "@/lib/models/Notification";
-import { AuditLogModel } from "@/lib/models/AuditLog";
 import {
   CreateNoticeSchema,
   SendBroadcastSchema,
@@ -39,28 +38,6 @@ type Outcome<T = unknown> = ResultOk<T> | ResultFail;
 
 const pad = (n: number, width: number) => String(n).padStart(width, "0");
 
-type Countable = { countDocuments: () => Promise<number> };
-
-async function nextDocNumber(model: Countable, prefix: string, width: number) {
-  const count = await model.countDocuments();
-  return `${prefix}${pad(count + 1, width)}`;
-}
-
-/* ------------------------------ Audit -------------------------------- */
-
-async function writeAudit(user: SessionUser, action: string, target: string) {
-  const eventNo = await nextDocNumber(AuditLogModel, "AUD-", 4);
-  await AuditLogModel.create({
-    eventNo,
-    userId: new mongoose.Types.ObjectId(user.id),
-    userName: user.name,
-    userRole: user.role,
-    action,
-    target,
-    ip: "-",
-    isSystem: false,
-  });
-}
 
 const dayKey = (d: Date) =>
   `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1, 2)}-${pad(d.getUTCDate(), 2)}`;

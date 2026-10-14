@@ -22,6 +22,7 @@
 import { randomUUID } from "crypto";
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { writeAudit } from "@/lib/audit";
 import { CourseModel } from "@/lib/models/Course";
 import { UserModel } from "@/lib/models/User";
 import {
@@ -177,7 +178,7 @@ export async function createCourse(input: unknown): Promise<CourseOutcome> {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid course details." };
   }
 
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 
   const clash = await CourseModel.findOne({ code: parsed.data.code }).select("_id").lean();
@@ -204,12 +205,13 @@ export async function createCourse(input: unknown): Promise<CourseOutcome> {
     enrolledStudents: [],
   });
 
+  await writeAudit(user, "created course", doc.title);
   return { ok: true, id: String(doc._id), message: `Course "${doc.title}" created. Add its modules next.` };
 }
 
 /** Admin only: delete a course (refused while students are enrolled). */
 export async function deleteCourse(courseId: string): Promise<CourseOutcome> {
-  await requireRole(["admin"]);
+  const { user } = await requireRole(["admin"]);
   await connectDB();
 
   const course = await CourseModel.findById(courseId).lean();
@@ -224,6 +226,7 @@ export async function deleteCourse(courseId: string): Promise<CourseOutcome> {
   }
 
   await CourseModel.deleteOne({ _id: course._id });
+  await writeAudit(user, "deleted course", course.title);
   return { ok: true, message: `Course "${course.title}" deleted.` };
 }
 
@@ -509,7 +512,7 @@ export async function updateCourseStoreSettings(
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid store settings." };
   }
 
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 
   const course = await CourseModel.findById(courseId).lean();
@@ -528,5 +531,6 @@ export async function updateCourseStoreSettings(
     },
   );
 
+  await writeAudit(user, "updated course store settings", course.title);
   return { ok: true, message: `Store settings saved for "${course.title}".` };
 }
