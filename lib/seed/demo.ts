@@ -2,6 +2,8 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { UserModel } from "@/lib/models/User";
+import { SessionModel } from "@/lib/models/Session";
+import { LeadModel, type LeadPriority, type LeadSource, type LeadStage, type LeadType } from "@/lib/models/Lead";
 import { TestModel } from "@/lib/models/Test";
 import { QuestionModel } from "@/lib/models/Question";
 import { AttemptModel } from "@/lib/models/Attempt";
@@ -979,6 +981,7 @@ export async function seedDemoData(): Promise<void> {
   await seedDemoAttendance();
   await seedDemoCourses();
   await seedDemoLoginState();
+  await seedDemoLeads();
   await seedDemoFinance();
   await seedDemoConnect();
 }
@@ -2148,4 +2151,95 @@ export async function seedDemoConnect(): Promise<void> {
   }
 
   console.log(`[seed] connect: notices=${notices} notifications=${notifications} meetings=${meetings} events=${events}`);
+}
+/* ------------------------------------------------------------------ */
+/* Leads + Online Admissions                                           */
+/* ------------------------------------------------------------------ */
+
+const daysFromNow = (d: number) => new Date(Date.now() + d * 24 * 60 * 60 * 1000);
+
+/**
+ * A realistic lead pipeline. Names are distinct from the seeded students so
+ * a demo conversion creates a genuinely new account. Two "converted" leads
+ * point at existing seeded students to show the history.
+ *
+ * Also removes student accounts created by converting demo leads during a
+ * previous demo (any `@demo.auraedu.com` student not in DEMO_ACCOUNTS), so the
+ * same leads can be converted again after "Reset demo data".
+ */
+export async function seedDemoLeads(): Promise<void> {
+  await connectDB();
+
+  const seedEmails = DEMO_ACCOUNTS.map((a) => a.email);
+  const strays = await UserModel.find({
+    role: "student",
+    email: { $regex: /@demo\.auraedu\.com$/, $nin: seedEmails },
+  })
+    .select("_id")
+    .lean();
+  if (strays.length) {
+    const ids = strays.map((u) => u._id);
+    await SessionModel.deleteMany({ userId: { $in: ids } });
+    await UserModel.deleteMany({ _id: { $in: ids } });
+  }
+
+  await LeadModel.deleteMany({});
+
+  const meera = await UserModel.findOne({ email: "meera.iyer@demo.auraedu.com" }).select("_id").lean();
+  const kabir = await UserModel.findOne({ email: "kabir.singh@demo.auraedu.com" }).select("_id").lean();
+
+  type SeedLead = {
+    name: string; email: string; phone: string; stage: LeadStage; priority: LeadPriority; source: LeadSource;
+    course: string; batch?: string; createdDaysAgo: number; followUpInDays?: number; owner?: string;
+    type?: LeadType; notes?: string[]; lostReason?: string; convertedTo?: mongoose.Types.ObjectId; gender?: string;
+    guardianName?: string; guardianPhone?: string;
+  };
+
+  const plan: SeedLead[] = [
+    { name: "Ishaan Malhotra", email: "ishaan.malhotra@demo.auraedu.com", phone: "9876500031", stage: "new", priority: "high", source: "web_register", course: "NEET Comprehensive 2026", batch: "Morning (8 AM - 12 PM)", createdDaysAgo: 0, gender: "Male", guardianName: "Rajiv Malhotra", guardianPhone: "9826000031", notes: ["Applied through the online admission form."] },
+    { name: "Tanvi Deshpande", email: "tanvi.deshpande@demo.auraedu.com", phone: "9876500032", stage: "new", priority: "medium", source: "web_register", course: "JEE Main & Advanced Mathematics Crash Course", createdDaysAgo: 1, gender: "Female", guardianName: "Sunita Deshpande", guardianPhone: "9826000032", notes: ["Applied through the online admission form."] },
+    { name: "Vihaan Bhatt", email: "vihaan.bhatt@demo.auraedu.com", phone: "9876500033", stage: "contacted", priority: "high", source: "walk_in", course: "NEET Comprehensive 2026", createdDaysAgo: 3, followUpInDays: 0, owner: "Ritu Sharma", notes: ["Walked in with parents; wants the dropper batch.", "Called back — sent fee structure on WhatsApp."] },
+    { name: "Riya Chopra", email: "riya.chopra@demo.auraedu.com", phone: "9876500034", stage: "follow_up", priority: "high", source: "referral", course: "JEE Main & Advanced Mathematics Crash Course", createdDaysAgo: 6, followUpInDays: -1, owner: "Ritu Sharma", notes: ["Referred by Priya Deshmukh.", "Asked for a scholarship test date."] },
+    { name: "Arnav Saxena", email: "arnav.saxena@demo.auraedu.com", phone: "9876500035", stage: "qualified", priority: "medium", source: "phone", course: "MERN Stack Web Development Specialization", createdDaysAgo: 8, followUpInDays: 2, owner: "System Administrator", notes: ["Demo class attended, liked the project-based format."] },
+    { name: "Diya Menon", email: "diya.menon@demo.auraedu.com", phone: "9876500036", stage: "follow_up", priority: "low", source: "campaign", course: "NEET Comprehensive 2026", createdDaysAgo: 10, followUpInDays: 4, owner: "Ritu Sharma", notes: ["Came from the Instagram campaign."] },
+    { name: "Yash Agarwal", email: "yash.agarwal@demo.auraedu.com", phone: "9876500037", stage: "new", priority: "medium", source: "phone", course: "JEE Main & Advanced Mathematics Crash Course", createdDaysAgo: 2, notes: ["Enquiry call — wants weekend batch."] },
+    { name: "Nisha Pillai", email: "nisha.pillai@demo.auraedu.com", phone: "9876500038", stage: "lost", priority: "low", source: "walk_in", course: "NEET Comprehensive 2026", createdDaysAgo: 20, owner: "Ritu Sharma", lostReason: "Joined a coaching centre closer to home.", notes: ["Fee concern raised on first visit."] },
+    { name: "Sunrise Public School", email: "principal@sunrise-school.example", phone: "02240000039", stage: "contacted", priority: "medium", source: "referral", course: "Institution licence (50 seats)", createdDaysAgo: 5, followUpInDays: 1, owner: "System Administrator", type: "client", notes: ["Interested in a white-label portal for Class 11–12."] },
+    { name: "Meera Iyer", email: "meera.iyer@demo.auraedu.com", phone: "9876500016", stage: "converted", priority: "medium", source: "web_register", course: "NEET Comprehensive 2026", createdDaysAgo: 120, owner: "Ritu Sharma", convertedTo: meera?._id, notes: ["Applied through the online admission form.", "Converted to student → NEET Batch B"] },
+    { name: "Kabir Singh", email: "kabir.singh@demo.auraedu.com", phone: "9876500017", stage: "converted", priority: "high", source: "walk_in", course: "JEE Main & Advanced Mathematics Crash Course", createdDaysAgo: 90, owner: "System Administrator", convertedTo: kabir?._id, notes: ["Walk-in enquiry.", "Converted to student → JEE Batch A"] },
+  ];
+
+  let n = 0;
+  for (const l of plan) {
+    n += 1;
+    const createdAt = daysFromNow(-l.createdDaysAgo);
+    await LeadModel.create({
+      leadNo: `LD-${createdAt.getFullYear()}-${String(n).padStart(4, "0")}`,
+      name: l.name,
+      email: l.email,
+      phone: l.phone,
+      type: l.type ?? "student",
+      stage: l.stage,
+      priority: l.priority,
+      source: l.source,
+      interestedCourse: l.course,
+      preferredBatch: l.batch ?? "",
+      branch: "Main Branch",
+      gender: l.gender,
+      guardianName: l.guardianName,
+      guardianPhone: l.guardianPhone,
+      ownerName: l.owner ?? "Unassigned",
+      nextFollowUpAt: l.followUpInDays === undefined ? null : daysFromNow(l.followUpInDays),
+      lostReason: l.lostReason,
+      convertedStudentId: l.convertedTo ?? null,
+      convertedAt: l.convertedTo ? daysFromNow(-l.createdDaysAgo + 3) : null,
+      notes: (l.notes ?? []).map((text, i) => ({
+        text,
+        byName: i === 0 && l.source === "web_register" ? "Online Admission" : l.owner ?? "System",
+        at: daysFromNow(-l.createdDaysAgo + i),
+      })),
+      createdAt,
+    });
+  }
+  console.log(`[seed] leads=${plan.length} (pipeline across all stages); removed ${strays.length} converted demo account(s).`);
 }

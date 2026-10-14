@@ -496,3 +496,65 @@ export const StudentPaymentSchema = z.object({
     .max(10_000_000),
   mode: z.enum(["Online", "UPI"]),
 });
+
+/* ------------------------------------------------------------------ */
+/* Leads + Online Admissions                                           */
+/* ------------------------------------------------------------------ */
+
+const LeadStageEnum = z.enum(["new", "contacted", "follow_up", "qualified", "converted", "lost"]);
+const LeadPriorityEnum = z.enum(["low", "medium", "high"]);
+const leadPhone = z
+  .string()
+  .trim()
+  .min(7, { message: "Enter a valid phone number." })
+  .max(20)
+  .regex(/^[+0-9\s()-]+$/, { message: "Phone may only contain digits, spaces, +, ( ) and -." });
+
+/** Staff-entered lead (walk-in, call, referral...). */
+export const CreateLeadSchema = z
+  .object({
+    name: z.string().trim().min(2, { message: "Name is required." }).max(120),
+    email: z.string().trim().toLowerCase().email({ message: "Enter a valid email." }).or(z.literal("")),
+    phone: leadPhone.or(z.literal("")),
+    type: z.enum(["student", "client"]).default("student"),
+    priority: LeadPriorityEnum.default("medium"),
+    source: z.enum(["walk_in", "phone", "referral", "campaign", "other"]).default("walk_in"),
+    interestedCourse: z.string().trim().max(150).default(""),
+    note: z.string().trim().max(1000).default(""),
+  })
+  .refine((d) => d.email || d.phone, { message: "Add an email or a phone number.", path: ["email"] });
+
+/** Follow-up: move the stage, set the next follow-up, add a note. */
+export const UpdateLeadSchema = z.object({
+  stage: LeadStageEnum.exclude(["converted"]),
+  priority: LeadPriorityEnum,
+  nextFollowUpAt: z.string().trim().max(30).default(""),
+  note: z.string().trim().max(1000).default(""),
+  lostReason: z.string().trim().max(300).default(""),
+});
+
+/** Convert a student lead into a student account. */
+export const ConvertLeadSchema = z.object({
+  batch: z.string().trim().min(1, { message: "Pick a batch." }).max(150),
+  feeTotal: z.number().int().min(0).max(10_000_000),
+  dueInDays: z.number().int().min(0).max(365).default(30),
+});
+
+/** Public Online Admissions form (/register). */
+export const AdmissionSchema = z.object({
+  firstName: z.string().trim().min(1, { message: "First name is required." }).max(60),
+  lastName: z.string().trim().min(1, { message: "Last name is required." }).max(60),
+  dateOfBirth: z.string().trim().min(1, { message: "Date of birth is required." }).max(20),
+  gender: z.enum(["Male", "Female", "Other"], { message: "Select a gender." }),
+  email: z.string().trim().toLowerCase().email({ message: "Enter a valid email." }),
+  phone: leadPhone,
+  course: z.string().trim().min(1, { message: "Choose a course." }).max(150),
+  preferredBatch: z.string().trim().max(60).default(""),
+  branch: z.string().trim().max(80).default(""),
+  guardianName: z.string().trim().min(2, { message: "Guardian name is required." }).max(120),
+  guardianRelation: z.string().trim().max(40).default(""),
+  guardianPhone: leadPhone,
+  address: z.string().trim().min(5, { message: "Address is required." }).max(400),
+  /** Honeypot: real users never fill this hidden field. */
+  website: z.string().max(0).optional().or(z.literal("")),
+});
