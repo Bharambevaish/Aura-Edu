@@ -21,6 +21,7 @@ import { ResultModel } from "@/lib/models/Result";
 import { TestModel } from "@/lib/models/Test";
 import { MeetingModel } from "@/lib/models/Meeting";
 import { CalendarEventModel } from "@/lib/models/CalendarEvent";
+import { TimetableSlotModel } from "@/lib/models/TimetableSlot";
 import type { CourseDoc, CourseLesson } from "@/lib/models/Course";
 import { UpdateMyProfileSchema, ChangePasswordSchema } from "@/lib/validation";
 import { signedCertificateQuery } from "@/lib/certificate-signing";
@@ -449,13 +450,39 @@ export async function getMySchedule(): Promise<{ batch: string; items: ScheduleI
   const dayStatus = (d: Date): ScheduleItem["status"] =>
     sameDay(d) ? "Today" : d < todayStart ? "Completed" : "Upcoming";
 
-  const [meetings, events, tests] = await Promise.all([
+  const [meetings, events, tests, slots] = await Promise.all([
     MeetingModel.find({ type: { $in: ["class", "webinar"] }, date: { $gte: from, $lt: to }, ...forMe }).lean(),
     CalendarEventModel.find({ date: { $gte: from, $lt: to }, ...forMe }).lean(),
     batch ? TestModel.find({ batch, startAt: { $gte: from, $lt: to } }).lean() : Promise.resolve([]),
+    batch ? TimetableSlotModel.find({ batch }).lean() : Promise.resolve([]),
   ]);
 
+  // Expand the weekly timetable into dated occurrences for the window.
+  const nowHm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const classes: ScheduleItem[] = [];
+  for (let day = new Date(from); day < to; day = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1)) {
+    for (const s of slots.filter((x) => x.dayOfWeek === day.getDay())) {
+      const [hh, mm] = s.startTime.split(":").map(Number);
+      const at = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hh, mm);
+      const today = sameDay(at);
+      classes.push({
+        id: `slot-${s._id}-${day.toDateString()}`,
+        kind: "class",
+        title: s.subject,
+        date: at.toISOString(),
+        time: `${s.startTime} - ${s.endTime}`,
+        detail: [s.teacherName, s.room, s.mode !== "offline" ? s.mode : ""].filter(Boolean).join(" · ") || "Class",
+        link: s.mode === "offline" ? "" : s.meetingLink ?? "",
+        status:
+          today && s.startTime <= nowHm && nowHm < s.endTime ? "Live"
+          : today && nowHm >= s.endTime ? "Completed"
+          : dayStatus(at),
+      });
+    }
+  }
+
   const items: ScheduleItem[] = [
+    ...classes,
     ...meetings.map((m) => ({
       id: `meeting-${m._id}`,
       kind: m.type === "webinar" ? ("webinar" as const) : ("class" as const),

@@ -1,188 +1,122 @@
 "use client";
 
-import React from 'react';
-import { 
-  Calendar as CalendarIcon, 
-  ChevronLeft, 
-  ChevronRight, 
-  RefreshCw,
-  Clock,
-  BookOpen,
-  Video,
-  Monitor
-} from 'lucide-react';
+/**
+ * Date-wise schedule — every timetable class, live meeting and test on one
+ * date across all batches (getDaySchedule).
+ */
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { Button, useToast } from "@/components/ui";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, Clock, BookOpen, Video, GraduationCap, ExternalLink } from "lucide-react";
+import { getDaySchedule, type DayItem } from "@/lib/actions/timetable";
+
+const toIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const shift = (iso: string, days: number) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return toIso(new Date(y, m - 1, d + days));
+};
+
+const KIND = {
+  class: { icon: BookOpen, label: "Class", tone: "text-emerald-400 bg-emerald-500/10" },
+  meeting: { icon: Video, label: "Live session", tone: "text-cyan-400 bg-cyan-500/10" },
+  test: { icon: GraduationCap, label: "Test", tone: "text-purple-400 bg-purple-500/10" },
+} as const;
 
 export default function DatewiseSchedulePage() {
+  const { toast } = useToast();
+  const [date, setDate] = useState(() => toIso(new Date()));
+  const [items, setItems] = useState<DayItem[] | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    let ignore = false;
+    getDaySchedule(date)
+      .then((d) => {
+        if (!ignore) setItems(d.items);
+      })
+      .catch(() => toast("Could not load the schedule.", "error"));
+    return () => {
+      ignore = true;
+    };
+  }, [date, reloadKey, toast]);
+
+  const count = (k: DayItem["kind"]) => items?.filter((i) => i.kind === k).length ?? 0;
+  const batches = new Set(items?.filter((i) => i.kind === "class").map((i) => i.batches)).size;
+  const label = new Date(`${date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-xl font-bold text-white">Academic Schedule Center</h1>
-          <p className="text-sm text-slate-400 mt-1">Plan & review classes, meetings and live sessions by date.</p>
+          <p className="text-sm text-slate-400 mt-1">Classes, live sessions and tests across all batches, by date.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center bg-slate-900/50 border border-slate-700 rounded-lg overflow-hidden shadow-sm">
-            <button className="px-3 py-2 text-slate-400 hover:text-white hover:bg-white/5 transition-colors border-r border-slate-700">
+          <div className="flex items-center bg-slate-900/50 border border-slate-700 rounded-lg overflow-hidden">
+            <button onClick={() => setDate(shift(date, -1))} className="px-3 py-2 text-slate-400 hover:text-white hover:bg-white/5 border-r border-slate-700" aria-label="Previous day">
               <ChevronLeft size={16} />
             </button>
-            <div className="px-4 py-2 flex items-center gap-2 text-sm font-medium text-white border-r border-slate-700 bg-slate-900/50">
+            <label className="px-3 py-1.5 flex items-center gap-2 text-sm text-white border-r border-slate-700">
               <CalendarIcon size={14} className="text-slate-400" />
-              18-07-2026
-            </div>
-            <button className="px-3 py-2 text-slate-400 hover:text-white hover:bg-white/5 transition-colors">
+              <input type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} className="bg-transparent outline-none text-sm" />
+            </label>
+            <button onClick={() => setDate(shift(date, 1))} className="px-3 py-2 text-slate-400 hover:text-white hover:bg-white/5" aria-label="Next day">
               <ChevronRight size={16} />
             </button>
           </div>
-          <button className="px-4 py-2 bg-blue-900/30 text-blue-400 border border-blue-900/50 rounded-lg text-sm font-medium hover:bg-blue-900/50 transition-colors shadow-sm">
-            Today
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 border border-slate-700 text-slate-300 rounded-lg text-sm font-medium hover:bg-white/5 transition-colors shadow-sm">
-            <RefreshCw size={16} />
-            Refresh
-          </button>
+          <Button variant="secondary" size="sm" onClick={() => setDate(toIso(new Date()))}>Today</Button>
+          <Button variant="secondary" size="sm" onClick={() => setReloadKey((k) => k + 1)}>
+            <RefreshCw size={16} /> Refresh
+          </Button>
         </div>
       </div>
 
-      {/* Stats Section */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-slate-900/50 border border-blue-900/50 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <Clock size={14} className="text-blue-400" />
-            <h3 className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">TOTAL SESSIONS</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: "Classes", value: count("class"), tone: "text-emerald-400" },
+          { label: "Live sessions", value: count("meeting"), tone: "text-cyan-400" },
+          { label: "Tests", value: count("test"), tone: "text-purple-400" },
+          { label: "Batches in class", value: batches, tone: "text-blue-400" },
+        ].map((s) => (
+          <div key={s.label} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+            <h3 className={`text-[10px] font-bold uppercase tracking-wider ${s.tone}`}>{s.label}</h3>
+            <p className="text-2xl font-bold text-white mt-1">{items ? s.value : "—"}</p>
           </div>
-          <p className="text-2xl font-bold text-white">0</p>
-        </div>
-        <div className="bg-slate-900/50 border border-purple-900/50 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <BookOpen size={14} className="text-purple-400" />
-            <h3 className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">BATCH CLASSES</h3>
-          </div>
-          <p className="text-2xl font-bold text-white">0</p>
-        </div>
-        <div className="bg-slate-900/50 border border-green-900/50 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <Video size={14} className="text-green-400" />
-            <h3 className="text-[10px] font-bold text-green-400 uppercase tracking-wider">MEETINGS</h3>
-          </div>
-          <p className="text-2xl font-bold text-white">0</p>
-        </div>
-        <div className="bg-slate-900/50 border border-cyan-900/50 rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <Monitor size={14} className="text-cyan-400" />
-            <h3 className="text-[10px] font-bold text-cyan-400 uppercase tracking-wider">LIVE SESSIONS</h3>
-          </div>
-          <p className="text-2xl font-bold text-white">0</p>
-        </div>
+        ))}
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Left Column - Mini Calendar */}
-        <div className="w-full md:w-80 flex-shrink-0">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <button className="text-slate-400 hover:text-white p-1">
-                <ChevronLeft size={16} />
-              </button>
-              <h3 className="text-sm font-bold text-white">July 2026</h3>
-              <button className="text-slate-400 hover:text-white p-1">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-7 gap-1 text-center mb-2">
-              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-                <div key={day} className="text-[10px] font-bold text-slate-500 py-1">{day}</div>
-              ))}
-            </div>
-            
-            <div className="grid grid-cols-7 gap-1 text-center text-sm">
-              <div className="p-1.5 text-slate-600"></div>
-              <div className="p-1.5 text-slate-600"></div>
-              <div className="p-1.5 text-slate-600"></div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">1</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">2</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">3</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">4</div>
-              
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">5</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">6</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">7</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">8</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">9</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">10</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">11</div>
-              
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">12</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">13</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">14</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">15</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">16</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">17</div>
-              <div className="p-1.5 bg-blue-600 text-white font-bold rounded cursor-pointer shadow-sm shadow-blue-900/50">18</div>
-              
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">19</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">20</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">21</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">22</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">23</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">24</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">25</div>
-              
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">26</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">27</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">28</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">29</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">30</div>
-              <div className="p-1.5 text-slate-400 hover:bg-white/5 rounded cursor-pointer">31</div>
-              <div className="p-1.5 text-slate-600"></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column - Lists */}
-        <div className="flex-1 space-y-6">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 shadow-sm">
-            <h4 className="text-xs font-bold text-blue-400 mb-1">Selected Date</h4>
-            <h2 className="text-xl font-bold text-white">Saturday, 18 July 2026</h2>
-            <p className="text-xs text-slate-500 mt-1">Saturday</p>
-          </div>
-
-          <div className="space-y-4">
-            {/* Batch Classes */}
-            <div>
-              <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 mb-3">
-                <BookOpen size={16} className="text-purple-400" />
-                Batch Classes (0)
-              </h3>
-              <div className="bg-slate-900/50 border border-slate-800 border-dashed rounded-xl p-8 flex items-center justify-center text-sm text-slate-500">
-                No batch classes scheduled for this date
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+          <Clock size={16} className="text-emerald-400" /> {label}
+        </h2>
+        {!items && <p className="text-sm text-slate-500">Loading…</p>}
+        {items && items.length === 0 && <p className="text-sm text-slate-500 py-8 text-center">Nothing scheduled on this day.</p>}
+        {items?.map((it) => {
+          const k = KIND[it.kind];
+          const internal = it.link.startsWith("/");
+          return (
+            <div key={it.id} className="flex flex-wrap items-center gap-4 p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+              <span className="font-mono text-xs text-slate-300 w-24">{it.start}–{it.end}</span>
+              <span className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${k.tone}`}>
+                <k.icon size={11} /> {k.label}
+              </span>
+              <div className="flex-1 min-w-[180px]">
+                <p className="text-sm font-semibold text-white">{it.title}</p>
+                <p className="text-xs text-slate-500">{it.batches} · {it.who} · {it.where}</p>
               </div>
+              {it.link &&
+                (internal ? (
+                  <Link href={it.link} className="text-xs text-emerald-400 hover:underline flex items-center gap-1">
+                    Open <ExternalLink size={11} />
+                  </Link>
+                ) : (
+                  <a href={it.link} target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-400 hover:underline flex items-center gap-1">
+                    Join <ExternalLink size={11} />
+                  </a>
+                ))}
             </div>
-
-            {/* Meetings */}
-            <div>
-              <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 mb-3">
-                <Video size={16} className="text-green-400" />
-                Meetings (0)
-              </h3>
-              <div className="bg-slate-900/50 border border-slate-800 border-dashed rounded-xl p-8 flex items-center justify-center text-sm text-slate-500">
-                No meetings scheduled for this date
-              </div>
-            </div>
-
-            {/* Live Sessions */}
-            <div>
-              <h3 className="text-sm font-bold text-slate-300 flex items-center gap-2 mb-3">
-                <Monitor size={16} className="text-cyan-400" />
-                Live Sessions (0)
-              </h3>
-              <div className="bg-slate-900/50 border border-slate-800 border-dashed rounded-xl p-8 flex items-center justify-center text-sm text-slate-500">
-                No live sessions scheduled for this date
-              </div>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );

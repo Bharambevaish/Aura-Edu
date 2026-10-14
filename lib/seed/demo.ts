@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import { UserModel } from "@/lib/models/User";
 import { SessionModel } from "@/lib/models/Session";
 import { LessonProgressModel } from "@/lib/models/LessonProgress";
+import { TimetableSlotModel, type ClassMode } from "@/lib/models/TimetableSlot";
 import { LeadModel, type LeadPriority, type LeadSource, type LeadStage, type LeadType } from "@/lib/models/Lead";
 import { TestModel } from "@/lib/models/Test";
 import { QuestionModel } from "@/lib/models/Question";
@@ -978,6 +979,7 @@ export async function seedDemoData(): Promise<void> {
   await connectDB();
   await seedDemoBatches();
   await seedDemoTests();
+  await seedDemoTimetable();
   await seedDemoAssignments();
   await seedDemoAttendance();
   await seedDemoCourses();
@@ -2267,4 +2269,50 @@ export async function seedDemoProgress(): Promise<void> {
     })),
   );
   console.log(`[seed] lesson progress: ${lessons.length} lessons completed for the demo student.`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Timetable                                                           */
+/* ------------------------------------------------------------------ */
+
+/** A believable weekly timetable for the four demo batches (Mon–Sat). */
+export async function seedDemoTimetable(): Promise<void> {
+  await connectDB();
+  await TimetableSlotModel.deleteMany({});
+  const staff = await UserModel.findOne({ email: "staff@demo.auraedu.com" }).select("_id name").lean();
+  const ritu = staff ? { teacherId: staff._id, teacherName: staff.name } : { teacherId: null, teacherName: "Ritu Sharma" };
+  const t = (teacherName: string) => ({ teacherId: null, teacherName });
+
+  type Seed = [string, number, string, string, string, { teacherId: unknown; teacherName: string }, string, ClassMode, string?];
+  const rows: Seed[] = [
+    // NEET Batch A — mornings
+    ["NEET Batch A", 1, "08:00", "09:30", "Physics", t("Dr. Anil Verma"), "Hall A", "offline"],
+    ["NEET Batch A", 1, "09:45", "11:15", "Chemistry", ritu, "Hall A", "offline"],
+    ["NEET Batch A", 2, "08:00", "09:30", "Biology — Botany", t("Dr. Meenakshi Rao"), "Hall A", "offline"],
+    ["NEET Batch A", 3, "08:00", "09:30", "Physics", t("Dr. Anil Verma"), "Hall A", "hybrid", "https://meet.auraedu.com/neet-a-physics"],
+    ["NEET Batch A", 4, "09:45", "11:15", "Chemistry", ritu, "Hall A", "offline"],
+    ["NEET Batch A", 5, "08:00", "09:30", "Biology — Zoology", t("Dr. Meenakshi Rao"), "Hall A", "offline"],
+    ["NEET Batch A", 6, "10:00", "12:00", "Weekly mock review", ritu, "Online", "online", "https://meet.auraedu.com/neet-a-review"],
+    // NEET Batch B — afternoons
+    ["NEET Batch B", 1, "13:00", "14:30", "Biology — Botany", t("Dr. Meenakshi Rao"), "Hall B", "offline"],
+    ["NEET Batch B", 2, "13:00", "14:30", "Physics", t("Dr. Anil Verma"), "Hall B", "offline"],
+    ["NEET Batch B", 3, "13:00", "14:30", "Chemistry", ritu, "Hall B", "offline"],
+    ["NEET Batch B", 4, "13:00", "14:30", "Biology — Zoology", t("Dr. Meenakshi Rao"), "Hall B", "offline"],
+    ["NEET Batch B", 5, "13:00", "14:30", "Physics", t("Dr. Anil Verma"), "Hall B", "hybrid", "https://meet.auraedu.com/neet-b-physics"],
+    // JEE Batch A — evenings
+    ["JEE Batch A", 1, "16:00", "17:30", "Mathematics", t("Prof. R. K. Gupta"), "Hall C", "offline"],
+    ["JEE Batch A", 2, "16:00", "17:30", "Physics", t("Dr. Anil Verma"), "Hall C", "offline"],
+    ["JEE Batch A", 3, "16:00", "17:30", "Chemistry", ritu, "Hall C", "offline"],
+    ["JEE Batch A", 4, "16:00", "17:30", "Mathematics", t("Prof. R. K. Gupta"), "Hall C", "offline"],
+    ["JEE Batch A", 6, "15:00", "17:00", "Problem-solving lab", t("Prof. R. K. Gupta"), "Online", "online", "https://meet.auraedu.com/jee-a-lab"],
+    // Python — weekends online
+    ["Python Programming", 6, "18:00", "19:30", "Python fundamentals", t("Kunal Mehta"), "Online", "online", "https://meet.auraedu.com/python-weekend"],
+    ["Python Programming", 0, "18:00", "19:30", "Project clinic", t("Kunal Mehta"), "Online", "online", "https://meet.auraedu.com/python-clinic"],
+  ];
+  await TimetableSlotModel.insertMany(
+    rows.map(([batch, dayOfWeek, startTime, endTime, subject, teacher, room, mode, meetingLink]) => ({
+      batch, dayOfWeek, startTime, endTime, subject, ...teacher, room, mode, meetingLink: meetingLink ?? "",
+    })),
+  );
+  console.log(`[seed] timetable: ${rows.length} weekly classes across 4 batches.`);
 }

@@ -558,3 +558,30 @@ export const AdmissionSchema = z.object({
   /** Honeypot: real users never fill this hidden field. */
   website: z.string().max(0).optional().or(z.literal("")),
 });
+
+/* ------------------------------------------------------------------ */
+/* Timetable                                                           */
+/* ------------------------------------------------------------------ */
+
+const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "Use HH:MM (24-hour) times." });
+
+export const TimetableSlotSchema = z
+  .object({
+    batch: z.string().trim().min(1, { message: "Pick a batch." }).max(150),
+    dayOfWeek: z.number().int().min(0).max(6),
+    startTime: hhmm,
+    endTime: hhmm,
+    subject: z.string().trim().min(2, { message: "Enter the subject." }).max(120),
+    teacherId: z.string().trim().max(40).default(""),
+    teacherName: z.string().trim().max(120).default(""),
+    room: z.string().trim().max(80).default(""),
+    mode: z.enum(["offline", "online", "hybrid"]).default("offline"),
+    meetingLink: z
+      .string()
+      .trim()
+      .max(300)
+      .refine((v) => v === "" || /^https:\/\//.test(v), { message: "Class links must start with https://" })
+      .default(""),
+  })
+  .refine((d) => d.endTime > d.startTime, { message: "End time must be after start time.", path: ["endTime"] })
+  .refine((d) => d.mode === "offline" || d.meetingLink, { message: "Online/hybrid classes need a class link.", path: ["meetingLink"] });
