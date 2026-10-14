@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/dal";
 import { getMyProfile } from "@/lib/actions/student-portal";
 import { getMyFees } from "@/lib/actions/finance";
 import { getStudentNotifications } from "@/lib/actions/assignments";
-import ForcePasswordChange from "@/components/student/ForcePasswordChange";
+import ForcePasswordChange from "@/components/auth/ForcePasswordChange";
 
 /**
  * Student layout gate: every /student-portal route requires a signed-in

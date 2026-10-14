@@ -1,15 +1,15 @@
 "use client";
 
 /**
- * Shown instead of the student portal while `mustChangePassword` is set
- * (password issued by an admin: created, imported or regenerated). Uses the
- * same `changeMyPassword` action as Profile → Security, which clears the flag;
+ * Shown instead of the student portal or admin dashboard while
+ * `mustChangePassword` is set (password issued by an admin: created, imported,
+ * converted from a lead or reset). `changeOwnPassword` clears the flag;
  * `router.refresh()` then re-runs the layout and the portal appears.
  */
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { KeyRound, LogOut } from "lucide-react";
-import { changeMyPassword } from "@/lib/actions/student-portal";
+import { changeOwnPassword } from "@/lib/actions/account";
 import { logoutAction } from "@/lib/actions/auth";
 
 export default function ForcePasswordChange({ name }: { name: string }) {
@@ -29,7 +29,7 @@ export default function ForcePasswordChange({ name }: { name: string }) {
     }
     setSaving(true);
     try {
-      const res = await changeMyPassword({ currentPassword: currentPass, newPassword: newPass });
+      const res = await changeOwnPassword({ currentPassword: currentPass, newPassword: newPass });
       if (!res.ok) {
         setError(res.message);
         return;

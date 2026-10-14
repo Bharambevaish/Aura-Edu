@@ -585,3 +585,22 @@ export const TimetableSlotSchema = z
   })
   .refine((d) => d.endTime > d.startTime, { message: "End time must be after start time.", path: ["endTime"] })
   .refine((d) => d.mode === "offline" || d.meetingLink, { message: "Online/hybrid classes need a class link.", path: ["meetingLink"] });
+
+/* ------------------------------------------------------------------ */
+/* Staff + own account                                                 */
+/* ------------------------------------------------------------------ */
+
+export const StaffSchema = z.object({
+  name: z.string().trim().min(2, { message: "Name is required." }).max(120),
+  email: z.string().trim().toLowerCase().email({ message: "Enter a valid email." }),
+  phone: z.string().trim().max(25).regex(/^[+0-9\s()-]*$/, { message: "Phone may only contain digits, spaces, +, ( ) and -." }).default(""),
+  employeeId: z.string().trim().max(30).default(""),
+  designation: z.string().trim().max(80).default(""),
+  department: z.string().trim().max(80).default(""),
+  joiningDate: z.string().trim().max(20).default(""),
+  monthlySalary: z.number().int().min(0).max(10_000_000).default(0),
+});
+
+export const UpdateOwnAccountSchema = z.object({
+  phone: z.string().trim().max(25).regex(/^[+0-9\s()-]*$/, { message: "Phone may only contain digits, spaces, +, ( ) and -." }),
+});

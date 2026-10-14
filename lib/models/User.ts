@@ -32,6 +32,12 @@ export interface UserDoc {
   admissionStatus?: "Active" | "Pending" | "Graduated" | "Transferred";
   idProofType?: string;
   idProofNumber?: string;
+  /** Staff profile (role: "staff"). */
+  designation?: string;
+  department?: string;
+  joiningDate?: Date;
+  /** Monthly gross salary in ₹ — drives the payroll simulator. */
+  monthlySalary?: number;
   /** Marks seed/built-in demo accounts so "Reset demo data" can wipe only them. */
   isDemo?: boolean;
   /** Admin-controlled access block — checked at login and on every request. */
@@ -91,6 +97,10 @@ const userSchema = new mongoose.Schema<UserDoc>(
     admissionStatus: { type: String, enum: ["Active", "Pending", "Graduated", "Transferred"], default: "Active" },
     idProofType: String,
     idProofNumber: String,
+    designation: String,
+    department: String,
+    joiningDate: Date,
+    monthlySalary: { type: Number, min: 0 },
     isDemo: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
     mustChangePassword: { type: Boolean, default: false },

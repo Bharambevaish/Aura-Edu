@@ -137,6 +137,32 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
+      {data && data.myClassesToday.length > 0 && (
+        <div className="glass-panel rounded-2xl p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Clock size={16} className="text-emerald-400" /> My classes today
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {data.myClassesToday.map((c) => (
+              <div key={`${c.batch}-${c.startTime}`} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                <p className="font-mono text-xs text-emerald-400">{c.startTime}–{c.endTime}</p>
+                <p className="text-sm font-semibold text-white mt-1">{c.subject}</p>
+                <p className="text-xs text-slate-400">
+                  {c.batch}
+                  {c.room ? ` · ${c.room}` : ""}
+                  {c.link && (
+                    <>
+                      {" · "}
+                      <a href={c.link} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline">Join</a>
+                    </>
+                  )}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {data && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {tiles.map((t) => (

@@ -160,13 +160,14 @@ export default function AdminHeader({ user }: { user: SessionUser }) {
                 
                 <button
                   onClick={() => {
-                    router.push("/admin-dashboard/settings/profile");
+                    router.push("/admin-dashboard/account");
                     setIsProfileOpen(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
                 >
-                  <User size={16} /> Profile
+                  <User size={16} /> My account
                 </button>
+                {user.role === "admin" && (
                 <button
                   onClick={() => {
                     router.push("/admin-dashboard/settings");
@@ -176,6 +177,7 @@ export default function AdminHeader({ user }: { user: SessionUser }) {
                 >
                   <Settings size={16} /> Settings
                 </button>
+                )}
                 <div className="h-px bg-white/10 my-2"></div>
                 <form action={logoutAction}>
                   <button type="submit" className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">

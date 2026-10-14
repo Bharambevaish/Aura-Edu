@@ -20,6 +20,8 @@ import { ResultModel } from "@/lib/models/Result";
 import { TestModel } from "@/lib/models/Test";
 import { SubmissionModel } from "@/lib/models/Submission";
 import { ExpenseModel } from "@/lib/models/Expense";
+import { TimetableSlotModel } from "@/lib/models/TimetableSlot";
+import mongoose from "mongoose";
 
 export type RevenueBar = { label: string; amount: number };
 
@@ -41,12 +43,14 @@ export type AdminOverview = {
   pendingExpenseApprovals: number;
   revenue: { last7Days: RevenueBar[]; last6Months: RevenueBar[] };
   activity: ActivityItem[];
+  /** The signed-in user's own classes today (timetable). */
+  myClassesToday: { batch: string; subject: string; startTime: string; endTime: string; room: string; link: string }[];
 };
 
 const DAY = 24 * 60 * 60 * 1000;
 
 export async function getAdminOverview(): Promise<AdminOverview> {
-  await requireRole(["admin", "staff"]);
+  const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 
   const now = new Date();
@@ -100,6 +104,12 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     UserModel.find({ role: "student" }).select("name batch admissionDate createdAt").sort({ admissionDate: -1, createdAt: -1 }).limit(4).lean(),
     SubmissionModel.find().select("studentName submittedAt").sort({ submittedAt: -1 }).limit(4).lean(),
   ]);
+  const myClasses = await TimetableSlotModel.find({
+    teacherId: new mongoose.Types.ObjectId(user.id),
+    dayOfWeek: now.getDay(),
+  })
+    .sort({ startTime: 1 })
+    .lean();
 
   // Collections
   let thisMonth = 0;
@@ -217,5 +227,13 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     pendingExpenseApprovals: pendingExpenses,
     revenue: { last7Days, last6Months },
     activity,
+    myClassesToday: myClasses.map((c) => ({
+      batch: c.batch,
+      subject: c.subject,
+      startTime: c.startTime,
+      endTime: c.endTime,
+      room: c.room ?? "",
+      link: c.mode === "offline" ? "" : c.meetingLink ?? "",
+    })),
   };
 }

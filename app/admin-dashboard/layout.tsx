@@ -1,6 +1,7 @@
 import React from "react";
 import AdminShell from "@/components/admin/shell/AdminShell";
 import { requireRole } from "@/lib/dal";
+import ForcePasswordChange from "@/components/auth/ForcePasswordChange";
 
 /**
  * Admin layout gate: every /admin-dashboard route passes
@@ -14,5 +15,9 @@ export default async function AdminDashboardLayout({
   children: React.ReactNode;
 }) {
   const { user } = await requireRole(["admin", "staff"]);
+  // Admin-issued password still in use (new or reset staff account).
+  if (user.mustChangePassword) {
+    return <ForcePasswordChange name={user.name} />;
+  }
   return <AdminShell user={user}>{children}</AdminShell>;
 }

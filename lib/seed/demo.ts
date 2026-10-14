@@ -52,6 +52,10 @@ export interface DemoAccount {
   admissionStatus?: "Active" | "Pending" | "Graduated" | "Transferred";
   idProofType?: string;
   idProofNumber?: string;
+  designation?: string;
+  department?: string;
+  joiningDate?: string;
+  monthlySalary?: number;
 }
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [
@@ -68,6 +72,71 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     password: "Staff@123",
     role: "staff",
     employeeId: "EMP-0012",
+    phone: "9820000012",
+    designation: "Chemistry Faculty & Academic Coordinator",
+    department: "Academics",
+    joiningDate: "2023-06-01",
+    monthlySalary: 68000,
+  },
+  {
+    name: "Dr. Anil Verma",
+    email: "anil.verma@demo.auraedu.com",
+    password: "Staff@123",
+    role: "staff",
+    employeeId: "EMP-0005",
+    phone: "9820000005",
+    designation: "Senior Faculty — Physics",
+    department: "Academics",
+    joiningDate: "2021-04-12",
+    monthlySalary: 85000,
+  },
+  {
+    name: "Dr. Meenakshi Rao",
+    email: "meenakshi.rao@demo.auraedu.com",
+    password: "Staff@123",
+    role: "staff",
+    employeeId: "EMP-0008",
+    phone: "9820000008",
+    designation: "Faculty — Biology",
+    department: "Academics",
+    joiningDate: "2022-07-01",
+    monthlySalary: 72000,
+  },
+  {
+    name: "Prof. R. K. Gupta",
+    email: "rk.gupta@demo.auraedu.com",
+    password: "Staff@123",
+    role: "staff",
+    employeeId: "EMP-0003",
+    phone: "9820000003",
+    designation: "Head of Mathematics",
+    department: "Academics",
+    joiningDate: "2020-01-06",
+    monthlySalary: 95000,
+  },
+  {
+    name: "Kunal Mehta",
+    email: "kunal.mehta@demo.auraedu.com",
+    password: "Staff@123",
+    role: "staff",
+    employeeId: "EMP-0021",
+    phone: "9820000021",
+    designation: "Instructor — Python",
+    department: "Technology",
+    joiningDate: "2025-02-10",
+    monthlySalary: 60000,
+  },
+  {
+    name: "Neha Bhosale",
+    email: "neha.bhosale@demo.auraedu.com",
+    password: "Staff@123",
+    role: "staff",
+    employeeId: "EMP-0017",
+    phone: "9820000017",
+    designation: "Accounts Executive",
+    department: "Finance",
+    joiningDate: "2024-03-18",
+    monthlySalary: 38000,
   },
   {
     name: "Aarav Sharma",
@@ -348,6 +417,10 @@ export async function seedDemoUsers(): Promise<Map<string, string>> {
           admissionStatus: account.admissionStatus ?? "Active",
           idProofType: account.idProofType,
           idProofNumber: account.idProofNumber,
+          designation: account.designation,
+          department: account.department,
+          joiningDate: account.joiningDate ? new Date(account.joiningDate) : undefined,
+          monthlySalary: account.monthlySalary,
           lastLoginAt: undefined,
           isDemo: true,
           mustChangePassword: false,
@@ -2279,9 +2352,13 @@ export async function seedDemoProgress(): Promise<void> {
 export async function seedDemoTimetable(): Promise<void> {
   await connectDB();
   await TimetableSlotModel.deleteMany({});
-  const staff = await UserModel.findOne({ email: "staff@demo.auraedu.com" }).select("_id name").lean();
-  const ritu = staff ? { teacherId: staff._id, teacherName: staff.name } : { teacherId: null, teacherName: "Ritu Sharma" };
-  const t = (teacherName: string) => ({ teacherId: null, teacherName });
+  // Link classes to the demo staff accounts by name (falls back to a plain name).
+  const staff = await UserModel.find({ role: "staff", isDemo: true }).select("_id name").lean();
+  const t = (teacherName: string) => {
+    const acct = staff.find((s) => s.name === teacherName);
+    return acct ? { teacherId: acct._id, teacherName: acct.name } : { teacherId: null, teacherName };
+  };
+  const ritu = t("Ritu Sharma");
 
   type Seed = [string, number, string, string, string, { teacherId: unknown; teacherName: string }, string, ClassMode, string?];
   const rows: Seed[] = [
