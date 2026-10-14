@@ -30,6 +30,7 @@ import { AuditLogModel } from "@/lib/models/AuditLog";
 import { NoticeModel } from "@/lib/models/Notice";
 import { MeetingModel } from "@/lib/models/Meeting";
 import { CalendarEventModel } from "@/lib/models/CalendarEvent";
+import { InstituteSettingsModel } from "@/lib/models/InstituteSettings";
 import type { Role } from "@/lib/models/User";
 
 export interface DemoAccount {
@@ -1051,8 +1052,35 @@ export async function seedDemoCourses(): Promise<void> {
   console.log(`[seed] courses=${seeded} (curriculum + storefront, upserted by code)`);
 }
 
+/** Institute profile + the 18% GST rule (reset to these values on reseed). */
+export async function seedDemoInstitute(): Promise<void> {
+  await InstituteSettingsModel.findOneAndUpdate(
+    { key: "institute" },
+    {
+      $set: {
+        name: "AuraEdu Institute",
+        legalName: "AuraEdu Learning Pvt. Ltd.",
+        address: "2nd Floor, Shanti Plaza, FC Road, Pune, Maharashtra 411004",
+        gstin: "27AAACA1234F1Z5",
+        pan: "AAACA1234F",
+        supportEmail: "accounts@auraedu.com",
+        supportPhone: "+91 20 4000 1234",
+        invoiceTerms: "Fees once paid are non-refundable except as per the refund policy.\nLate payments attract a fee of ₹500 per month.\nThis is a computer-generated invoice.",
+        taxRules: [
+          { id: "gst-18", name: "GST on coaching services", rate: 18, hsn: "999293", description: "Commercial training and coaching services" },
+          { id: "gst-0", name: "Exempt (books & study material)", rate: 0, hsn: "4901", description: "Printed books — nil rated" },
+        ],
+        defaultTaxRuleId: "gst-18",
+      },
+    },
+    { upsert: true },
+  );
+  console.log("[seed] institute profile + GST rules");
+}
+
 export async function seedDemoData(): Promise<void> {
   await connectDB();
+  await seedDemoInstitute();
   await seedDemoBatches();
   await seedDemoTests();
   await seedDemoTimetable();
@@ -1735,7 +1763,7 @@ export async function seedDemoFinance(): Promise<void> {
       total: inv.total,
       paid: inv.paid,
       waived: inv.waived,
-      taxGst: 0,
+      taxGst: Math.round((inv.total * 18) / 118),
       issueDate: inv.issueDate,
       dueDate: inv.dueDate,
       notes: inv.paid > 0 ? "Installments: 1st at admission, rest by due date." : "Payable before due date to avoid late-fee.",

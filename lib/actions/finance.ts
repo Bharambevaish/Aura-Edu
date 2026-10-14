@@ -25,6 +25,7 @@ import { RefundModel } from "@/lib/models/Refund";
 import { WaiverModel } from "@/lib/models/Waiver";
 import { AuditLogModel } from "@/lib/models/AuditLog";
 import { writeAudit, writeSystemAudit } from "@/lib/audit";
+import { getInstitute, defaultTaxRule, inclusiveGst } from "@/lib/institute";
 import {
   VendorSchema,
   ExpenseCategorySchema,
@@ -566,6 +567,7 @@ export async function syncInvoices(): Promise<{ ok: boolean; message: string; cr
   ]);
   const have = new Set(existing.map((i) => String(i.studentId)));
   const now = new Date();
+  const rule = defaultTaxRule(await getInstitute());
   let created = 0;
   for (const s of students) {
     if (have.has(String(s._id))) continue;
@@ -580,7 +582,7 @@ export async function syncInvoices(): Promise<{ ok: boolean; message: string; cr
       total,
       paid: 0,
       waived: 0,
-      taxGst: 0,
+      taxGst: rule ? inclusiveGst(total, rule.rate) : 0,
       issueDate: now,
       dueDate: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000),
       notes: "Auto-generated during sync",

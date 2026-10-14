@@ -127,7 +127,6 @@ const navigation: NavItem[] = [
     icon: Settings,
     children: [
       { label: 'Security Settings', href: '/admin-dashboard/settings', icon: Shield },
-      { label: 'Profile', href: '/admin-dashboard/settings/profile', icon: UserCircle },
       { label: 'Invoice Config', href: '/admin-dashboard/settings/config/invoice', icon: Receipt },
       { label: 'Tax Config', href: '/admin-dashboard/settings/config/tax', icon: Wallet },
       { label: 'Permissions', href: '/admin-dashboard/settings/config/staff-permission', icon: Shield },

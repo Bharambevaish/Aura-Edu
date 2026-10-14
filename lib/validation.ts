@@ -633,3 +633,43 @@ export const TaskSchema = z.object({
   assigneeId: z.string().trim().max(40).default(""),
   dueDate: z.string().trim().max(10).default(""),
 });
+
+/* ------------------------------------------------------------------ */
+/* Settings                                                            */
+/* ------------------------------------------------------------------ */
+
+export const InstituteProfileSchema = z.object({
+  name: z.string().trim().min(2, { message: "Institute name is required." }).max(120),
+  legalName: z.string().trim().max(160).default(""),
+  address: z.string().trim().max(400).default(""),
+  gstin: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .refine((v) => v === "" || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(v), { message: "GSTIN should look like 27ABCDE1234F1Z5." })
+    .default(""),
+  pan: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .refine((v) => v === "" || /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(v), { message: "PAN should look like ABCDE1234F." })
+    .default(""),
+  supportEmail: z.string().trim().email({ message: "Enter a valid support email." }).or(z.literal("")).default(""),
+  supportPhone: z.string().trim().max(25).default(""),
+  invoiceTerms: z.string().trim().max(2000).default(""),
+});
+
+export const TaxRulesSchema = z.object({
+  rules: z
+    .array(
+      z.object({
+        id: z.string().max(60).default(""),
+        name: z.string().trim().min(2, { message: "Each rule needs a name." }).max(60),
+        rate: z.number().min(0).max(100),
+        hsn: z.string().trim().max(20).default(""),
+        description: z.string().trim().max(200).default(""),
+      }),
+    )
+    .max(20),
+  defaultIndex: z.number().int().min(0).nullable(),
+});

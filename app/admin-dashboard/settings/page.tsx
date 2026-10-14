@@ -1,170 +1,95 @@
 "use client";
 
-import React, { useState } from 'react';
-import { 
-  Shield, 
-  Key, 
-  Smartphone, 
-  History, 
-  CheckCircle2, 
-  XCircle,
-  Monitor,
-  Laptop
-} from 'lucide-react';
+/**
+ * Security settings (admin): change password, own active sign-ins (sign out
+ * the others) and the login protection actually enforced by the app.
+ */
+import React, { useCallback, useEffect, useState } from "react";
+import { PageHeader, Button, useToast } from "@/components/ui";
+import { Shield, KeyRound, Monitor, LogOut } from "lucide-react";
+import { changeOwnPassword } from "@/lib/actions/account";
+import { getMySecurity, signOutMyOtherSessions } from "@/lib/actions/settings";
+
+const inputCls =
+  "w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500";
+const fmt = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
 export default function SecuritySettingsPage() {
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const { toast } = useToast();
+  const [data, setData] = useState<Awaited<ReturnType<typeof getMySecurity>> | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
+  const [busy, setBusy] = useState(false);
 
-  const passwordReqs = [
-    { label: 'Minimum 8 characters', met: newPassword.length >= 8 },
-    { label: 'At least one uppercase letter', met: /[A-Z]/.test(newPassword) },
-    { label: 'At least one number', met: /[0-9]/.test(newPassword) },
-    { label: 'At least one special character', met: /[^A-Za-z0-9]/.test(newPassword) },
-  ];
+  useEffect(() => {
+    let ignore = false;
+    getMySecurity().then((d) => !ignore && setData(d)).catch(() => toast("Could not load security settings.", "error"));
+    return () => {
+      ignore = true;
+    };
+  }, [reloadKey, toast]);
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
+
+  const changePassword = async () => {
+    if (pw.next !== pw.confirm) return toast("New password and confirmation do not match.", "error");
+    setBusy(true);
+    const res = await changeOwnPassword({ currentPassword: pw.current, newPassword: pw.next });
+    setBusy(false);
+    toast(res.message, res.ok ? "success" : "error");
+    if (res.ok) setPw({ current: "", next: "", confirm: "" });
+  };
+
+  const signOutOthers = async () => {
+    setBusy(true);
+    const res = await signOutMyOtherSessions();
+    setBusy(false);
+    toast(res.message, res.ok ? "success" : "error");
+    reload();
+  };
+
+  const others = data?.sessions.filter((s) => !s.current).length ?? 0;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Shield className="text-emerald-400" /> Security Settings
-        </h1>
-        <p className="text-sm text-slate-400 mt-1">Manage your password, 2FA, and active sessions.</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader title="Security Settings" subtitle="Your password, your active sign-ins and the login protection in force." icon={<Shield size={20} className="text-emerald-400" />} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
-          {/* Change Password */}
-          <div className="glass-panel rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-              <Key size={18} className="text-blue-400" /> Change Password
-            </h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Current Password</label>
-                <input 
-                  type="password" 
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">New Password</label>
-                <input 
-                  type="password" 
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                />
-              </div>
-              
-              <div className="bg-slate-900/50 rounded-xl p-4 border border-white/5 space-y-2 mt-4">
-                {passwordReqs.map((req, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm">
-                    {req.met ? <CheckCircle2 size={14} className="text-emerald-400" /> : <XCircle size={14} className="text-slate-500" />}
-                    <span className={req.met ? 'text-slate-300' : 'text-slate-500'}>{req.label}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button 
-                disabled={!passwordReqs.every(r => r.met) || !currentPassword}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-xl font-medium transition-colors mt-4"
-              >
-                Update Password
-              </button>
-            </div>
-          </div>
-
-          {/* 2FA Management */}
-          <div className="glass-panel rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-              <Smartphone size={18} className="text-purple-400" /> Two-Factor Authentication
-            </h2>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm font-medium text-white">Authenticator App</p>
-                <p className="text-xs text-slate-400 mt-1">Use an app like Google Authenticator to get 2FA codes.</p>
-              </div>
-              <div className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full text-xs font-medium">Enabled</div>
-            </div>
-            <div className="flex gap-3">
-              <button className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white rounded-lg text-sm font-medium transition-colors">Disable 2FA</button>
-              <button className="flex-1 py-2 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white rounded-lg text-sm font-medium transition-colors">Backup Codes</button>
-            </div>
-          </div>
+        <div className="glass-panel rounded-2xl p-6 space-y-3">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2"><KeyRound size={16} className="text-emerald-400" /> Change password</h2>
+          <input type="password" className={inputCls} placeholder="Current password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} />
+          <input type="password" className={inputCls} placeholder="New password (min 8 characters)" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} />
+          <input type="password" className={inputCls} placeholder="Confirm new password" value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} />
+          <Button size="sm" onClick={changePassword} disabled={busy || !pw.current || !pw.next}>Update password</Button>
         </div>
 
-        <div className="space-y-6">
-          {/* Active Sessions */}
-          <div className="glass-panel rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                <Monitor size={18} className="text-orange-400" /> Active Sessions
-              </h2>
-              <button className="text-xs font-medium text-red-400 hover:text-red-300 transition-colors">Log out all devices</button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-300">
-                    <Laptop size={18} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">Windows PC - Chrome</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Mumbai, India • 192.168.1.45</p>
-                    <p className="text-xs text-emerald-400 mt-1">Active Now (This device)</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-xl">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-slate-900 border border-white/10 flex items-center justify-center text-slate-300">
-                    <Smartphone size={18} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">iPhone 14 Pro - Safari</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Pune, India • 10.0.0.12</p>
-                    <p className="text-xs text-slate-500 mt-1">Last active: 2 hours ago</p>
-                  </div>
-                </div>
-                <button className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
-                  <XCircle size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Login History */}
-          <div className="glass-panel rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-              <History size={18} className="text-slate-400" /> Recent Login History
-            </h2>
-            <div className="space-y-4">
-              {[
-                { date: '19 Jul 2026, 10:45 AM', ip: '192.168.1.45', status: 'Success', loc: 'Mumbai, IN' },
-                { date: '18 Jul 2026, 09:12 AM', ip: '192.168.1.45', status: 'Success', loc: 'Mumbai, IN' },
-                { date: '15 Jul 2026, 11:30 PM', ip: '45.22.11.9', status: 'Failed', loc: 'Unknown' },
-              ].map((log, i) => (
-                <div key={i} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0 last:pb-0">
-                  <div>
-                    <p className="text-sm font-medium text-slate-200">{log.date}</p>
-                    <p className="text-xs text-slate-500 mt-1">{log.ip} • {log.loc}</p>
-                  </div>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    log.status === 'Success' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'
-                  }`}>
-                    {log.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="glass-panel rounded-2xl p-6 space-y-3">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2"><Shield size={16} className="text-emerald-400" /> Login protection</h2>
+          {data && (
+            <ul className="text-sm text-slate-300 space-y-2 list-disc pl-5">
+              <li>After {data.policy.maxAttempts} failed attempts in {data.policy.windowMinutes} minutes, sign-in is locked for {data.policy.lockMinutes} minutes.</li>
+              <li>Sessions last {data.policy.sessionDays} days and are re-checked on every request — blocking an account or ending a session takes effect immediately.</li>
+              <li>Passwords are stored only as bcrypt hashes; admin-issued passwords must be changed at first sign-in.</li>
+              <li>Admin-only sections are enforced on the server, not just hidden.</li>
+            </ul>
+          )}
         </div>
+      </div>
+
+      <div className="glass-panel rounded-2xl p-6 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2"><Monitor size={16} className="text-emerald-400" /> Your active sign-ins</h2>
+          <Button size="sm" variant="secondary" onClick={signOutOthers} disabled={busy || others === 0}>
+            <LogOut size={14} /> Sign out other devices{others ? ` (${others})` : ""}
+          </Button>
+        </div>
+        {data?.sessions.map((s) => (
+          <div key={s.sessionId} className="flex flex-wrap items-center gap-4 p-3 rounded-lg bg-slate-950/60 border border-slate-800 text-sm">
+            <span className="text-white font-medium">{s.browser} on {s.os}</span>
+            <span className="text-xs text-slate-500">IP {s.ip}</span>
+            <span className="text-xs text-slate-500">Signed in {fmt(s.startedAt)} · last seen {fmt(s.lastSeenAt)}</span>
+            {s.current && <span className="ml-auto px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-300">This device</span>}
+          </div>
+        ))}
       </div>
     </div>
   );

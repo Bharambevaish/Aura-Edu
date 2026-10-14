@@ -9,12 +9,23 @@ import { StatCard } from "@/components/ui/StatCard";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { Modal } from "@/components/ui/Modal";
+import { Printer } from "lucide-react";
+import { getInvoicePrint, type InvoicePrint } from "@/lib/actions/settings";
+import { InvoiceView } from "@/components/admin/finance/InvoiceView";
 
 export default function InvoicesPage() {
   const [data, setData] = useState<{ stats: { collected: number; outstanding: number; overdue: number; invoices: number }; invoices: InvoiceRow[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const { toast } = useToast();
+  const [printing, setPrinting] = useState<InvoicePrint | null>(null);
+
+  const openInvoice = async (id: string) => {
+    const d = await getInvoicePrint(id).catch(() => null);
+    if (d) setPrinting(d);
+    else toast("Could not open the invoice.", "error");
+  };
 
   const fetchData = useCallback(async () => {
     try { setData(await getInvoices()); } catch { toast("Failed to load invoices", "error"); }
@@ -49,6 +60,7 @@ export default function InvoicesPage() {
     { key: "issued", header: "ISSUED", cell: (r) => <span className="text-xs text-slate-400">{r.issueDate}</span> },
     { key: "dueDate", header: "DUE DATE", cell: (r) => <span className="text-xs text-slate-400">{r.dueDate}</span> },
     { key: "status", header: "STATUS", cell: (r) => <span className={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded border ${STATUS_PILL[r.status]}`}>{r.status}</span> },
+    { key: "view", header: "", cell: (r) => <button onClick={() => openInvoice(r.id)} className="text-xs text-emerald-400 hover:underline">View</button> },
   ];
 
   return (
@@ -72,6 +84,21 @@ export default function InvoicesPage() {
       ) : (
         <DataTable columns={columns} rows={data?.invoices ?? []} keyField={(r) => r.id} emptySlot={<div className="text-center py-12 text-slate-500">No invoices yet — run Sync Invoices to auto-generate for active students.</div>} />
       )}
+
+      <Modal
+        open={!!printing}
+        onClose={() => setPrinting(null)}
+        title="Invoice"
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setPrinting(null)}>Close</Button>
+            <Button size="sm" onClick={() => window.print()}><Printer size={14} /> Print</Button>
+          </>
+        }
+      >
+        {printing && <InvoiceView data={printing} />}
+      </Modal>
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { headers } from "next/headers";
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
 import { writeAudit, writeSystemAudit } from "@/lib/audit";
+import { getInstitute, defaultTaxRule, inclusiveGst } from "@/lib/institute";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
 import { nextAdmissionNo, randomPassword } from "@/lib/student-accounts";
 import { LeadModel, type LeadDoc, type LeadPriority, type LeadSource, type LeadStage, type LeadType } from "@/lib/models/Lead";
@@ -297,6 +298,8 @@ export async function convertLead(id: string, input: unknown): Promise<ConvertOu
   if (parsed.data.feeTotal > 0) {
     const count = await InvoiceModel.countDocuments();
     invoiceNo = `INV-${now.getFullYear()}-${String(count + 1).padStart(5, "0")}`;
+    // Fees are GST-inclusive; record the GST portion from the default rule.
+    const rule = defaultTaxRule(await getInstitute());
     await InvoiceModel.create({
       invoiceNo,
       studentId,
@@ -306,7 +309,7 @@ export async function convertLead(id: string, input: unknown): Promise<ConvertOu
       total: parsed.data.feeTotal,
       paid: 0,
       waived: 0,
-      taxGst: 0,
+      taxGst: rule ? inclusiveGst(parsed.data.feeTotal, rule.rate) : 0,
       issueDate: now,
       dueDate: new Date(now.getTime() + parsed.data.dueInDays * 24 * 60 * 60 * 1000),
       notes: `Admission fee — converted from lead ${lead.leadNo}`,
