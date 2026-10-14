@@ -141,7 +141,7 @@ function LoginSelector() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-semibold text-slate-300">Password</label>
-                    <a href="#" className="text-xs text-[#74B53C] hover:underline">Forgot Password?</a>
+                    <span className="text-[11px] text-slate-500" title="Your institute can issue a new one-time password from Student Corner.">Forgot it? Ask your institute.</span>
                   </div>
                   <input
                     type="password"
@@ -214,7 +214,7 @@ function LoginSelector() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-semibold text-slate-300">Password</label>
-                    <a href="#" className="text-xs text-purple-400 hover:underline">Forgot Password?</a>
+                    <span className="text-[11px] text-slate-500">Forgot it? Ask your system administrator.</span>
                   </div>
                   <input
                     type="password"
