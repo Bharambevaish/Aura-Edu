@@ -15,16 +15,16 @@ effort is a rough single-developer estimate.
 
 ---
 
-## 1. Snapshot (2026-10-13, after Stage A code work)
+## 1. Snapshot (2026-10-14, after Stage C)
 
 | Area | Status |
 |---|---|
 | Foundation (auth, DB, seed, UI kit, security headers) | ✅ Done |
 | Live-DB modules | ✅ Students, Student Logins, Batches, Courses, Attendance, Tests, Assignments, Certificates, Finance (10 screens), Communications (5 screens) |
-| Student portal | ✅ Own profile, fees + pay, courses, store, tests, assignments, attendance · ⚠️ a few widgets still on demo data |
+| Student portal | ✅ Fully live: profile, fees + pay, courses + lesson progress, store, tests, assignments, attendance, schedule, earned certificates, notifications |
 | Phase 1 security & core fixes | ✅ Done on branch `phase1-security` |
 | Stage A close-out | ✅ Code items done on branch `stage-a-closeout` · ⏳ owner items: history purge, new remote, PR merge, branch protection |
-| Demo-story gaps | ❌ Leads + lead→student conversion, Online Admissions backend, live admin dashboard |
+| Demo story | ✅ Online admission → leads → follow-up → convert → student → test → grading → certificate → reset (branch `stage-c-demo-story`, script in `docs/DEMO_SCRIPT.md`) |
 | Static-UI modules | ❌ Timetable, Reports, Task Manager, Form Builder, Settings, Master Data, Multi-branch |
 | Not built at all | ❌ Payroll, Leave Management, staff self-service |
 | Deployment | ❌ No Atlas, no Vercel link · ✅ CI workflow written (runs once a GitHub remote exists) |
@@ -133,16 +133,16 @@ aren't on the demo path.
 - [ ] Seed the live DB; smoke-test the one-click logins, a student payment, Block, and Reset on the live link
 - [ ] Decide demo delivery: live link (recommended) vs laptop **(you)**
 
-### Stage C — Complete the demo story (~1 week)
-- [ ] **Leads:** `Lead` model (source, status pipeline, notes), list/filter/create/update actions, wire `lms/leads`
-- [ ] **Lead → student conversion:** one action creates the student user, invoice and batch assignment, then marks the lead converted (the headline "wow")
-- [ ] **Online Admissions:** wire the `/register` wizard to a rate-limited, Zod-validated action that creates a lead (status `applied`)
-- [ ] **Live admin dashboard home:** real counts (students, collections, outstanding, attendance %, pass rate, pending approvals) instead of static numbers
-- [ ] **Student portal leftovers on demo data:** notification bell feed, dashboard "Recent Test Score" / "Upcoming Tests" / certificate count, Certificates list, Schedule page
-- [ ] **Lesson progress:** progress model + working "Mark Complete" + real % on My Courses
-- [ ] **Decide (you):** who grades written answers. The Definition of Done says "admin grades", but the code allows staff only
-- [ ] Remove dead links: "Forgot Password?" (`#`) and footer Privacy Policy (`/privacy-policy` has no page)
-- [ ] Write the 5-minute demo script for the full story
+### Stage C — Complete the demo story (done on branch `stage-c-demo-story`)
+- [x] ~~**Leads:** `Lead` model (stage pipeline, priority, source, owner, follow-ups, notes); live Leads page with stats, filters, Add Lead, Follow-up history, CSV export~~
+- [x] ~~**Lead → student conversion:** creates the account (one-time password + forced change), batch + course enrollment, fee invoice; links the lead; double-click safe; audit-logged~~
+- [x] ~~**Online Admissions:** `/register` submits a rate-limited, Zod-validated, honeypot-protected application that creates a lead; reachable from the landing header and login page~~
+- [x] ~~**Live admin dashboard home:** real students, courses, collections (6-month chart), outstanding/overdue, attendance %, pass rate, reviews/approvals, lead conversion, activity feed~~
+- [x] ~~**Student portal leftovers:** notification bell, dashboard tests/scores/certificate count, Certificates (earned from progress/results), Schedule (live classes, events, batch tests), attendance empty states~~
+- [x] ~~**Lesson progress:** `LessonProgress` model, working Mark Complete, real % on My Courses and dashboard~~
+- [x] ~~Dead links: "Forgot Password?" now explains who resets passwords; `/privacy-policy` page added~~
+- [x] ~~Demo script for the full story: `docs/DEMO_SCRIPT.md`~~
+- [ ] **Decide (you):** who grades written answers. The Definition of Done says "admin grades", but the code allows staff only (the demo script uses the staff login)
 
 ### Stage D — Breadth sweep (1–2 weeks)
 - [ ] **Timetable / schedules:** per-batch slots model → admin date-wise, batch and meeting schedules → student Schedule page
@@ -161,6 +161,9 @@ aren't on the demo path.
 - [ ] **Master Data Center** wired to real lookups (courses, categories, branches)
 - [ ] Audit log for non-finance admin actions (student CRUD, block/logout, batch moves, test publish)
 - [ ] Connect scripted chat / WhatsApp simulation
+- [ ] Reports Hub: its report links are still `#` placeholders
+- [ ] Learn player: "Doubt discussion" is marked coming soon; lesson material opens only when a lesson has a URL
+- [ ] **Certificate verification:** `/certificates/render` prints whatever name/course is in the URL, so a printed certificate can't be trusted on its own. Add a public `/verify/<credential>` check (or sign the parameters)
 
 ### Stage E — Harden & polish (~1 week)
 - [ ] Playwright e2e test of the full demo story (§6) running in CI
@@ -195,11 +198,11 @@ aren't on the demo path.
 | Certificates | **Working** (stateless generator) |
 | Finance (10 screens) | **Working** (one admin payment bug, Stage A) |
 | Communications (5 screens) | **Working** (chat simulated) |
-| Student Portal | **Working** (some widgets on demo data, Stage C) |
+| Student Portal | **Working** (all widgets on live data) |
 | Staff permissions | **Working** · staff CRUD/self-service pending (Stage D) |
-| Leads + conversion | Pending (Stage C) |
-| Online Admissions | UI only (Stage C) |
-| Admin dashboard home | Static (Stage C) |
+| Leads + conversion | **Working** (live DB) |
+| Online Admissions | **Working** (creates leads) |
+| Admin dashboard home | **Working** (live aggregates) |
 | Timetable / schedules | Static (Stage D) |
 | Reports | Static (Stage D) |
 | Task Manager · Form Builder · Master Data · Settings | Static (Stage D) |
@@ -240,8 +243,9 @@ One-click Admin login → every sidebar module does something visible → a
 auto-scored → a written answer is graded → a certificate is generated →
 **Reset demo data** → clean state for the next client. Build green, live link up.
 
-Blocked today by: Leads + conversion (Stage C), the live link (Stage B), the
-grading-role decision (Stage C), static modules (Stage D).
+The story itself now runs end to end locally (`docs/DEMO_SCRIPT.md`).
+Still blocked by: the live link (Stage B), the grading-role decision (Stage C),
+static modules in the sidebar (Stage D).
 
 ---
 

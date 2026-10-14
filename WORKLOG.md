@@ -212,6 +212,47 @@ URL bounces back; `callbackUrl` to `/admin-dashboard/finance/payments` lands
 there, a `//evil.example` callback is ignored; no `X-Powered-By` header; reset
 removes a demo-created batch and course and restores 4 batches / 3 courses.
 
+## Stage C — Complete the demo story (2026-10-14)
+
+Branch `stage-c-demo-story` (from `stage-a-closeout`).
+
+- **Shared helpers:** `lib/audit.ts` (writeAudit / writeSystemAudit, moved from
+  finance) and `lib/student-accounts.ts` (randomPassword / nextAdmissionNo).
+- **Leads + Online Admissions + conversion:** `lib/models/Lead.ts`,
+  `lib/leads.ts` (labels), `lib/actions/leads.ts` (getLeads,
+  getConversionOptions, createLead, updateLead, convertLead,
+  getAdmissionOptions, submitAdmission). `app/admin-dashboard/lms/leads` rebuilt
+  on live data; `app/register` submits applications (creates leads, shows the
+  reference). Convert claims the lead atomically, creates the student with a
+  one-time password + `mustChangePassword`, enrolls batch/course, raises the
+  invoice, links the lead, audit-logs. Seed: 11 leads; reset removes accounts
+  created by converting demo leads (`@demo.auraedu.com` not in DEMO_ACCOUNTS).
+- **Live admin dashboard:** `lib/actions/dashboard.ts` getAdminOverview;
+  `app/admin-dashboard/page.tsx` rebuilt (tiles link to their screens; activity
+  from domain events, not the admin-only audit log).
+- **Lesson progress:** `lib/models/LessonProgress.ts`; `setLessonComplete`,
+  progress in `getMyCourses` / `getMyCourse`; Learn player Mark Complete; real
+  bars on My Courses and the student dashboard; seed gives the demo student 4/9.
+- **Student portal on live data only:** StudentContext now holds just profile,
+  pendingFee and notifications (all loaded in the layout). New
+  `getMyCertificates` (earned from 100% course progress or passed graded tests)
+  and `getMySchedule` (classes, webinars, events, batch tests). Dashboard score
+  centre, upcoming tests, certificate count and attendance read live data.
+- **Dead links:** Forgot Password explains who resets; `/privacy-policy` added;
+  admissions form linked from the header and login page.
+- **Demo script:** `docs/DEMO_SCRIPT.md`.
+
+Verified locally (isolated in-memory Mongo, browser + curl): applied through
+`/register` (reference LD-2026-0012) → lead appeared as Online Admission →
+follow-up note saved → converted into NEET Batch A with invoice INV-2026-00009,
+course enrollment, linked lead and three audit entries → the new student's
+one-time password led to the forced-change screen. Admin dashboard numbers
+matched the seed (11 students, ₹46,006 outstanding, 88% attendance, 67% pass
+rate). Demo student: 4/9 lessons, 2 earned certificates, score 335/360,
+rank #1 of 2, 3 unread notifications (matches DB); marking all 9 lessons
+complete produced a Certificate of Completion; schedule showed today's live
+class, doubt hour and batch test. Re-seeding removed the converted account.
+
 ## TODO next
 
 See `TASKLIST.md` §2–3 (Stages A–F): Phase 1 close-out, go-live, Leads +
