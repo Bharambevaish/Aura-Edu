@@ -19,6 +19,7 @@
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
+import { nextAdmissionNo, randomPassword } from "@/lib/student-accounts";
 import { UserModel } from "@/lib/models/User";
 import { SessionModel } from "@/lib/models/Session";
 import { AttemptModel } from "@/lib/models/Attempt";
@@ -284,13 +285,6 @@ function toStudentDoc(input: Record<string, unknown>) {
   return doc;
 }
 
-/** Generates the next ADM-YYYY-#### admission number (rough but monotonic). */
-async function nextAdmissionNo(): Promise<string> {
-  const year = new Date().getFullYear();
-  const count = await UserModel.countDocuments({ role: "student" });
-  return `ADM-${year}-${String(1000 + count + 1).padStart(4, "0")}`;
-}
-
 export async function createStudent(input: Record<string, unknown>): Promise<StudentOutcome> {
   await requireRole(["admin", "staff"]);
 
@@ -410,15 +404,6 @@ export async function bulkAssignStudents(input: unknown): Promise<BulkOutcome> {
   );
 
   return { ok: true, count: res.modifiedCount, message: `Assigned ${field} to ${res.modifiedCount} student(s).` };
-}
-
-function randomPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  let out = "";
-  const rnd = new Uint8Array(12);
-  crypto.getRandomValues(rnd);
-  for (const b of rnd) out += chars[b % chars.length];
-  return `${out.slice(0, 8)}@${out.slice(8).toUpperCase()}`;
 }
 
 /** Sets a fresh temporary password for each selected student, returning one-time credentials. */

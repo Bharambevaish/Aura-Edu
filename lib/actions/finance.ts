@@ -14,7 +14,6 @@
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
-import type { SessionUser } from "@/lib/dal";
 import { UserModel } from "@/lib/models/User";
 import { VendorModel } from "@/lib/models/Vendor";
 import type { VendorDoc } from "@/lib/models/Vendor";
@@ -25,6 +24,7 @@ import { PaymentModel } from "@/lib/models/Payment";
 import { RefundModel } from "@/lib/models/Refund";
 import { WaiverModel } from "@/lib/models/Waiver";
 import { AuditLogModel } from "@/lib/models/AuditLog";
+import { writeAudit, writeSystemAudit } from "@/lib/audit";
 import {
   VendorSchema,
   ExpenseCategorySchema,
@@ -50,38 +50,6 @@ type Countable = { countDocuments: () => Promise<number> };
 async function nextDocNumber(model: Countable, prefix: string, width: number) {
   const count = await model.countDocuments();
   return `${prefix}${pad(count + 1, width)}`;
-}
-
-/* ------------------------------------------------------------------ */
-/* Audit trail                                                         */
-/* ------------------------------------------------------------------ */
-
-async function writeAudit(user: SessionUser, action: string, target: string) {
-  const eventNo = await nextDocNumber(AuditLogModel, "AUD-", 4);
-  await AuditLogModel.create({
-    eventNo,
-    userId: new mongoose.Types.ObjectId(user.id),
-    userName: user.name,
-    userRole: user.role,
-    action,
-    target,
-    ip: "-",
-    isSystem: false,
-  });
-}
-
-async function writeSystemAudit(action: string, target: string) {
-  const eventNo = await nextDocNumber(AuditLogModel, "AUD-", 4);
-  await AuditLogModel.create({
-    eventNo,
-    userId: new mongoose.Types.ObjectId("000000000000000000000001"),
-    userName: "System",
-    userRole: "System",
-    action,
-    target,
-    ip: "-",
-    isSystem: true,
-  });
 }
 
 const fmtDay = (d: Date) =>
