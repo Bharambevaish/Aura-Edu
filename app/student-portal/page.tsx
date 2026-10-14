@@ -93,7 +93,7 @@ export default function StudentDashboardPage() {
   const totalTrackedDays = attendanceLive ? dbAttendance!.totalSessions : 4;
 
   const totalLessons = enrolledCourses.reduce((sum, c) => sum + c.totalLessons, 0);
-  const totalModules = enrolledCourses.reduce((sum, c) => sum + c.modules.length, 0);
+  const completedLessons = enrolledCourses.reduce((sum, c) => sum + c.completedLessons, 0);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -221,14 +221,14 @@ export default function StudentDashboardPage() {
         {/* Card 2: Completed Lessons */}
         <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 hover:border-emerald-500/40 transition-all group">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-400">Course Lessons</span>
+            <span className="text-xs font-semibold text-slate-400">Lessons Finished</span>
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:scale-110 transition-transform">
               <CheckCircle2 className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-white font-mono">{totalLessons}</p>
+          <p className="text-2xl font-black text-white font-mono">{completedLessons}/{totalLessons}</p>
           <p className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-medium">
-            <TrendingUp className="h-3 w-3" /> Across {totalModules} modules
+            <TrendingUp className="h-3 w-3" /> {totalLessons ? Math.round((completedLessons / totalLessons) * 100) : 0}% Syllabus
           </p>
         </div>
 
@@ -416,15 +416,25 @@ export default function StudentDashboardPage() {
                   </span>
                   <h4 className="text-base font-bold text-white">{course.title}</h4>
                   <p className="text-xs text-slate-400">
-                    {course.modules[0]?.lessons[0]
-                      ? `Start: ${course.modules[0].lessons[0].title}`
-                      : "Curriculum coming soon"}
+                    {(() => {
+                      const next = course.modules
+                        .flatMap((m) => m.lessons)
+                        .find((l) => !course.completedLessonIds.includes(l.id));
+                      if (course.totalLessons === 0) return "Curriculum coming soon";
+                      return next ? `Next: ${next.title}` : "All lessons completed 🎉";
+                    })()}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-xs font-bold text-cyan-400 font-mono whitespace-nowrap">
-                    {course.modules.length} modules · {course.totalLessons} lessons
-                  </span>
+                  <div className="w-32">
+                    <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+                      <span>Progress</span>
+                      <span className="font-bold text-cyan-400 font-mono">{course.progress}%</span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-slate-900 overflow-hidden">
+                      <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${course.progress}%` }} />
+                    </div>
+                  </div>
                   <Link
                     href={`/student-portal/my-courses/${course.id}/learn`}
                     className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition-colors whitespace-nowrap"

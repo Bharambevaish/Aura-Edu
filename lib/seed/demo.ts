@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import { UserModel } from "@/lib/models/User";
 import { SessionModel } from "@/lib/models/Session";
+import { LessonProgressModel } from "@/lib/models/LessonProgress";
 import { LeadModel, type LeadPriority, type LeadSource, type LeadStage, type LeadType } from "@/lib/models/Lead";
 import { TestModel } from "@/lib/models/Test";
 import { QuestionModel } from "@/lib/models/Question";
@@ -980,6 +981,7 @@ export async function seedDemoData(): Promise<void> {
   await seedDemoAssignments();
   await seedDemoAttendance();
   await seedDemoCourses();
+  await seedDemoProgress();
   await seedDemoLoginState();
   await seedDemoLeads();
   await seedDemoFinance();
@@ -2242,4 +2244,27 @@ export async function seedDemoLeads(): Promise<void> {
     });
   }
   console.log(`[seed] leads=${plan.length} (pipeline across all stages); removed ${strays.length} converted demo account(s).`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Lesson progress                                                     */
+/* ------------------------------------------------------------------ */
+
+/** The demo student has worked through part of their NEET course. */
+export async function seedDemoProgress(): Promise<void> {
+  await connectDB();
+  await LessonProgressModel.deleteMany({});
+  const student = await UserModel.findOne({ email: "student@demo.auraedu.com" }).select("_id").lean();
+  const course = await CourseModel.findOne({ code: "NEET-MED-2026" }).select("modules").lean();
+  if (!student || !course) return;
+  const lessons = (course.modules ?? []).flatMap((m) => m.lessons ?? []).slice(0, 4);
+  await LessonProgressModel.insertMany(
+    lessons.map((l, i) => ({
+      userId: student._id,
+      courseId: course._id,
+      lessonId: l.id,
+      completedAt: new Date(Date.now() - (lessons.length - i) * 24 * 60 * 60 * 1000),
+    })),
+  );
+  console.log(`[seed] lesson progress: ${lessons.length} lessons completed for the demo student.`);
 }

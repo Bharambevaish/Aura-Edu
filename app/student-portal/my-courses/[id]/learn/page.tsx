@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useStudent } from "@/context/StudentContext";
-import { getMyCourse, type MyCourse, type MyLesson } from "@/lib/actions/student-portal";
+import { getMyCourse, setLessonComplete, type MyCourse, type MyLesson } from "@/lib/actions/student-portal";
 import {
   ArrowLeft,
   PlayCircle,
@@ -23,6 +23,7 @@ export default function CourseLearnPage() {
   const [course, setCourse] = useState<MyCourse | null | undefined>(undefined);
   const [selectedLesson, setSelectedLesson] = useState<MyLesson | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "notes" | "discussion">("overview");
+  const [savingProgress, setSavingProgress] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -59,7 +60,33 @@ export default function CourseLearnPage() {
   }
 
   const lessonsList = course.modules.flatMap((m) => m.lessons.map((l) => ({ ...l, moduleTitle: m.title })));
-  const activeLesson = (selectedLesson && lessonsList.find((l) => l.id === selectedLesson.id)) || lessonsList[0];
+  const completed = new Set(course.completedLessonIds);
+  // Default to the first lesson not yet completed.
+  const activeLesson =
+    (selectedLesson && lessonsList.find((l) => l.id === selectedLesson.id)) ||
+    lessonsList.find((l) => !completed.has(l.id)) ||
+    lessonsList[0];
+  const activeDone = !!activeLesson && completed.has(activeLesson.id);
+
+  const toggleComplete = async () => {
+    if (!activeLesson) return;
+    setSavingProgress(true);
+    try {
+      const res = await setLessonComplete(course.id, activeLesson.id, !activeDone);
+      if (res.ok) {
+        const refreshed = await getMyCourse(course.id);
+        if (refreshed) setCourse(refreshed);
+        // After completing, move on to the next lesson in order.
+        if (!activeDone) {
+          const idx = lessonsList.findIndex((l) => l.id === activeLesson.id);
+          const next = lessonsList[idx + 1];
+          if (next) setSelectedLesson(next);
+        }
+      }
+    } finally {
+      setSavingProgress(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -82,7 +109,7 @@ export default function CourseLearnPage() {
 
         <div className="hidden sm:flex items-center gap-2">
           <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-bold font-mono border border-emerald-500/20">
-            {course.modules.length} modules · {course.totalLessons} lessons
+            Progress: {course.completedLessons}/{course.totalLessons} ({course.progress}%)
           </span>
         </div>
       </div>
@@ -142,8 +169,17 @@ export default function CourseLearnPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <button className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-950 font-bold text-xs hover:bg-cyan-400 transition-colors flex items-center gap-1.5 shadow-lg shadow-cyan-500/20">
-                  <CheckCircle2 className="h-4 w-4" /> Mark Complete
+                <button
+                  onClick={toggleComplete}
+                  disabled={savingProgress}
+                  className={`px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-60 ${
+                    activeDone
+                      ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/25"
+                      : "bg-cyan-500 text-slate-950 hover:bg-cyan-400 shadow-lg shadow-cyan-500/20"
+                  }`}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {savingProgress ? "Saving…" : activeDone ? "Completed · Undo" : "Mark Complete"}
                 </button>
               </div>
             </div>
@@ -204,13 +240,24 @@ export default function CourseLearnPage() {
                   <div className="flex items-center gap-3">
                     <FileText className="h-6 w-6 text-cyan-400" />
                     <div>
-                      <h4 className="text-xs font-bold text-white">{activeLesson.title} — Notes.pdf</h4>
-                      <p className="text-[10px] text-slate-400">PDF • 4.2 MB • Watermarked for {profile.name}</p>
+                      <h4 className="text-xs font-bold text-white">{activeLesson.title} — study material</h4>
+                      <p className="text-[10px] text-slate-400">
+                        {activeLesson.url ? `Shared by your faculty for ${profile.name}` : "No material uploaded for this lesson yet."}
+                      </p>
                     </div>
                   </div>
-                  <button className="px-3 py-2 rounded-xl bg-slate-800 text-cyan-400 hover:bg-slate-700 text-xs font-semibold flex items-center gap-1.5">
-                    <Download className="h-3.5 w-3.5" /> Download PDF
-                  </button>
+                  {activeLesson.url ? (
+                    <a
+                      href={activeLesson.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 rounded-xl bg-slate-800 text-cyan-400 hover:bg-slate-700 text-xs font-semibold flex items-center gap-1.5"
+                    >
+                      <Download className="h-3.5 w-3.5" /> Open
+                    </a>
+                  ) : (
+                    <span className="px-3 py-2 rounded-xl bg-slate-900 text-slate-500 text-xs font-semibold">Not available</span>
+                  )}
                 </div>
               </div>
             )}
@@ -220,12 +267,11 @@ export default function CourseLearnPage() {
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex gap-3">
                   <input
                     type="text"
-                    placeholder="Ask a question about this lecture..."
-                    className="flex-1 bg-transparent text-xs text-white outline-none placeholder-slate-500"
+                    disabled
+                    placeholder="Doubt discussions are coming soon — ask your faculty in class meanwhile."
+                    className="flex-1 bg-transparent text-xs text-white outline-none placeholder-slate-500 cursor-not-allowed"
                   />
-                  <button className="px-3 py-1.5 rounded-lg bg-cyan-500 text-slate-950 font-bold text-xs">
-                    Post Doubt
-                  </button>
+                  <span className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-500 font-bold text-xs">Coming soon</span>
                 </div>
               </div>
             )}
@@ -251,7 +297,9 @@ export default function CourseLearnPage() {
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    {les.type === "video" ? (
+                    {completed.has(les.id) ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                    ) : les.type === "video" ? (
                       <PlayCircle className="h-4 w-4 text-cyan-400 mt-0.5 shrink-0" />
                     ) : (
                       <FileText className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />

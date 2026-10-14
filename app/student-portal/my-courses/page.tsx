@@ -64,10 +64,9 @@ export default function MyCoursesPage() {
 
   const totalModules = enrolledCourses.reduce((s, c) => s + c.modules.length, 0);
   const totalLessons = enrolledCourses.reduce((s, c) => s + c.totalLessons, 0);
-  const videoLessons = enrolledCourses.reduce(
-    (s, c) => s + c.modules.reduce((n, m) => n + m.lessons.filter((l) => l.type === "video").length, 0),
-    0,
-  );
+  const avgProgress = enrolledCourses.length
+    ? Math.round(enrolledCourses.reduce((s, c) => s + c.progress, 0) / enrolledCourses.length)
+    : 0;
 
   const filteredCourses = enrolledCourses.filter((course) =>
     course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,8 +114,8 @@ export default function MyCoursesPage() {
             <p className="text-xl font-black text-emerald-400 font-mono">{totalLessons}</p>
           </div>
           <div>
-            <span className="text-xs text-slate-400">Video Lessons</span>
-            <p className="text-xl font-black text-purple-400 font-mono">{videoLessons}</p>
+            <span className="text-xs text-slate-400">Avg Completion</span>
+            <p className="text-xl font-black text-purple-400 font-mono">{avgProgress}%</p>
           </div>
         </div>
       </div>
@@ -212,12 +211,20 @@ export default function MyCoursesPage() {
                     {course.description}
                   </p>
 
-                  {/* Curriculum size */}
-                  <div className="flex items-center justify-between text-xs pt-2">
-                    <span className="text-slate-400">Curriculum</span>
-                    <span className="font-bold text-cyan-400 font-mono">
-                      {course.modules.length} modules · {course.totalLessons} lessons
-                    </span>
+                  {/* Progress */}
+                  <div className="space-y-1.5 pt-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Syllabus Progress</span>
+                      <span className="font-bold text-cyan-400 font-mono">
+                        {course.completedLessons}/{course.totalLessons} ({course.progress}%)
+                      </span>
+                    </div>
+                    <div className="h-2 w-full rounded-full bg-slate-950 overflow-hidden border border-slate-800">
+                      <div
+                        className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full"
+                        style={{ width: `${course.progress}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -273,9 +280,15 @@ export default function MyCoursesPage() {
               </div>
 
               <div className="flex items-center gap-6">
-                <span className="hidden sm:block text-xs font-bold text-cyan-400 font-mono">
-                  {course.modules.length} modules · {course.totalLessons} lessons
-                </span>
+                <div className="w-40 hidden sm:block">
+                  <div className="flex justify-between text-xs text-slate-400 mb-1">
+                    <span>Progress</span>
+                    <span className="font-bold text-cyan-400 font-mono">{course.progress}%</span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-slate-950 overflow-hidden">
+                    <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${course.progress}%` }} />
+                  </div>
+                </div>
 
                 <div className="flex items-center gap-2">
                   <Link

@@ -16,6 +16,7 @@ import { requireRole } from "@/lib/dal";
 import { UserModel } from "@/lib/models/User";
 import type { UserDoc } from "@/lib/models/User";
 import { CourseModel } from "@/lib/models/Course";
+import { LessonProgressModel } from "@/lib/models/LessonProgress";
 import type { CourseDoc, CourseLesson } from "@/lib/models/Course";
 import { UpdateMyProfileSchema, ChangePasswordSchema } from "@/lib/validation";
 
@@ -155,6 +156,11 @@ export type MyCourse = {
   description: string;
   totalLessons: number;
   modules: MyModule[];
+  /** Lesson ids this student has marked complete. */
+  completedLessonIds: string[];
+  completedLessons: number;
+  /** 0–100, from completed / total lessons. */
+  progress: number;
 };
 
 export type StoreCourse = {
@@ -176,7 +182,7 @@ export type StoreCourse = {
 
 type CourseLean = CourseDoc & { _id: mongoose.Types.ObjectId };
 
-function toMyCourse(c: CourseLean): MyCourse {
+function toMyCourse(c: CourseLean, completed: Set<string> = new Set()): MyCourse {
   const modules = (c.modules ?? []).map((m) => ({
     id: m.id,
     title: m.title,
@@ -188,6 +194,9 @@ function toMyCourse(c: CourseLean): MyCourse {
       duration: l.duration ?? "",
     })),
   }));
+  const lessonIds = modules.flatMap((m) => m.lessons.map((l) => l.id));
+  // Only count completions for lessons that still exist in the curriculum.
+  const completedLessonIds = lessonIds.filter((id) => completed.has(id));
   return {
     id: String(c._id),
     title: c.title,
@@ -197,9 +206,29 @@ function toMyCourse(c: CourseLean): MyCourse {
     duration: c.duration ?? "",
     thumbnail: c.thumbnail ?? "",
     description: c.description ?? "",
-    totalLessons: modules.reduce((n, m) => n + m.lessons.length, 0),
+    totalLessons: lessonIds.length,
     modules,
+    completedLessonIds,
+    completedLessons: completedLessonIds.length,
+    progress: lessonIds.length ? Math.round((completedLessonIds.length / lessonIds.length) * 100) : 0,
   };
+}
+
+/** completed lesson ids per course id for one student. */
+async function progressFor(userId: string, courseIds: mongoose.Types.ObjectId[]): Promise<Map<string, Set<string>>> {
+  const rows = await LessonProgressModel.find({
+    userId: new mongoose.Types.ObjectId(userId),
+    courseId: { $in: courseIds },
+  })
+    .select("courseId lessonId")
+    .lean();
+  const map = new Map<string, Set<string>>();
+  for (const r of rows) {
+    const key = String(r.courseId);
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key)!.add(r.lessonId);
+  }
+  return map;
 }
 
 /** Courses the signed-in student is enrolled in (Course.enrolledStudents). */
@@ -210,7 +239,8 @@ export async function getMyCourses(): Promise<MyCourse[]> {
     .select("-enrolledStudents")
     .sort({ title: 1 })
     .lean<CourseLean[]>();
-  return courses.map(toMyCourse);
+  const progress = await progressFor(user.id, courses.map((c) => c._id));
+  return courses.map((c) => toMyCourse(c, progress.get(String(c._id))));
 }
 
 /** One enrolled course with its curriculum; null if missing or not enrolled. */
@@ -224,7 +254,33 @@ export async function getMyCourse(courseId: string): Promise<MyCourse | null> {
   })
     .select("-enrolledStudents")
     .lean<CourseLean>();
-  return course ? toMyCourse(course) : null;
+  if (!course) return null;
+  const progress = await progressFor(user.id, [course._id]);
+  return toMyCourse(course, progress.get(String(course._id)));
+}
+
+/** Mark a lesson complete (or not) for the signed-in student. Enrollment-checked. */
+export async function setLessonComplete(courseId: string, lessonId: string, done: boolean): Promise<ProfileOutcome> {
+  const { user } = await requireRole(["student"]);
+  if (!mongoose.isValidObjectId(courseId) || typeof lessonId !== "string" || !lessonId) {
+    return { ok: false, message: "Lesson not found." };
+  }
+  await connectDB();
+  const me = new mongoose.Types.ObjectId(user.id);
+  const course = await CourseModel.findOne({ _id: courseId, enrolledStudents: me }).select("modules").lean<CourseLean>();
+  const exists = course?.modules?.some((m) => m.lessons?.some((l) => l.id === lessonId));
+  if (!course || !exists) return { ok: false, message: "Lesson not found." };
+
+  if (done) {
+    await LessonProgressModel.updateOne(
+      { userId: me, courseId: course._id, lessonId },
+      { $setOnInsert: { completedAt: new Date() } },
+      { upsert: true },
+    );
+  } else {
+    await LessonProgressModel.deleteOne({ userId: me, courseId: course._id, lessonId });
+  }
+  return { ok: true, message: done ? "Lesson marked complete." : "Lesson marked incomplete." };
 }
 
 /** Published storefront, flagged with the signed-in student's enrollment. */
