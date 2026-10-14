@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   getStudentNotifications,
   markNotificationRead,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<StudentNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -91,6 +93,7 @@ export default function NotificationsPage() {
       void markNotificationRead(notif.id).then(() => {
         setSelectedNotif((cur) => (cur?.id === notif.id ? { ...cur, read: true } : cur));
         setNotifications((prev) => prev.map((n) => (n.id === notif.id ? { ...n, read: true } : n)));
+        router.refresh(); // update the bell + sidebar badge (read in the layout)
       });
     }
   };
@@ -99,6 +102,7 @@ export default function NotificationsPage() {
     void markAllNotificationsRead().then(() => {
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
       setSelectedNotif((cur) => (cur ? { ...cur, read: true } : cur));
+      router.refresh();
     });
   };
 

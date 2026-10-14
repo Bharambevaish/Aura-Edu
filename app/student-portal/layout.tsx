@@ -4,12 +4,13 @@ import StudentShell from "@/components/student/StudentShell";
 import { requireRole } from "@/lib/dal";
 import { getMyProfile } from "@/lib/actions/student-portal";
 import { getMyFees } from "@/lib/actions/finance";
+import { getStudentNotifications } from "@/lib/actions/assignments";
 import ForcePasswordChange from "@/components/student/ForcePasswordChange";
 
 /**
  * Student layout gate: every /student-portal route requires a signed-in
- * student session (requireRole), then loads that student's own profile and
- * fee balance from the DB and hands them to the client context. Pages call
+ * student session (requireRole), then loads that student's own profile, fee
+ * balance and notifications from the DB for the client context. Pages call
  * `router.refresh()` after a mutation so this layout re-reads fresh values.
  */
 export default async function StudentDashboardLayout({
@@ -22,9 +23,13 @@ export default async function StudentDashboardLayout({
   if (user.mustChangePassword) {
     return <ForcePasswordChange name={user.name} />;
   }
-  const [profile, fees] = await Promise.all([getMyProfile(), getMyFees()]);
+  const [profile, fees, notifications] = await Promise.all([
+    getMyProfile(),
+    getMyFees(),
+    getStudentNotifications(),
+  ]);
   return (
-    <StudentProvider profile={profile} pendingFee={fees.outstanding}>
+    <StudentProvider profile={profile} pendingFee={fees.outstanding} notifications={notifications}>
       <StudentShell>{children}</StudentShell>
     </StudentProvider>
   );

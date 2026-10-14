@@ -6,7 +6,7 @@ import { getStudentAttendance, type StudentAttendance } from "@/lib/actions/atte
 import { Clock, List, Activity, FileSpreadsheet, Loader2 } from "lucide-react";
 
 export default function AttendancePage() {
-  const { attendanceLogs, profile } = useStudent();
+  const { profile } = useStudent();
   const [db, setDb] = useState<StudentAttendance | null>(null);
   const [viewMode, setViewMode] = useState<"timeline" | "table">("timeline");
 
@@ -24,19 +24,13 @@ export default function AttendancePage() {
     };
   }, []);
 
-  // Live registers win once present; until then (or with no data) fall back to
-  // the context demo feed so the page never renders empty.
-  const live = !!db && db.totalSessions > 0;
-  const logs = live ? db!.logs : attendanceLogs;
-  const totalSessions = live ? db!.totalSessions : attendanceLogs.length;
-  const presentCount = live ? db!.present : attendanceLogs.filter((a) => a.status === "Present").length;
-  const absentCount = live ? db!.absent : 0;
-  const lateCount = live ? db!.late : 0;
-  const attendancePercentage = live
-    ? db!.overallPercentage
-    : totalSessions > 0
-      ? Math.round((presentCount / totalSessions) * 100)
-      : 100;
+  // Faculty-marked registers only; an empty state shows until the first one.
+  const logs = db?.logs ?? [];
+  const totalSessions = db?.totalSessions ?? 0;
+  const presentCount = db?.present ?? 0;
+  const absentCount = db?.absent ?? 0;
+  const lateCount = db?.late ?? 0;
+  const attendancePercentage = db?.overallPercentage ?? 0;
 
   const handleExportCSV = () => {
     const csvContent =
@@ -66,7 +60,6 @@ export default function AttendancePage() {
             </div>
             <p className="text-xs text-slate-400">
               Faculty-marked attendance log for {profile.name} ({profile.rollNo})
-              {!live ? " — showing demo preview data." : ""}
             </p>
           </div>
 
@@ -85,7 +78,7 @@ export default function AttendancePage() {
           <div>
             <span className="text-xs text-slate-400">Overall Attendance</span>
             <p className="text-2xl font-black text-emerald-400 font-mono">
-              {live ? attendancePercentage : <LoaderSpinner />}%
+              {db ? `${totalSessions ? attendancePercentage : 0}%` : <LoaderSpinner />}
             </p>
           </div>
           <div>

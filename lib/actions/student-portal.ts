@@ -17,6 +17,10 @@ import { UserModel } from "@/lib/models/User";
 import type { UserDoc } from "@/lib/models/User";
 import { CourseModel } from "@/lib/models/Course";
 import { LessonProgressModel } from "@/lib/models/LessonProgress";
+import { ResultModel } from "@/lib/models/Result";
+import { TestModel } from "@/lib/models/Test";
+import { MeetingModel } from "@/lib/models/Meeting";
+import { CalendarEventModel } from "@/lib/models/CalendarEvent";
 import type { CourseDoc, CourseLesson } from "@/lib/models/Course";
 import { UpdateMyProfileSchema, ChangePasswordSchema } from "@/lib/validation";
 
@@ -323,4 +327,152 @@ export async function enrollInCourse(courseId: string): Promise<ProfileOutcome> 
   if (res.matchedCount === 0) return { ok: false, message: "This course is not available." };
   if (res.modifiedCount === 0) return { ok: true, message: "You are already enrolled." };
   return { ok: true, message: "Enrollment confirmed." };
+}
+
+/* ------------------------------------------------------------------ */
+/* Certificates (earned, not stored)                                   */
+/* ------------------------------------------------------------------ */
+
+export type MyCertificate = {
+  id: string;
+  kind: "completion" | "achievement";
+  title: string;
+  course: string;
+  issuedDate: string;
+  credential: string;
+};
+
+/**
+ * Certificates the signed-in student has earned, derived from real data:
+ * a course with every lesson completed, or a fully graded test at or above
+ * its pass mark. Rendered on demand by /certificates/render.
+ */
+export async function getMyCertificates(): Promise<MyCertificate[]> {
+  const { user } = await requireRole(["student"]);
+  await connectDB();
+  const me = new mongoose.Types.ObjectId(user.id);
+
+  const [courses, results] = await Promise.all([
+    CourseModel.find({ enrolledStudents: me }).select("title modules").lean<CourseLean[]>(),
+    ResultModel.find({ userId: me, fullyGraded: true }).select("testId title obtained submittedAt").lean(),
+  ]);
+
+  const certs: MyCertificate[] = [];
+
+  const progress = await LessonProgressModel.find({ userId: me, courseId: { $in: courses.map((c) => c._id) } })
+    .select("courseId lessonId completedAt")
+    .lean();
+  for (const c of courses) {
+    const lessonIds = (c.modules ?? []).flatMap((m) => (m.lessons ?? []).map((l) => l.id));
+    if (lessonIds.length === 0) continue;
+    const rows = progress.filter((p) => String(p.courseId) === String(c._id) && lessonIds.includes(p.lessonId));
+    if (new Set(rows.map((r) => r.lessonId)).size < lessonIds.length) continue;
+    const issued = rows.reduce((latest, r) => (r.completedAt > latest ? r.completedAt : latest), rows[0].completedAt);
+    certs.push({
+      id: `course-${c._id}`,
+      kind: "completion",
+      title: `Certificate of Completion — ${c.title}`,
+      course: c.title,
+      issuedDate: new Date(issued).toISOString(),
+      credential: `AURA-CC-${String(c._id).slice(-4).toUpperCase()}${String(me).slice(-4).toUpperCase()}`,
+    });
+  }
+
+  const tests = await TestModel.find({ _id: { $in: results.map((r) => r.testId) } }).select("course passMarks").lean();
+  const testById = new Map(tests.map((t) => [String(t._id), t]));
+  for (const r of results) {
+    const t = testById.get(String(r.testId));
+    if (!t || r.obtained < (t.passMarks ?? 0)) continue;
+    certs.push({
+      id: `result-${r._id}`,
+      kind: "achievement",
+      title: `Certificate of Achievement — ${r.title}`,
+      course: t.course,
+      issuedDate: new Date(r.submittedAt).toISOString(),
+      credential: `AURA-CA-${String(r._id).slice(-8).toUpperCase()}`,
+    });
+  }
+
+  return certs.sort((a, b) => b.issuedDate.localeCompare(a.issuedDate));
+}
+
+/* ------------------------------------------------------------------ */
+/* Schedule                                                            */
+/* ------------------------------------------------------------------ */
+
+export type ScheduleItem = {
+  id: string;
+  kind: "class" | "webinar" | "test" | "exam" | "event" | "holiday";
+  title: string;
+  date: string;
+  time: string;
+  detail: string;
+  link: string;
+  status: "Live" | "Today" | "Upcoming" | "Completed" | "Cancelled";
+};
+
+/**
+ * The signed-in student's agenda for the past week and next 30 days: live
+ * classes/webinars and calendar events targeted at their batch (or everyone),
+ * plus their batch's tests. Staff-only meetings are excluded.
+ */
+export async function getMySchedule(): Promise<{ batch: string; items: ScheduleItem[] }> {
+  const { user } = await requireRole(["student"]);
+  await connectDB();
+  const me = await UserModel.findById(user.id).select("batch").lean();
+  const batch = me?.batch ?? "";
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const from = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const to = new Date(todayStart.getTime() + 31 * 24 * 60 * 60 * 1000);
+  const forMe = { $or: [{ batchNames: { $size: 0 } }, { batchNames: batch }] };
+  const sameDay = (d: Date) => d.toDateString() === now.toDateString();
+  const dayStatus = (d: Date): ScheduleItem["status"] =>
+    sameDay(d) ? "Today" : d < todayStart ? "Completed" : "Upcoming";
+
+  const [meetings, events, tests] = await Promise.all([
+    MeetingModel.find({ type: { $in: ["class", "webinar"] }, date: { $gte: from, $lt: to }, ...forMe }).lean(),
+    CalendarEventModel.find({ date: { $gte: from, $lt: to }, ...forMe }).lean(),
+    batch ? TestModel.find({ batch, startAt: { $gte: from, $lt: to } }).lean() : Promise.resolve([]),
+  ]);
+
+  const items: ScheduleItem[] = [
+    ...meetings.map((m) => ({
+      id: `meeting-${m._id}`,
+      kind: m.type === "webinar" ? ("webinar" as const) : ("class" as const),
+      title: m.title,
+      date: new Date(m.date).toISOString(),
+      time: `${m.startHour} - ${m.endHour}`,
+      detail: m.description || (m.type === "webinar" ? "Webinar" : "Live class"),
+      link: m.status === "cancelled" ? "" : m.link,
+      status:
+        m.status === "cancelled" ? ("Cancelled" as const)
+        : m.status === "live" ? ("Live" as const)
+        : m.status === "completed" ? ("Completed" as const)
+        : dayStatus(new Date(m.date)),
+    })),
+    ...events.map((e) => ({
+      id: `event-${e._id}`,
+      kind: e.type === "exam" ? ("exam" as const) : e.type === "holiday" ? ("holiday" as const) : e.type === "class" ? ("class" as const) : ("event" as const),
+      title: e.title,
+      date: new Date(e.date).toISOString(),
+      time: e.time || "All day",
+      detail: e.description || "Calendar event",
+      link: "",
+      status: dayStatus(new Date(e.date)),
+    })),
+    ...tests.map((t) => ({
+      id: `test-${t._id}`,
+      kind: "test" as const,
+      title: t.title,
+      date: new Date(t.startAt).toISOString(),
+      time: `${new Date(t.startAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} · ${t.durationMinutes} min`,
+      detail: `${t.subject} · ${t.totalMarks} marks`,
+      link: `/student-portal/tests/${t._id}`,
+      status: dayStatus(new Date(t.startAt)),
+    })),
+  ].sort((a, b) => a.date.localeCompare(b.date));
+
+  return { batch, items };
 }

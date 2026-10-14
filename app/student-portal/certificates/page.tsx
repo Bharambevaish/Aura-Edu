@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { useStudent, type CertificateItem } from "@/context/StudentContext";
+import React, { useEffect, useState } from "react";
+import { useStudent } from "@/context/StudentContext";
+import { getMyCertificates, type MyCertificate } from "@/lib/actions/student-portal";
 import {
   Award,
   Download,
@@ -10,26 +11,52 @@ import {
   Sparkles,
 } from "lucide-react";
 
+const fmtIssued = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+
 /**
- * Build a stateless render URL for a certificate. The render route is
- * query-param driven, so the student's demo context stays the source of truth
- * and the PDF is generated on demand (nothing stored).
+ * Build the render URL for an earned certificate. Certificates are derived
+ * from real progress/results (getMyCertificates) and rendered on demand by
+ * the print route — nothing is stored.
  */
-function renderUrl(profile: { name: string; batch: string }, cert: CertificateItem): string {
+function renderUrl(profile: { name: string; batch: string }, cert: MyCertificate): string {
   const params = new URLSearchParams({
     student: profile.name,
-    course: cert.course,
-    template: "modern_clean",
-    date: cert.issuedDate,
-    credential: cert.certificateNo,
+    course: cert.kind === "completion" ? cert.course : cert.title.replace(/^Certificate of Achievement — /, ""),
+    template: cert.kind === "completion" ? "elegant_gold" : "modern_clean",
+    date: fmtIssued(cert.issuedDate),
+    credential: cert.credential,
   });
   if (profile.batch) params.set("batch", profile.batch);
   return `/certificates/render?${params.toString()}`;
 }
 
 export default function CertificatesPage() {
-  const { certificates, profile } = useStudent();
-  const [selectedCert, setSelectedCert] = useState<CertificateItem | null>(null);
+  const { profile } = useStudent();
+  const [certificates, setCertificates] = useState<MyCertificate[] | null>(null);
+  const [selectedCert, setSelectedCert] = useState<MyCertificate | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+    getMyCertificates()
+      .then((c) => {
+        if (!ignore) setCertificates(c);
+      })
+      .catch(() => {
+        if (!ignore) setCertificates([]);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  if (!certificates) {
+    return (
+      <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 text-sm text-slate-400">
+        Loading your certificates…
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -54,8 +81,7 @@ export default function CertificatesPage() {
           </div>
           <p className="text-base font-semibold text-white">No certificates yet</p>
           <p className="text-sm text-slate-400 mt-1 max-w-md">
-            Completed course credentials issued by the institute will appear here — active credentials are always
-            verifiable by their credential ID.
+            Finish every lesson in a course, or pass a graded test, and your certificate appears here automatically.
           </p>
         </div>
       ) : (
@@ -83,8 +109,8 @@ export default function CertificatesPage() {
                 </div>
 
                 <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-400 font-mono space-y-1">
-                  <p>Issued: <strong className="text-slate-200">{cert.issuedDate}</strong></p>
-                  <p>Credential ID: <strong className="text-cyan-400">{cert.certificateNo}</strong></p>
+                  <p>Issued: <strong className="text-slate-200">{fmtIssued(cert.issuedDate)}</strong></p>
+                  <p>Credential ID: <strong className="text-cyan-400">{cert.credential}</strong></p>
                 </div>
               </div>
 
@@ -130,20 +156,30 @@ export default function CertificatesPage() {
                 </span>
               </div>
 
-              <h2 className="text-2xl font-extrabold text-white">Certificate of Achievement</h2>
+              <h2 className="text-2xl font-extrabold text-white">
+                {selectedCert.kind === "completion" ? "Certificate of Completion" : "Certificate of Achievement"}
+              </h2>
 
               <p className="text-xs text-slate-400">This is to certify that</p>
               <h3 className="text-xl font-black text-cyan-300 font-mono underline underline-offset-8">
                 {profile.name}
               </h3>
               <p className="text-xs text-slate-300 max-w-md mx-auto">
-                has successfully completed all required modules, tests, and assignments for{" "}
-                <strong className="text-white">{selectedCert.course}</strong> with distinction.
+                {selectedCert.kind === "completion" ? (
+                  <>
+                    has successfully completed every lesson of <strong className="text-white">{selectedCert.course}</strong>.
+                  </>
+                ) : (
+                  <>
+                    has passed <strong className="text-white">{selectedCert.title.replace(/^Certificate of Achievement — /, "")}</strong>{" "}
+                    ({selectedCert.course}).
+                  </>
+                )}
               </p>
 
               <div className="pt-6 border-t border-slate-800 flex justify-between items-center text-[10px] font-mono text-slate-500">
-                <span>Issued: {selectedCert.issuedDate}</span>
-                <span className="text-cyan-400">{selectedCert.certificateNo}</span>
+                <span>Issued: {fmtIssued(selectedCert.issuedDate)}</span>
+                <span className="text-cyan-400">{selectedCert.credential}</span>
               </div>
             </div>
 

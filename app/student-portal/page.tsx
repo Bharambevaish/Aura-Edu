@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useStudent } from "@/context/StudentContext";
 import { getStudentAssignments, type StudentAssignmentRow } from "@/lib/actions/assignments";
 import { getStudentAttendance, type StudentAttendance } from "@/lib/actions/attendance";
-import { getMyCourses, type MyCourse } from "@/lib/actions/student-portal";
+import { getMyCourses, getMyCertificates, type MyCourse } from "@/lib/actions/student-portal";
+import { getStudentTests, type TestCardDTO } from "@/lib/actions/tests/student-tests";
 import {
   BookOpen,
   CheckCircle2,
@@ -26,78 +27,64 @@ import {
 } from "lucide-react";
 
 export default function StudentDashboardPage() {
-  const {
-    profile,
-    assignments,
-    tests,
-    certificates,
-    pendingFee,
-  } = useStudent();
+  const { profile, pendingFee } = useStudent();
 
   const [showFeeModal, setShowFeeModal] = useState(pendingFee > 0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [dbAssignments, setDbAssignments] = useState<StudentAssignmentRow[] | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [dbAssignments, setDbAssignments] = useState<StudentAssignmentRow[]>([]);
   const [dbAttendance, setDbAttendance] = useState<StudentAttendance | null>(null);
   const [enrolledCourses, setEnrolledCourses] = useState<MyCourse[]>([]);
+  const [tests, setTests] = useState<TestCardDTO[]>([]);
+  const [certificateCount, setCertificateCount] = useState(0);
 
+  // Every widget reads the signed-in student's live data; each source fails
+  // soft (its widget stays empty) so one error never blanks the dashboard.
   useEffect(() => {
     let ignore = false;
-    getMyCourses()
-      .then((data) => {
-        if (!ignore) setEnrolledCourses(data);
-      })
-      .catch(() => {
-        // Course widgets simply stay empty.
-      });
+    const settle = <T,>(p: Promise<T>, apply: (v: T) => void) =>
+      p.then((v) => {
+        if (!ignore) apply(v);
+      }).catch(() => {});
+    Promise.all([
+      settle(getMyCourses(), setEnrolledCourses),
+      settle(getStudentAssignments(), setDbAssignments),
+      settle(getStudentAttendance(), setDbAttendance),
+      settle(getStudentTests(), setTests),
+      settle(getMyCertificates(), (c) => setCertificateCount(c.length)),
+    ]).finally(() => {
+      if (!ignore) setIsRefreshing(false);
+    });
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [reloadKey]);
 
-  useEffect(() => {
-    let ignore = false;
-    getStudentAssignments()
-      .then((data) => {
-        if (!ignore) setDbAssignments(data);
-      })
-      .catch(() => {
-        // Fall back to context assignments below; the dashboard still renders.
-      });
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let ignore = false;
-    getStudentAttendance()
-      .then((data) => {
-        if (!ignore) setDbAttendance(data);
-      })
-      .catch(() => {
-        // Attendace falls back to the demo context values below.
-      });
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  const realAssignments = dbAssignments ?? assignments;
+  const realAssignments = dbAssignments;
   const pendingAssignmentsCount = realAssignments.filter((a) => a.status === "Pending").length;
-  const upcomingTestsCount = tests.filter((t) => t.status === "Upcoming" || t.status === "Active Now").length;
+  const upcomingTests = tests.filter((t) => t.status === "Upcoming" || t.status === "Active Now");
+  const upcomingTestsCount = upcomingTests.length;
 
-  // Live attendance wins once registers exist; otherwise keep the demo 100% story.
+  // Score centre: from the student's completed (graded) tests.
+  const completedTests = tests.filter((t) => t.status === "Completed" && typeof t.obtainedMarks === "number");
+  const latestTest = completedTests[0];
+  const avgPct = completedTests.length
+    ? Math.round(
+        (completedTests.reduce((sum, t) => sum + (t.obtainedMarks ?? 0) / Math.max(1, t.totalMarks), 0) / completedTests.length) * 1000,
+      ) / 10
+    : null;
+
   const attendanceLive = !!dbAttendance && dbAttendance.totalSessions > 0;
-  const attendancePct = attendanceLive ? dbAttendance!.overallPercentage : 100;
-  const presentDays = attendanceLive ? dbAttendance!.present : 4;
-  const totalTrackedDays = attendanceLive ? dbAttendance!.totalSessions : 4;
+  const attendancePct = attendanceLive ? dbAttendance!.overallPercentage : 0;
+  const presentDays = attendanceLive ? dbAttendance!.present : 0;
+  const totalTrackedDays = attendanceLive ? dbAttendance!.totalSessions : 0;
 
   const totalLessons = enrolledCourses.reduce((sum, c) => sum + c.totalLessons, 0);
   const completedLessons = enrolledCourses.reduce((sum, c) => sum + c.completedLessons, 0);
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 600);
+    setReloadKey((k) => k + 1);
   };
 
   return (
@@ -169,7 +156,7 @@ export default function StudentDashboardPage() {
                 ADMISSION: {profile.admissionNo}
               </span>
               <span className="px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
-                {attendancePct === 100 ? "100% Attendance" : `${attendancePct}% Attendance`}
+                {attendanceLive ? `${attendancePct}% Attendance` : "No attendance yet"}
               </span>
             </div>
             <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight flex items-center gap-2">
@@ -268,7 +255,7 @@ export default function StudentDashboardPage() {
               <Award className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-white font-mono">{certificates.length}</p>
+          <p className="text-2xl font-black text-white font-mono">{certificateCount}</p>
           <p className="text-[11px] text-cyan-400 mt-1 flex items-center gap-1 font-medium">
             Verified Badges
           </p>
@@ -282,7 +269,7 @@ export default function StudentDashboardPage() {
               <Clock className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-2xl font-black text-white font-mono">{attendancePct}%</p>
+          <p className="text-2xl font-black text-white font-mono">{attendanceLive ? `${attendancePct}%` : "—"}</p>
           <p className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-medium">
             <CheckCircle2 className="h-3 w-3" /> {presentDays}/{totalTrackedDays} Days Present
           </p>
@@ -361,18 +348,30 @@ export default function StudentDashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
                 <span className="text-xs font-semibold text-slate-400">Recent Test Score</span>
-                <p className="text-2xl font-black text-emerald-400 font-mono mt-1">335 / 360</p>
-                <p className="text-[11px] text-slate-400 mt-1">Physics Mechanics Assessment</p>
+                <p className="text-2xl font-black text-emerald-400 font-mono mt-1">
+                  {latestTest ? `${latestTest.obtainedMarks} / ${latestTest.totalMarks}` : "—"}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-1 truncate">{latestTest ? latestTest.title : "No graded tests yet"}</p>
               </div>
               <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
                 <span className="text-xs font-semibold text-slate-400">Batch Rank</span>
-                <p className="text-2xl font-black text-cyan-400 font-mono mt-1">#4 <span className="text-xs text-slate-400 font-normal">of 185</span></p>
-                <p className="text-[11px] text-emerald-400 mt-1">Top 3% Percentile</p>
+                <p className="text-2xl font-black text-cyan-400 font-mono mt-1">
+                  {latestTest?.rank ? (
+                    <>
+                      #{latestTest.rank} <span className="text-xs text-slate-400 font-normal">of {latestTest.totalStudents}</span>
+                    </>
+                  ) : (
+                    "—"
+                  )}
+                </p>
+                <p className="text-[11px] text-emerald-400 mt-1">{latestTest?.rank ? "In your latest test" : "Ranks appear after grading"}</p>
               </div>
               <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800">
-                <span className="text-xs font-semibold text-slate-400">Overall Accuracy</span>
-                <p className="text-2xl font-black text-purple-400 font-mono mt-1">93.1%</p>
-                <p className="text-[11px] text-slate-400 mt-1">Across 4 Mock Drills</p>
+                <span className="text-xs font-semibold text-slate-400">Average Score</span>
+                <p className="text-2xl font-black text-purple-400 font-mono mt-1">{avgPct === null ? "—" : `${avgPct}%`}</p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Across {completedTests.length} graded test{completedTests.length === 1 ? "" : "s"}
+                </p>
               </div>
             </div>
 
@@ -380,7 +379,7 @@ export default function StudentDashboardPage() {
             <div className="pt-4 border-t border-slate-800/80">
               <div className="flex items-center justify-between text-xs mb-2">
                 <span className="font-semibold text-slate-300">Faculty-Marked Attendance</span>
-                <span className="font-bold text-emerald-400 font-mono">{attendancePct}% Attendance</span>
+                <span className="font-bold text-emerald-400 font-mono">{attendanceLive ? `${attendancePct}% Attendance` : "Not recorded yet"}</span>
               </div>
               <div className="h-3 w-full rounded-full bg-slate-950 overflow-hidden p-0.5 border border-slate-800">
                 <div
@@ -464,7 +463,8 @@ export default function StudentDashboardPage() {
             </div>
 
             <div className="space-y-3">
-              {tests.slice(0, 2).map((test) => (
+              {upcomingTests.length === 0 && <p className="text-xs text-slate-500">No upcoming tests for your batch.</p>}
+              {upcomingTests.slice(0, 2).map((test) => (
                 <div key={test.id} className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -498,6 +498,7 @@ export default function StudentDashboardPage() {
             </div>
 
             <div className="space-y-3">
+              {realAssignments.length === 0 && <p className="text-xs text-slate-500">No assignments yet.</p>}
               {realAssignments.slice(0, 2).map((asg) => (
                 <div key={asg.id} className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1.5">
                   <div className="flex items-center justify-between">
