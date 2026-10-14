@@ -1,316 +1,254 @@
 "use client";
 
-import React, { useState } from 'react';
-import { 
-  Plus, 
-  RefreshCw, 
-  Filter,
-  Download,
-  Search,
-  LayoutGrid,
-  List,
-  Inbox,
-  Calendar,
-  ChevronDown,
-  User,
-  X
-} from 'lucide-react';
+/**
+ * Task Manager — team Kanban on live data. Drag cards between columns (or
+ * use the arrows), filter to your own tasks, export CSV.
+ */
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Button, Modal, useToast } from "@/components/ui";
+import { Plus, RefreshCw, Download, Search, LayoutGrid, List, Calendar, User, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { getTasks, saveTask, moveTask, deleteTask, type TaskRow } from "@/lib/actions/tasks";
+import type { TaskPriority, TaskStatus } from "@/lib/models/Task";
 
-type Task = {
-  id: number;
-  title: string;
-  description: string;
-  assignedTo: string;
-  deadline: string;
-  status: 'To Do' | 'In Progress' | 'Done';
+const COLUMNS: { status: TaskStatus; label: string; head: string }[] = [
+  { status: "todo", label: "To Do", head: "border-slate-600 bg-slate-800/50 text-slate-300" },
+  { status: "in_progress", label: "In Progress", head: "border-amber-900/50 bg-amber-900/20 text-amber-400" },
+  { status: "done", label: "Done", head: "border-green-900/50 bg-green-900/20 text-green-400" },
+];
+const PRIORITY: Record<TaskPriority, string> = {
+  high: "bg-rose-500/15 text-rose-300",
+  medium: "bg-amber-500/15 text-amber-300",
+  low: "bg-slate-700/50 text-slate-300",
 };
+const inputCls =
+  "w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500";
+const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "No due date");
+const isOverdue = (t: TaskRow) => t.status !== "done" && !!t.dueDate && new Date(t.dueDate) < new Date();
+
+type Form = { title: string; description: string; status: TaskStatus; priority: TaskPriority; assigneeId: string; dueDate: string };
+const EMPTY: Form = { title: "", description: "", status: "todo", priority: "medium", assigneeId: "", dueDate: "" };
 
 export default function TaskManagerPage() {
-  const [view, setView] = useState<'workspace' | 'list'>('workspace');
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [newTask, setNewTask] = useState({ title: '', description: '', assignedTo: 'Unassigned', deadline: '', status: 'To Do' as Task['status'] });
+  const { toast } = useToast();
+  const [data, setData] = useState<Awaited<ReturnType<typeof getTasks>> | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [view, setView] = useState<"board" | "list">("board");
+  const [search, setSearch] = useState("");
+  const [mineOnly, setMineOnly] = useState(false);
+  const [priority, setPriority] = useState("");
+  const [editing, setEditing] = useState<TaskRow | "new" | null>(null);
+  const [form, setForm] = useState<Form>(EMPTY);
+  const [dragId, setDragId] = useState<string | null>(null);
 
-  const handleCreate = () => {
-    if (!newTask.title.trim()) return;
-    setTasks(prev => [...prev, { ...newTask, id: Date.now() }]);
-    setNewTask({ title: '', description: '', assignedTo: 'Unassigned', deadline: '', status: 'To Do' });
-    setShowCreateModal(false);
-  };
+  useEffect(() => {
+    let ignore = false;
+    getTasks().then((d) => !ignore && setData(d)).catch(() => toast("Could not load tasks.", "error"));
+    return () => {
+      ignore = true;
+    };
+  }, [reloadKey, toast]);
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
-  const statusColumns: Task['status'][] = ['To Do', 'In Progress', 'Done'];
+  const tasks = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (data?.tasks ?? []).filter(
+      (t) =>
+        (!mineOnly || t.assigneeId === data?.me) &&
+        (!priority || t.priority === priority) &&
+        (!q || [t.title, t.description, t.assigneeName].some((v) => v.toLowerCase().includes(q))),
+    );
+  }, [data, search, mineOnly, priority]);
 
-  const getStatusStyle = (status: Task['status']) => {
-    switch (status) {
-      case 'To Do': return 'bg-slate-800 text-slate-300 border-slate-700';
-      case 'In Progress': return 'bg-amber-900/30 text-amber-400 border-amber-900/50';
-      case 'Done': return 'bg-green-900/30 text-green-400 border-green-900/50';
+  const move = async (t: TaskRow, status: TaskStatus) => {
+    if (t.status === status) return;
+    // Optimistic update so the card moves immediately.
+    setData((d) => (d ? { ...d, tasks: d.tasks.map((x) => (x.id === t.id ? { ...x, status } : x)) } : d));
+    const res = await moveTask(t.id, status);
+    if (!res.ok) {
+      toast(res.message, "error");
+      reload();
     }
   };
 
-  const getColHeaderStyle = (status: Task['status']) => {
-    switch (status) {
-      case 'To Do': return 'border-slate-600 bg-slate-800/50 text-slate-300';
-      case 'In Progress': return 'border-amber-900/50 bg-amber-900/20 text-amber-400';
-      case 'Done': return 'border-green-900/50 bg-green-900/20 text-green-400';
+  const openEdit = (t: TaskRow) => {
+    setForm({ title: t.title, description: t.description, status: t.status, priority: t.priority, assigneeId: t.assigneeId, dueDate: t.dueDate ? t.dueDate.slice(0, 10) : "" });
+    setEditing(t);
+  };
+
+  const save = async () => {
+    if (!editing) return;
+    const res = await saveTask(editing === "new" ? null : editing.id, form);
+    toast(res.message, res.ok ? "success" : "error");
+    if (res.ok) {
+      setEditing(null);
+      reload();
     }
+  };
+
+  const remove = async () => {
+    if (!editing || editing === "new") return;
+    const res = await deleteTask(editing.id);
+    toast(res.message, res.ok ? "success" : "error");
+    if (res.ok) {
+      setEditing(null);
+      reload();
+    }
+  };
+
+  const exportCsv = () => {
+    const rows = [["Title", "Status", "Priority", "Assignee", "Due", "Created by"], ...tasks.map((t) => [t.title, t.status, t.priority, t.assigneeName, t.dueDate?.slice(0, 10) ?? "", t.createdByName])];
+    const blob = new Blob([rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n")], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `tasks-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const Card = ({ t }: { t: TaskRow }) => {
+    const idx = COLUMNS.findIndex((c) => c.status === t.status);
+    return (
+      <div
+        draggable
+        onDragStart={() => setDragId(t.id)}
+        onDragEnd={() => setDragId(null)}
+        onClick={() => openEdit(t)}
+        className={`p-3 rounded-lg bg-slate-950/70 border cursor-pointer space-y-2 transition-colors ${isOverdue(t) ? "border-rose-500/40" : "border-slate-800 hover:border-emerald-500/40"}`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-semibold text-white leading-snug">{t.title}</p>
+          <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${PRIORITY[t.priority]}`}>{t.priority}</span>
+        </div>
+        {t.description && <p className="text-xs text-slate-400 line-clamp-2">{t.description}</p>}
+        <div className="flex items-center justify-between text-[11px] text-slate-500">
+          <span className="flex items-center gap-1"><User size={11} /> {t.assigneeName}</span>
+          <span className={`flex items-center gap-1 ${isOverdue(t) ? "text-rose-400 font-semibold" : ""}`}><Calendar size={11} /> {fmt(t.dueDate)}</span>
+        </div>
+        <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+          {idx > 0 && <button onClick={() => move(t, COLUMNS[idx - 1].status)} className="p-1 rounded bg-slate-800 text-slate-400 hover:text-white" title="Move left"><ChevronLeft size={12} /></button>}
+          {idx < COLUMNS.length - 1 && <button onClick={() => move(t, COLUMNS[idx + 1].status)} className="p-1 rounded bg-slate-800 text-slate-400 hover:text-white" title="Move right"><ChevronRight size={12} /></button>}
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-xl font-bold text-white">Task Management Center</h1>
-          <p className="text-sm text-slate-400 mt-1">Prioritize, assign, and track work across your team.</p>
+          <p className="text-sm text-slate-400 mt-1">Prioritize, assign and track work across your team.</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 border border-slate-700 text-slate-300 rounded-lg text-sm font-medium hover:bg-white/5 transition-colors">
-            <RefreshCw size={16} /> Refresh
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 border border-slate-700 text-slate-300 rounded-lg text-sm font-medium hover:bg-white/5 transition-colors">
-            <Filter size={16} /> Filters
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 border border-slate-700 text-slate-300 rounded-lg text-sm font-medium hover:bg-white/5 transition-colors">
-            <Download size={16} /> Export
-          </button>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <Plus size={16} /> Create Task
-          </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="secondary" size="sm" onClick={reload}><RefreshCw size={16} /> Refresh</Button>
+          <Button variant="secondary" size="sm" onClick={exportCsv} disabled={!tasks.length}><Download size={16} /> Export</Button>
+          <Button size="sm" onClick={() => { setForm(EMPTY); setEditing("new"); }}><Plus size={16} /> Create Task</Button>
         </div>
       </div>
 
-      {/* Search + View Toggle */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div className="relative min-w-[300px]">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[260px] flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search tasks by title, description, or person"
-            className="w-full pl-9 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 placeholder-slate-500"
-          />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search tasks or people…" className={`${inputCls} pl-9`} />
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-500">{tasks.length} of {tasks.length} tasks</span>
-          <div className="flex items-center bg-slate-900/50 border border-slate-700 rounded-lg p-0.5 gap-0.5">
-            <button
-              onClick={() => setView('workspace')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${view === 'workspace' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
-            >
-              <LayoutGrid size={14} /> Workspace
-            </button>
-            <button
-              onClick={() => setView('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${view === 'list' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
-            >
-              <List size={14} /> List
-            </button>
-          </div>
+        <select value={priority} onChange={(e) => setPriority(e.target.value)} className={`${inputCls} w-40`}>
+          <option value="">All priorities</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <label className="flex items-center gap-2 text-sm text-slate-300">
+          <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> My tasks
+        </label>
+        <div className="flex bg-slate-900/50 border border-slate-700 rounded-lg p-0.5">
+          <button onClick={() => setView("board")} className={`p-1.5 rounded ${view === "board" ? "bg-slate-700 text-white" : "text-slate-400"}`} title="Board"><LayoutGrid size={16} /></button>
+          <button onClick={() => setView("list")} className={`p-1.5 rounded ${view === "list" ? "bg-slate-700 text-white" : "text-slate-400"}`} title="List"><List size={16} /></button>
         </div>
       </div>
 
-      {/* Workspace View - Kanban */}
-      {view === 'workspace' && (
-        tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-16 h-16 bg-slate-900/50 border border-slate-800 rounded-full flex items-center justify-center">
-              <Inbox size={28} className="text-slate-600" />
-            </div>
-            <p className="text-sm text-slate-500 font-medium">No tasks yet.</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 border border-slate-700 text-slate-300 rounded-lg text-sm font-medium hover:bg-white/5 transition-colors"
-            >
-              <Plus size={16} /> Create your first task
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {statusColumns.map(col => (
-              <div key={col} className="space-y-3">
-                <div className={`flex items-center justify-between px-3 py-2 rounded-lg border ${getColHeaderStyle(col)}`}>
-                  <span className="text-xs font-bold uppercase tracking-wider">{col}</span>
-                  <span className="text-xs font-bold">{tasks.filter(t => t.status === col).length}</span>
-                </div>
-                {tasks.filter(t => t.status === col).map(task => (
-                  <div key={task.id} className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 shadow-sm hover:border-slate-700 transition-colors">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h4 className="text-sm font-bold text-white">{task.title}</h4>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold border flex-shrink-0 ${getStatusStyle(task.status)}`}>{task.status}</span>
-                    </div>
-                    {task.description && <p className="text-xs text-slate-500 mb-3">{task.description}</p>}
-                    <div className="flex items-center gap-3 text-[11px] text-slate-500">
-                      <span className="flex items-center gap-1"><User size={11} /> {task.assignedTo}</span>
-                      {task.deadline && <span className="flex items-center gap-1"><Calendar size={11} /> {task.deadline}</span>}
-                    </div>
-                  </div>
-                ))}
-                <button
-                  onClick={() => { setNewTask(p => ({ ...p, status: col })); setShowCreateModal(true); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-500 hover:text-slate-300 hover:bg-slate-900/50 rounded-lg border border-transparent hover:border-slate-800 transition-colors"
-                >
-                  <Plus size={14} /> Add task
-                </button>
-              </div>
-            ))}
-          </div>
-        )
-      )}
+      {!data && <p className="text-sm text-slate-500">Loading tasks…</p>}
 
-      {/* List View */}
-      {view === 'list' && (
-        tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <div className="w-16 h-16 bg-slate-900/50 border border-slate-800 rounded-full flex items-center justify-center">
-              <Inbox size={28} className="text-slate-600" />
-            </div>
-            <p className="text-sm text-slate-500 font-medium">No tasks yet.</p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 border border-slate-700 text-slate-300 rounded-lg text-sm font-medium hover:bg-white/5 transition-colors"
-            >
-              <Plus size={16} /> Create your first task
-            </button>
-          </div>
-        ) : (
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-900/40">
-                  <th className="py-3 px-4">TITLE</th>
-                  <th className="py-3 px-4">ASSIGNED TO</th>
-                  <th className="py-3 px-4">DEADLINE</th>
-                  <th className="py-3 px-4">STATUS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tasks.map(task => (
-                  <tr key={task.id} className="border-b border-slate-800/50 hover:bg-white/5 transition-colors text-sm">
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-white">{task.title}</div>
-                      {task.description && <div className="text-xs text-slate-500">{task.description}</div>}
-                    </td>
-                    <td className="py-3 px-4 text-slate-400">{task.assignedTo}</td>
-                    <td className="py-3 px-4 text-slate-400 text-xs">{task.deadline || '-'}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getStatusStyle(task.status)}`}>{task.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      )}
-
-      {/* Create Task Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex justify-between items-start p-6 pb-4 border-b border-slate-800">
-              <div>
-                <h2 className="text-base font-bold text-white">Create Task</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Add a new task to your workspace.</p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-white transition-colors p-1 rounded hover:bg-white/5"
+      {data && view === "board" && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {COLUMNS.map((col) => {
+            const colTasks = tasks.filter((t) => t.status === col.status);
+            return (
+              <div
+                key={col.status}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  const t = data.tasks.find((x) => x.id === dragId);
+                  if (t) void move(t, col.status);
+                }}
+                className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 space-y-3 min-h-[300px]"
               >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Tags */}
-            <div className="px-6 pt-4">
-              <span className="px-2 py-0.5 bg-slate-800 text-slate-300 rounded text-[10px] font-bold border border-slate-700">Todo</span>
-            </div>
-
-            {/* Form */}
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Title</label>
-                <input
-                  type="text"
-                  placeholder="Task title"
-                  value={newTask.title}
-                  onChange={e => setNewTask(p => ({ ...p, title: e.target.value }))}
-                  className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 placeholder-slate-600"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Description</label>
-                <textarea
-                  rows={3}
-                  placeholder="Add details or content"
-                  value={newTask.description}
-                  onChange={e => setNewTask(p => ({ ...p, description: e.target.value }))}
-                  className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-blue-500 placeholder-slate-600 resize-y"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Assigned to</label>
-                  <div className="relative">
-                    <select
-                      value={newTask.assignedTo}
-                      onChange={e => setNewTask(p => ({ ...p, assignedTo: e.target.value }))}
-                      className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500 appearance-none"
-                    >
-                      <option>Unassigned</option>
-                      <option>System Administrator</option>
-                    </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-                  </div>
+                <div className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-bold uppercase ${col.head}`}>
+                  {col.label} <span>{colTasks.length}</span>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1.5">Deadline</label>
-                  <input
-                    type="date"
-                    value={newTask.deadline}
-                    onChange={e => setNewTask(p => ({ ...p, deadline: e.target.value }))}
-                    className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
+                {colTasks.length === 0 && <p className="text-xs text-slate-600 text-center py-6">Drop tasks here</p>}
+                {colTasks.map((t) => <Card key={t.id} t={t} />)}
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Status</label>
-                <div className="relative">
-                  <select
-                    value={newTask.status}
-                    onChange={e => setNewTask(p => ({ ...p, status: e.target.value as Task['status'] }))}
-                    className="w-full px-3 py-2.5 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-slate-300 focus:outline-none focus:border-blue-500 appearance-none"
-                  >
-                    <option>To Do</option>
-                    <option>In Progress</option>
-                    <option>Done</option>
-                  </select>
-                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-6 pt-0 flex justify-end gap-3">
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="px-5 py-2.5 text-slate-300 border border-slate-700 rounded-lg text-sm font-medium hover:bg-white/5 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreate}
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-sm"
-              >
-                Create
-              </button>
-            </div>
-          </div>
+            );
+          })}
         </div>
       )}
+
+      {data && view === "list" && (
+        <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                <th className="py-3 px-4">Task</th><th className="py-3 px-4">Status</th><th className="py-3 px-4">Priority</th><th className="py-3 px-4">Assignee</th><th className="py-3 px-4">Due</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tasks.map((t) => (
+                <tr key={t.id} onClick={() => openEdit(t)} className="border-b border-slate-800/50 hover:bg-white/5 cursor-pointer">
+                  <td className="py-3 px-4 text-white">{t.title}</td>
+                  <td className="py-3 px-4 text-slate-300">{COLUMNS.find((c) => c.status === t.status)?.label}</td>
+                  <td className="py-3 px-4"><span className={`px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${PRIORITY[t.priority]}`}>{t.priority}</span></td>
+                  <td className="py-3 px-4 text-slate-300">{t.assigneeName}</td>
+                  <td className={`py-3 px-4 ${isOverdue(t) ? "text-rose-400" : "text-slate-400"}`}>{fmt(t.dueDate)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Modal
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title={editing === "new" ? "Create task" : "Edit task"}
+        description={editing && editing !== "new" ? `Created by ${editing.createdByName}` : undefined}
+        footer={
+          <>
+            {editing && editing !== "new" && editing.canDelete && (
+              <Button variant="danger" size="sm" onClick={remove}><Trash2 size={14} /> Delete</Button>
+            )}
+            <Button variant="secondary" size="sm" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button size="sm" onClick={save}>Save</Button>
+          </>
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input className={`${inputCls} md:col-span-2`} placeholder="Title *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <textarea className={`${inputCls} md:col-span-2`} rows={3} placeholder="Details" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <select className={inputCls} value={form.assigneeId} onChange={(e) => setForm({ ...form, assigneeId: e.target.value })}>
+            <option value="">Unassigned</option>
+            {data?.people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <input type="date" className={inputCls} value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} />
+          <select className={inputCls} value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as TaskPriority })}>
+            <option value="high">High priority</option>
+            <option value="medium">Medium priority</option>
+            <option value="low">Low priority</option>
+          </select>
+          <select className={inputCls} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as TaskStatus })}>
+            {COLUMNS.map((c) => <option key={c.status} value={c.status}>{c.label}</option>)}
+          </select>
+        </div>
+      </Modal>
     </div>
   );
 }

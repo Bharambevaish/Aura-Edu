@@ -620,3 +620,16 @@ export const LeaveDecisionSchema = z.object({
   approve: z.boolean(),
   note: z.string().trim().max(300).default(""),
 });
+
+/* ------------------------------------------------------------------ */
+/* Tasks                                                               */
+/* ------------------------------------------------------------------ */
+
+export const TaskSchema = z.object({
+  title: z.string().trim().min(2, { message: "Give the task a title." }).max(150),
+  description: z.string().trim().max(2000).default(""),
+  status: z.enum(["todo", "in_progress", "done"]).default("todo"),
+  priority: z.enum(["low", "medium", "high"]).default("medium"),
+  assigneeId: z.string().trim().max(40).default(""),
+  dueDate: z.string().trim().max(10).default(""),
+});

@@ -6,6 +6,7 @@ import { SessionModel } from "@/lib/models/Session";
 import { LessonProgressModel } from "@/lib/models/LessonProgress";
 import { TimetableSlotModel, type ClassMode } from "@/lib/models/TimetableSlot";
 import { LeaveRequestModel } from "@/lib/models/LeaveRequest";
+import { TaskModel } from "@/lib/models/Task";
 import { workingDaysBetween } from "@/lib/hr";
 import { LeadModel, type LeadPriority, type LeadSource, type LeadStage, type LeadType } from "@/lib/models/Lead";
 import { TestModel } from "@/lib/models/Test";
@@ -1056,6 +1057,7 @@ export async function seedDemoData(): Promise<void> {
   await seedDemoTests();
   await seedDemoTimetable();
   await seedDemoLeave();
+  await seedDemoTasks();
   await seedDemoAssignments();
   await seedDemoAttendance();
   await seedDemoCourses();
@@ -2436,4 +2438,46 @@ export async function seedDemoLeave(): Promise<void> {
     n += 1;
   }
   console.log(`[seed] leave: ${n} requests (2 pending).`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Tasks                                                               */
+/* ------------------------------------------------------------------ */
+
+export async function seedDemoTasks(): Promise<void> {
+  await connectDB();
+  await TaskModel.deleteMany({});
+  const people = await UserModel.find({ role: { $in: ["admin", "staff"] }, isDemo: true }).select("_id name").lean();
+  const who = (name: string) => people.find((p) => p.name === name);
+  const admin = who("System Administrator");
+  if (!admin) return;
+  const day = (n: number) => new Date(Date.now() + n * 24 * 60 * 60 * 1000);
+  const plan: [string, string, "todo" | "in_progress" | "done", "low" | "medium" | "high", string, number][] = [
+    ["Call back Riya Chopra about the scholarship test", "She asked for the next test date — share the schedule and fee concession rules.", "todo", "high", "Ritu Sharma", -1],
+    ["Prepare NEET mock #5 question paper", "180 questions, NEET pattern, include 20 from last year's weak topics.", "in_progress", "high", "Dr. Anil Verma", 3],
+    ["Upload Organic Chemistry notes to the course", "Module 2 lessons are missing their PDF links.", "todo", "medium", "Ritu Sharma", 5],
+    ["Chase overdue fees — JEE Batch A", "Three students past due; send reminders and log calls.", "in_progress", "high", "Neha Bhosale", 1],
+    ["Book Hall B for the parent-teacher meeting", "", "todo", "low", "System Administrator", 9],
+    ["Review Python project submissions", "Grade the mini-projects from the weekend batch.", "todo", "medium", "Kunal Mehta", 4],
+    ["Set up Biology doubt-clearing timetable", "", "done", "medium", "Dr. Meenakshi Rao", -4],
+    ["Renew projector AMC", "Vendor quote received; approve and pay.", "done", "low", "Neha Bhosale", -8],
+  ];
+  await TaskModel.insertMany(
+    plan.map(([title, description, status, priority, assignee, due]) => {
+      const a = who(assignee);
+      return {
+        title,
+        description,
+        status,
+        priority,
+        assigneeId: a?._id ?? null,
+        assigneeName: a?.name ?? "Unassigned",
+        dueDate: day(due),
+        createdById: admin._id,
+        createdByName: admin.name,
+        completedAt: status === "done" ? day(due) : null,
+      };
+    }),
+  );
+  console.log(`[seed] tasks: ${plan.length}.`);
 }
