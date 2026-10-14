@@ -103,7 +103,6 @@ const navigation: NavItem[] = [
     icon: PieChart,
     children: [
       { label: 'Reports Hub', href: '/admin-dashboard/reports', icon: FolderKanban },
-      { label: 'Legacy Reports', href: '/admin-dashboard/reports/legacy', icon: FileText },
     ],
   },
   {
