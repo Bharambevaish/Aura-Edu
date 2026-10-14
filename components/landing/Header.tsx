@@ -158,12 +158,12 @@ export default function Header() {
                   </Link>
 
                   <Link
-                    href="/login"
+                    href="/register"
                     onClick={() => setLoginDropdownOpen(false)}
                     className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 text-sm text-slate-200 hover:text-white transition-colors"
                   >
                     <User className="w-4 h-4 text-blue-400" />
-                    <span>New Student Register</span>
+                    <span>Apply for Admission</span>
                   </Link>
 
                   <Link

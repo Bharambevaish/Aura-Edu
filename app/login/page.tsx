@@ -257,6 +257,13 @@ function LoginSelector() {
             )}
           </form>
 
+          <p className="mt-4 text-center text-xs text-slate-400">
+            New student?{" "}
+            <Link href="/register" className="text-[#74B53C] font-semibold hover:underline">
+              Apply for admission online
+            </Link>
+          </p>
+
           {/* One-click demo logins */}
           <div className="mt-5 pt-5 border-t border-white/10 space-y-2">
             <p className="text-[10px] uppercase tracking-wider text-slate-500 font-mono text-center">One-click demo access</p>
