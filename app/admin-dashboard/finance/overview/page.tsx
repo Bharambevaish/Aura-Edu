@@ -41,7 +41,7 @@ export default function FinanceOverviewPage() {
   const maxMonth = Math.max(...(data?.monthlyCollected.map((m) => m.amount) ?? [0]), 1);
   const maxCat = Math.max(...(data?.expenseByCategory.map((c) => c.amount) ?? [0]), 1);
 
-  const statValues = { collected: `₹${(data?.collected ?? 0).toLocaleString("en-IN")}`, outstanding: `₹${(data?.outstanding ?? 0).toLocaleString("en-IN")}`, overdue: data?.overdueStudents ?? 0, expense: `₹${(data?.approvedExpenses ?? 0).toLocaleString("en-IN")}`, pending: `₹${(data?.pendingExpenses ?? 0).toLocaleString("en-IN")}`, profit: `₹${profit.toLocaleString("en-IN")}` };
+  const statValues = { collected: `₹${(data?.collected ?? 0).toLocaleString("en-IN")}`, outstanding: `₹${(data?.outstanding ?? 0).toLocaleString("en-IN")}`, overdue: data?.overdueStudents ?? 0, expense: `₹${(data?.approvedExpenses ?? 0).toLocaleString("en-IN")}`, pending: `₹${(data?.pendingExpenses ?? 0).toLocaleString("en-IN")}`, profit: `${profit < 0 ? "−" : ""}₹${Math.abs(profit).toLocaleString("en-IN")}` };
 
   return (
     <div className="space-y-6">

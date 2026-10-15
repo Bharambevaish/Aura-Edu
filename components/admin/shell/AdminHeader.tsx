@@ -10,7 +10,8 @@ import {
   User, 
   Settings, 
   LogOut,
-  Building
+  Building,
+  Menu
 } from 'lucide-react';
 import { logoutAction } from '@/lib/actions/auth';
 import { setBranchScope } from '@/lib/actions/branches';
@@ -18,7 +19,7 @@ import { useToast } from '@/components/ui';
 import { useBranch } from './BranchContext';
 import type { SessionUser } from '@/lib/dal';
 
-export default function AdminHeader({ user }: { user: SessionUser }) {
+export default function AdminHeader({ user, onMenu }: { user: SessionUser; onMenu: () => void }) {
   const router = useRouter();
   const [time, setTime] = useState<Date | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -66,9 +67,16 @@ export default function AdminHeader({ user }: { user: SessionUser }) {
   };
 
   return (
-    <header className="h-16 glass-nav border-b border-white/10 flex items-center justify-between px-6 sticky top-0 z-30">
-      <div className="flex items-center gap-6">
-        <div className="flex items-center gap-2 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors">
+    <header className="h-16 glass-nav border-b border-white/10 flex items-center justify-between gap-2 px-3 sm:px-6 sticky top-0 z-30">
+      <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+        <button
+          onClick={onMenu}
+          aria-label="Open menu"
+          className="lg:hidden p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200"
+        >
+          <Menu size={18} />
+        </button>
+        <div className="hidden sm:flex items-center gap-2 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors">
           <div className="w-8 h-8 rounded-md bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center border border-white/10">
             <Building size={16} className="text-slate-300" />
           </div>
@@ -82,7 +90,7 @@ export default function AdminHeader({ user }: { user: SessionUser }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-2 sm:gap-6 min-w-0">
         <div className="hidden md:flex items-center gap-4 text-sm font-medium">
           <div className="flex flex-col items-end">
             <span className="text-green-400 font-mono tracking-wider">
@@ -101,10 +109,10 @@ export default function AdminHeader({ user }: { user: SessionUser }) {
             onClick={() => setIsBranchOpen(!isBranchOpen)}
             disabled={switching}
             aria-label="Switch branch"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-60 min-w-0"
           >
-            <MapPin size={16} className="text-emerald-400" />
-            <span className="text-sm text-slate-200 font-medium">{switching ? 'Switching…' : selectedBranch ?? 'All branches'}</span>
+            <MapPin size={16} className="text-emerald-400 shrink-0" />
+            <span className="text-sm text-slate-200 font-medium truncate max-w-[110px] sm:max-w-none">{switching ? 'Switching…' : selectedBranch ?? 'All branches'}</span>
             <ChevronDown size={14} className="text-slate-400" />
           </button>
           
@@ -139,9 +147,9 @@ export default function AdminHeader({ user }: { user: SessionUser }) {
           </span>
         </button>
 
-        <div className="h-8 w-px bg-white/10"></div>
+        <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
 
-        <div className="relative">
+        <div className="relative shrink-0">
           <button 
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="flex items-center gap-3 hover:bg-white/5 p-1 pr-3 rounded-full transition-colors border border-transparent hover:border-white/10"

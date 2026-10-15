@@ -7,7 +7,7 @@
  * sidebar links and is exposed to pages via AdminUserContext.
  */
 import React, { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import AdminSidebar from './AdminSidebar';
 import AdminHeader from './AdminHeader';
 import DemoBanner from '@/components/DemoBanner';
@@ -26,6 +26,11 @@ export default function AdminShell({
   children: React.ReactNode;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  // Phone/tablet drawer: open for the page it was opened on, so following a
+  // link closes it without an effect.
+  const pathname = usePathname();
+  const [drawerFor, setDrawerFor] = useState<string | null>(null);
+  const mobileOpen = drawerFor === pathname;
   // Set by requireAdminPage() when staff open an admin-only section.
   const denied = useSearchParams().get('denied') === '1';
 
@@ -34,20 +39,22 @@ export default function AdminShell({
     <BranchProvider value={branch}>
     <ToastProvider>
       <div className="min-h-screen bg-[#070B14] text-slate-200 font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
-        <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} role={user.role} />
+        <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} role={user.role} mobileOpen={mobileOpen} />
+        {mobileOpen && (
+          <div className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={() => setDrawerFor(null)} aria-hidden="true" />
+        )}
 
         <div
-          className="flex flex-col min-h-screen transition-all duration-300 ease-in-out"
-          style={{ paddingLeft: isCollapsed ? '80px' : '260px' }}
+          className={`flex flex-col min-h-screen min-w-0 transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:pl-20' : 'lg:pl-[260px]'}`}
         >
-          <AdminHeader user={user} />
+          <AdminHeader user={user} onMenu={() => setDrawerFor(mobileOpen ? null : pathname)} />
           <DemoBanner tone="emerald" canReset={user.role === "admin"} />
           {denied && (
-            <div className="mx-6 mt-4 px-4 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-medium">
+            <div className="mx-4 sm:mx-6 mt-4 px-4 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-medium">
               That section is restricted to administrators.
             </div>
           )}
-          <main className="flex-1 p-6 overflow-x-hidden">
+          <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
             {/* Keyed by branch so client screens remount and refetch on a switch. */}
             <div key={branch.current ?? '*'} className="mx-auto max-w-7xl">{children}</div>
           </main>

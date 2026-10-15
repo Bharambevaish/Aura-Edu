@@ -140,6 +140,8 @@ interface AdminSidebarProps {
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
   role: Role;
+  /** Below the lg breakpoint the sidebar is an off-canvas drawer. */
+  mobileOpen: boolean;
 }
 
 /** Only the links this role may open (lib/permissions.ts); empty groups are dropped. */
@@ -153,7 +155,7 @@ function navigationFor(role: Role): NavItem[] {
     .filter((item) => (item.children ? item.children.length > 0 : !item.href || canAccessPath(role, item.href)));
 }
 
-export default function AdminSidebar({ isCollapsed, setIsCollapsed, role }: AdminSidebarProps) {
+export default function AdminSidebar({ isCollapsed, setIsCollapsed, role, mobileOpen }: AdminSidebarProps) {
   const pathname = usePathname();
   const visibleNavigation = navigationFor(role);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -176,9 +178,11 @@ export default function AdminSidebar({ isCollapsed, setIsCollapsed, role }: Admi
   return (
     <motion.aside
       initial={{ width: 260 }}
-      animate={{ width: isCollapsed ? 80 : 260 }}
+      animate={{ width: isCollapsed && !mobileOpen ? 80 : 260 }}
       transition={{ duration: 0.3, ease: 'easeInOut' }}
-      className="h-screen glass-nav border-r border-white/10 flex flex-col fixed left-0 top-0 z-40 text-slate-300"
+      className={`h-screen glass-nav border-r border-white/10 flex flex-col fixed left-0 top-0 z-40 text-slate-300 transition-transform duration-300 lg:translate-x-0 ${
+        mobileOpen ? 'translate-x-0 bg-[#070B14]!' : '-translate-x-full'
+      }`}
     >
       <div className="h-16 flex items-center justify-between px-4 border-b border-white/10">
         <AnimatePresence>
