@@ -63,6 +63,7 @@ const navigation: NavItem[] = [
       { label: 'Attendance', href: '/admin-dashboard/lms/students/attendance', icon: CheckSquare },
       { label: 'Certificates', href: '/admin-dashboard/lms/students/certificates', icon: FileText },
       { label: 'Courses', href: '/admin-dashboard/lms/courses', icon: BookOpen },
+      { label: 'Doubts Inbox', href: '/admin-dashboard/lms/doubts', icon: MessageSquare },
       { label: 'Datewise Schedule', href: '/admin-dashboard/lms/schedules/date-wise', icon: CalendarDays },
       { label: 'Batch Schedule', href: '/admin-dashboard/lms/schedules/batch', icon: Users },
       { label: 'All Leads', href: '/admin-dashboard/lms/leads', icon: Target },
