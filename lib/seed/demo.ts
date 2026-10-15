@@ -393,17 +393,89 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
  * Safety: only `isDemo` records are created here (and wiped by the demo
  * reset), never touching manually-created admin/student data.
  */
+/* ------------------------------------------------------------------ */
+/* Extra students — fuller lists, charts and branch numbers              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Fourteen more students across every batch and both branches, admitted over
+ * the six months up to the day the seed runs, so fee charts, admissions and
+ * attendance show a few months of history whenever the demo is reset.
+ * Their fee history is written in seedDemoFinance (EXTRA_STUDENT_FEES).
+ */
+const EXTRA_STUDENTS: [name: string, gender: "Male" | "Female", batch: string, branch: string, city: string][] = [
+  ["Tanvi Bhatt", "Female", "NEET Batch A", "Main Branch", "Pune"],
+  ["Harsh Vardhan", "Male", "JEE Batch A", "Main Branch", "Indore"],
+  ["Pooja Reddy", "Female", "NEET Batch B", "Mumbai Branch", "Navi Mumbai"],
+  ["Siddharth Rao", "Male", "JEE Batch A", "Mumbai Branch", "Thane"],
+  ["Kavya Menon", "Female", "NEET Batch A", "Main Branch", "Pune"],
+  ["Aryan Chopra", "Male", "Python Programming", "Main Branch", "Indore"],
+  ["Riddhi Shah", "Female", "NEET Batch B", "Mumbai Branch", "Mumbai"],
+  ["Vivaan Gupta", "Male", "JEE Batch A", "Main Branch", "Bhopal"],
+  ["Saanvi Joshi", "Female", "NEET Batch A", "Mumbai Branch", "Navi Mumbai"],
+  ["Kunal Bansal", "Male", "JEE Batch A", "Main Branch", "Indore"],
+  ["Ira Deshpande", "Female", "Python Programming", "Mumbai Branch", "Mumbai"],
+  ["Om Prakash Yadav", "Male", "NEET Batch B", "Main Branch", "Ujjain"],
+  ["Anushka Sen", "Female", "JEE Batch A", "Mumbai Branch", "Thane"],
+  ["Rehan Qureshi", "Male", "NEET Batch A", "Main Branch", "Indore"],
+];
+
+const COURSE_BY_BATCH: Record<string, string> = {
+  "NEET Batch A": "NEET Comprehensive 2026",
+  "NEET Batch B": "NEET Comprehensive 2026",
+  "JEE Batch A": "JEE Main & Advanced 2027",
+  "Python Programming": "Python Programming",
+};
+
+const extraEmail = (name: string) => `${name.toLowerCase().replace(/[^a-z]+/g, ".")}@demo.auraedu.com`;
+/** Admitted 0–5 months before seeding (varies by position in the list). */
+const extraAdmittedAt = (i: number) => {
+  const d = new Date();
+  d.setMonth(d.getMonth() - (i % 6));
+  d.setDate(Math.min(d.getDate(), 26 - (i % 5)));
+  return d;
+};
+
+DEMO_ACCOUNTS.push(
+  ...EXTRA_STUDENTS.map(([name, gender, batch, branch, city], i): DemoAccount => ({
+    name,
+    email: extraEmail(name),
+    password: "Student@123",
+    role: "student",
+    admissionNo: `ADM-2026-${String(101 + i).padStart(4, "0")}`,
+    batch,
+    phone: `98765102${String(i + 10).padStart(2, "0")}`,
+    gender,
+    dateOfBirth: `${2006 + (i % 3)}-${String(1 + (i % 12)).padStart(2, "0")}-${String(5 + i).padStart(2, "0")}`,
+    guardianName: `${gender === "Male" ? "Mr." : "Mrs."} ${name.split(" ").slice(-1)[0]}`,
+    guardianPhone: `+91-98260${String(55000 + i)}`,
+    address: { city, state: city === "Indore" || city === "Bhopal" || city === "Ujjain" ? "Madhya Pradesh" : "Maharashtra", country: "India" },
+    rollNo: `R-${2101 + i}`,
+    admissionDate: extraAdmittedAt(i).toISOString().slice(0, 10),
+    branch,
+    course: COURSE_BY_BATCH[batch],
+    status: "Active",
+    admissionStatus: "Active",
+    idProofType: i % 3 === 0 ? "PAN" : "Aadhar",
+    idProofNumber: `5031 0777 ${String(1200 + i)}`,
+  })),
+);
+
 export async function seedDemoUsers(): Promise<Map<string, string>> {
   await connectDB();
 
   // Map<email, userId> so later seed sections can link tests/attempts to the
   // exact demo users that were just written.
   const ids = new Map<string, string>();
+  // Accounts share a few demo passwords; hash each once (cost 12, as auth.ts).
+  const hashes = new Map<string, Promise<string>>();
+  const hashFor = (password: string) => {
+    if (!hashes.has(password)) hashes.set(password, bcrypt.hash(password, 12));
+    return hashes.get(password)!;
+  };
 
   for (const account of DEMO_ACCOUNTS) {
-    // Cost 12 (bcrypt embeds the cost in the hash) — matches auth.ts. Cost is
-    // bumped above the original seed 10 per the Phase A hardening.
-    const passwordHash = await bcrypt.hash(account.password, 12);
+    const passwordHash = await hashFor(account.password);
     const user = await UserModel.findOneAndUpdate(
       { email: account.email },
       {
@@ -1930,6 +2002,69 @@ export async function seedDemoFinance(): Promise<void> {
       createdAt: a.at,
     });
     audits += 1;
+  }
+
+  /* Extra students: an invoice each, paid in instalments over the months
+     since admission (full / two of three / half / nothing yet). */
+  const DAY = 24 * 60 * 60 * 1000;
+  const receiptSeq = new Map<string, number>();
+  const nextReceipt = (d: Date) => {
+    const ym = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const n = (receiptSeq.get(ym) ?? 100) + 1;
+    receiptSeq.set(ym, n);
+    return `RCP-${ym}-${String(n).padStart(4, "0")}`;
+  };
+  const modes = ["UPI", "Bank Transfer", "Cash", "UPI", "Card"];
+  for (const [i, [name]] of EXTRA_STUDENTS.entries()) {
+    const email = extraEmail(name);
+    const s = studentByEmail.get(email);
+    if (!s) continue;
+    const total = s.course?.toLowerCase().includes("neet") ? 10001 : 9001;
+    const issueDate = extraAdmittedAt(i);
+    const plan = [[0.5, 0.5], [0.34, 0.33], [0.5], []][i % 4];
+    const instalments = plan
+      .map((share, k) => ({ amount: Math.round(total * share), at: new Date(issueDate.getTime() + (3 + k * 30) * DAY) }))
+      .filter((p) => p.at.getTime() < Date.now());
+    if (i % 4 === 0 && instalments.length === plan.length) instalments[instalments.length - 1].amount = total - instalments[0].amount;
+    // A few recent part-payments so "collected this month" is never empty.
+    const owed = total - instalments.reduce((sum, p) => sum + p.amount, 0);
+    const recent = new Date(Date.now() - (1 + i) * DAY);
+    if (i < 5 && owed > 0 && recent > issueDate) instalments.push({ amount: Math.min(2500, owed), at: recent });
+    const paid = instalments.reduce((sum, p) => sum + p.amount, 0);
+    const invoice = await InvoiceModel.create({
+      invoiceNo: `INV-${issueDate.getFullYear()}-${String(101 + i).padStart(5, "0")}`,
+      studentId: s._id,
+      course: s.course ?? "",
+      batch: s.batch ?? "",
+      branch: s.branch ?? "",
+      total,
+      paid,
+      waived: 0,
+      taxGst: Math.round((total * 18) / 118),
+      issueDate,
+      dueDate: new Date(issueDate.getTime() + 45 * DAY),
+      notes: "Installments: 1st at admission, rest by due date.",
+    });
+    invoices += 1;
+    for (const [k, p] of instalments.entries()) {
+      const mode = modes[(i + k) % modes.length];
+      await PaymentModel.create({
+        receiptNo: nextReceipt(p.at),
+        studentId: s._id,
+        invoiceId: invoice._id,
+        amount: p.amount,
+        gst: 0,
+        gatewayFee: 0,
+        netAmount: p.amount,
+        mode,
+        source: mode === "Cash" ? "Admin" : "Student Portal",
+        branch: s.branch ?? "",
+        status: "success",
+        recordedBy: mode === "Cash" ? staff._id : admin._id,
+        recordedAt: p.at,
+      });
+      payments += 1;
+    }
   }
 
   console.log(`[seed] finance: vendors=2 categories=5 expenses=${expenses} invoices=${invoices} payments=${payments} refunds=2 waivers=2 audit=${audits}`);
