@@ -44,6 +44,7 @@ import type {
   RefundStatus,
   WaiverStatus,
 } from "@/lib/finance";
+import { invoiceBalance, invoiceStatus, summarizeFees, refundableAmount } from "@/lib/finance";
 
 const pad = (n: number, width: number) => String(n).padStart(width, "0");
 
@@ -511,11 +512,6 @@ export type InvoiceRow = {
   dueDate: string;
 };
 
-function invoiceStatus(due: number, dueDate: Date): InvoiceStatus {
-  if (due <= 0) return "Paid";
-  return dueDate.getTime() < Date.now() ? "Overdue" : "Issued";
-}
-
 export async function getInvoices(): Promise<{ stats: { collected: number; outstanding: number; overdue: number; invoices: number }; invoices: InvoiceRow[] }> {
   await requireRole(["admin", "staff"]);
   await connectDB();
@@ -530,7 +526,7 @@ export async function getInvoices(): Promise<{ stats: { collected: number; outst
     const student = userMap.get(String(inv.studentId));
     const paid = inv.paid ?? 0;
     const waived = inv.waived ?? 0;
-    const due = Math.max(0, inv.total - paid - waived);
+    const due = invoiceBalance(inv);
     return {
       id: String(inv._id),
       invoiceNo: inv.invoiceNo,
@@ -831,7 +827,18 @@ export async function createRefund(input: unknown): Promise<{ ok: boolean; messa
   const payment = await PaymentModel.findById(parsed.data.paymentId).lean();
   if (!payment) return { ok: false, message: "Select a valid payment." };
   if (payment.status !== "success") return { ok: false, message: "Only successful payments can be refunded." };
-  if (parsed.data.amount > payment.amount) return { ok: false, message: `Refund cannot exceed the payment amount (₹${payment.amount}).` };
+  // Earlier refund requests on the same payment count too, so two requests
+  // can never add up to more than was paid.
+  const earlier = await RefundModel.find({ paymentId: payment._id }).select("amount status").lean();
+  const refundable = refundableAmount(payment.amount, earlier);
+  if (parsed.data.amount > refundable) {
+    return {
+      ok: false,
+      message: refundable > 0
+        ? `Refund cannot exceed ₹${refundable.toLocaleString("en-IN")} — the rest of this payment is already refunded or requested.`
+        : "This payment has already been fully refunded or requested.",
+    };
+  }
   const refundNo = await nextDocNumber(RefundModel, "RUF-2026-", 5);
   await RefundModel.create({
     refundNo,
@@ -968,12 +975,23 @@ export async function createWaiver(input: unknown): Promise<{ ok: boolean; messa
   await connectDB();
   const student = await UserModel.findOne({ _id: parsed.data.studentId, role: "student" }).lean();
   if (!student) return { ok: false, message: "Select a valid student." };
-  const openInvoice = await InvoiceModel.findOne({ studentId: student._id }).sort({ dueDate: 1 }).lean();
+  // Oldest invoice that still has a balance; a waiver can't exceed what is owed on it.
+  const openInvoice = await InvoiceModel.findOne({
+    studentId: student._id,
+    $expr: { $gt: ["$total", { $add: ["$paid", "$waived"] }] },
+  })
+    .sort({ dueDate: 1 })
+    .lean();
+  if (!openInvoice) return { ok: false, message: `${student.name} has no outstanding balance to waive.` };
+  const balance = invoiceBalance(openInvoice);
+  if (parsed.data.amount > balance) {
+    return { ok: false, message: `Waiver cannot exceed the balance on ${openInvoice.invoiceNo} (₹${balance.toLocaleString("en-IN")}).` };
+  }
   const waiverNo = await nextDocNumber(WaiverModel, "WAV-2026-", 5);
   await WaiverModel.create({
     waiverNo,
     studentId: student._id,
-    invoiceId: openInvoice?._id ?? undefined,
+    invoiceId: openInvoice._id,
     amount: parsed.data.amount,
     reason: parsed.data.reason,
     status: "pending",
@@ -993,6 +1011,17 @@ export async function decideWaiver(
   const waiver = await WaiverModel.findById(waiverId);
   if (!waiver) return { ok: false, message: "Waiver not found." };
   if (waiver.status !== "pending") return { ok: false, message: "Only pending waivers can be decided." };
+  if (decision === "approved" && waiver.invoiceId) {
+    // Apply first, atomically capped: paid + waived can never pass the total
+    // (another payment or waiver may have landed since the request).
+    const applied = await InvoiceModel.updateOne(
+      { _id: waiver.invoiceId, $expr: { $lte: [{ $add: ["$paid", "$waived", waiver.amount] }, "$total"] } },
+      { $inc: { waived: waiver.amount } },
+    );
+    if (applied.modifiedCount === 0) {
+      return { ok: false, message: "The invoice balance is now lower than this waiver — reject it and raise a smaller one." };
+    }
+  }
   await WaiverModel.updateOne(
     { _id: waiver._id },
     {
@@ -1004,11 +1033,6 @@ export async function decideWaiver(
       },
     },
   );
-  if (decision === "approved") {
-    if (waiver.invoiceId) {
-      await InvoiceModel.updateOne({ _id: waiver.invoiceId }, { $inc: { waived: waiver.amount } });
-    }
-  }
   const sName = await studentName(waiver.studentId);
   await writeAudit(user, decision === "approved" ? "approved waiver" : "rejected waiver", `${waiver.waiverNo} — ${sName} (₹${waiver.amount})`);
   return { ok: true, message: decision === "approved" ? "Waiver approved and applied to the invoice." : "Waiver rejected." };
@@ -1216,29 +1240,16 @@ export async function getMyFees(): Promise<MyFees> {
     PaymentModel.find({ studentId }).sort({ recordedAt: -1 }).lean(),
   ]);
 
-  const now = Date.now();
-  let total = 0, paid = 0, waived = 0, overdue = 0;
-  let nextDueDate: string | null = null;
-  const invoiceNoById = new Map<string, string>();
-  for (const inv of invoices) {
-    invoiceNoById.set(String(inv._id), inv.invoiceNo);
-    total += inv.total;
-    paid += inv.paid;
-    waived += inv.waived;
-    const balance = Math.max(0, inv.total - inv.paid - inv.waived);
-    if (balance > 0) {
-      if (new Date(inv.dueDate).getTime() < now) overdue += balance;
-      if (!nextDueDate) nextDueDate = new Date(inv.dueDate).toISOString();
-    }
-  }
+  const invoiceNoById = new Map(invoices.map((inv) => [String(inv._id), inv.invoiceNo]));
+  const sum = summarizeFees(invoices.map((inv) => ({ ...inv, dueDate: new Date(inv.dueDate) })));
 
   return {
-    total,
-    paid,
-    waived,
-    outstanding: Math.max(0, total - paid - waived),
-    overdue,
-    nextDueDate,
+    total: sum.total,
+    paid: sum.paid,
+    waived: sum.waived,
+    outstanding: sum.outstanding,
+    overdue: sum.overdue,
+    nextDueDate: sum.nextDueDate ? sum.nextDueDate.toISOString() : null,
     invoices: invoices.length,
     receipts: payments.map((p) => {
       const invNo = p.invoiceId ? invoiceNoById.get(String(p.invoiceId)) : undefined;

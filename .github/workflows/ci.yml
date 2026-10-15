@@ -1,7 +1,7 @@
 name: CI
 
-# The merge gate from TASKLIST.md §7: typecheck + lint + production build
-# must pass on every push and pull request.
+# The merge gate from TASKLIST.md §7: typecheck + lint + unit tests +
+# production build must pass on every push and pull request.
 on:
   push:
     branches: ["**"]
@@ -38,6 +38,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Unit tests
+        run: npm test
 
       - name: Build
         run: npm run build

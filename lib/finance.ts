@@ -75,3 +75,44 @@ export function fmtINR(n: number): string {
   if (n >= 1000) return `₹${(n / 1000).toFixed(1)}k`;
   return `₹${n}`;
 }
+/* ------------------------------------------------------------------ */
+/* Balance rules (pure — unit-tested in tests/unit/finance.test.ts)    */
+/* ------------------------------------------------------------------ */
+
+type InvoiceAmounts = { total: number; paid?: number | null; waived?: number | null };
+
+/** What is still owed on an invoice; never negative. */
+export function invoiceBalance(inv: InvoiceAmounts): number {
+  return Math.max(0, inv.total - (inv.paid ?? 0) - (inv.waived ?? 0));
+}
+
+export function invoiceStatus(due: number, dueDate: Date, now: number = Date.now()): InvoiceStatus {
+  if (due <= 0) return "Paid";
+  return dueDate.getTime() < now ? "Overdue" : "Issued";
+}
+
+/** Totals across a student's invoices (dueDate-sorted in, earliest open due date out). */
+export function summarizeFees(invoices: (InvoiceAmounts & { dueDate: Date })[], now: number = Date.now()) {
+  let total = 0, paid = 0, waived = 0, outstanding = 0, overdue = 0;
+  let nextDueDate: Date | null = null;
+  for (const inv of invoices) {
+    total += inv.total;
+    paid += inv.paid ?? 0;
+    waived += inv.waived ?? 0;
+    const balance = invoiceBalance(inv);
+    if (balance <= 0) continue;
+    outstanding += balance;
+    if (inv.dueDate.getTime() < now) overdue += balance;
+    if (!nextDueDate || inv.dueDate < nextDueDate) nextDueDate = inv.dueDate;
+  }
+  return { total, paid, waived, outstanding, overdue, nextDueDate };
+}
+
+/** Refund statuses that still count against a payment (everything but rejected). */
+export const ACTIVE_REFUND_STATUSES: RefundStatus[] = ["pending", "approved", "processed", "completed"];
+
+/** How much of a payment can still be refunded, given its earlier refunds. */
+export function refundableAmount(paymentAmount: number, refunds: { amount: number; status: RefundStatus }[]): number {
+  const used = refunds.filter((r) => ACTIVE_REFUND_STATUSES.includes(r.status)).reduce((s, r) => s + r.amount, 0);
+  return Math.max(0, paymentAmount - used);
+}

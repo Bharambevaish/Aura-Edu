@@ -19,7 +19,7 @@ import { QuestionModel } from "@/lib/models/Question";
 import { AttemptModel } from "@/lib/models/Attempt";
 import { ResultModel } from "@/lib/models/Result";
 import { GradeWrittenSchema } from "@/lib/validation";
-import { sumWrittenScore, type QuestionDTO } from "@/lib/services/tests";
+import { applyWrittenGrades, type QuestionDTO } from "@/lib/services/tests";
 
 export type GradeScreenDTO = {
   attemptId: string;
@@ -110,21 +110,14 @@ export async function gradeWrittenAnswers(
     return { success: false, writtenScore: 0, score: 0, remainingWritten: 0, fullyGraded: false };
   }
 
+  // Marks are capped at each question's maximum, read from the test itself.
+  const questions = await QuestionModel.find({ testId: attempt.testId }).select("_id marks").lean();
+  const maxMarks = new Map(questions.map((q) => [String(q._id), q.marks]));
   const gradeMap = new Map(validated.data.grades.map((g) => [g.questionId, g.marks]));
-  const rebuilt = attempt.answers.map((a) => {
-    if (a.type === "written") {
-      const awarded = gradeMap.get(String(a.questionId));
-      if (awarded !== undefined) {
-        return { ...a, awardedMarks: awarded, graded: true };
-      }
-    }
-    return a;
-  });
+  const { rebuilt, writtenScore, remainingWritten } = applyWrittenGrades(attempt.answers, gradeMap, maxMarks);
 
-  const writtenScore = sumWrittenScore(rebuilt);
   const mcqScore = attempt.mcqScore;
   const score = mcqScore + writtenScore;
-  const remainingWritten = rebuilt.filter((a) => a.type === "written" && !a.graded).length;
   const fullyGraded = remainingWritten === 0;
 
   await AttemptModel.updateOne(

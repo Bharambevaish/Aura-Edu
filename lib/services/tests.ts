@@ -120,16 +120,18 @@ export function buildGradedAnswers(
         graded: true,
       });
     } else {
+      // A blank written answer scores 0 straight away; an answered one waits
+      // for a teacher, so the result is not fully graded until then.
       const answerText = submitted?.answerText?.trim() || null;
-      if (answerText === null || answerText.length === 0) pendingWritten++;
+      if (answerText) pendingWritten++;
       rebuilt.push({
         questionId: q._id,
         type: "written" as const,
         selectedIndices: [],
         answerText,
         isCorrect: null,
-        awardedMarks: null,
-        graded: false,
+        awardedMarks: answerText ? null : 0,
+        graded: !answerText,
       });
     }
   }
@@ -143,4 +145,29 @@ export function sumWrittenScore(answers: { type: string; graded?: boolean; award
     (sum, a) => (a.type === "written" && a.graded ? sum + (a.awardedMarks ?? 0) : sum),
     0,
   );
+}
+type WrittenAnswer = { questionId: unknown; type: string; graded?: boolean; awardedMarks?: number | null };
+
+/**
+ * Apply a teacher's marks to written answers. Marks are clamped to
+ * [0, question max]; grades for unknown or MCQ questions are ignored.
+ */
+export function applyWrittenGrades<A extends WrittenAnswer>(
+  answers: A[],
+  grades: Map<string, number>,
+  maxMarks: Map<string, number>,
+): { rebuilt: A[]; writtenScore: number; remainingWritten: number } {
+  const rebuilt = answers.map((a) => {
+    if (a.type !== "written") return a;
+    const id = String(a.questionId);
+    const awarded = grades.get(id);
+    const max = maxMarks.get(id);
+    if (awarded === undefined || max === undefined) return a;
+    return { ...a, awardedMarks: Math.min(Math.max(0, awarded), max), graded: true };
+  });
+  return {
+    rebuilt,
+    writtenScore: sumWrittenScore(rebuilt),
+    remainingWritten: rebuilt.filter((a) => a.type === "written" && !a.graded).length,
+  };
 }
