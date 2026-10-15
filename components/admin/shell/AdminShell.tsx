@@ -14,12 +14,15 @@ import DemoBanner from '@/components/DemoBanner';
 import { ToastProvider } from '@/components/ui';
 import type { SessionUser } from '@/lib/dal';
 import { AdminUserProvider } from './AdminUserContext';
+import { BranchProvider, type BranchState } from './BranchContext';
 
 export default function AdminShell({
   user,
+  branch,
   children,
 }: {
   user: SessionUser;
+  branch: BranchState;
   children: React.ReactNode;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -28,6 +31,7 @@ export default function AdminShell({
 
   return (
     <AdminUserProvider value={user}>
+    <BranchProvider value={branch}>
     <ToastProvider>
       <div className="min-h-screen bg-[#070B14] text-slate-200 font-sans selection:bg-emerald-500/30 selection:text-emerald-200">
         <AdminSidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} role={user.role} />
@@ -44,11 +48,13 @@ export default function AdminShell({
             </div>
           )}
           <main className="flex-1 p-6 overflow-x-hidden">
-            <div className="mx-auto max-w-7xl">{children}</div>
+            {/* Keyed by branch so client screens remount and refetch on a switch. */}
+            <div key={branch.current ?? '*'} className="mx-auto max-w-7xl">{children}</div>
           </main>
         </div>
       </div>
     </ToastProvider>
+    </BranchProvider>
     </AdminUserProvider>
   );
 }

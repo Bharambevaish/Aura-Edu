@@ -32,6 +32,7 @@ import { MeetingModel } from "@/lib/models/Meeting";
 import { CalendarEventModel } from "@/lib/models/CalendarEvent";
 import { InstituteSettingsModel } from "@/lib/models/InstituteSettings";
 import { MasterItemModel } from "@/lib/models/MasterItem";
+import { BranchModel } from "@/lib/models/Branch";
 import { MASTER_META, MASTER_TYPES } from "@/lib/master";
 import type { Role } from "@/lib/models/User";
 
@@ -1083,6 +1084,14 @@ export async function seedDemoInstitute(): Promise<void> {
   await MasterItemModel.deleteMany({});
   await MasterItemModel.insertMany(MASTER_TYPES.flatMap((type) => MASTER_META[type].defaults.map((name) => ({ type, name }))));
   console.log(`[seed] master data: ${MASTER_TYPES.map((t) => `${t}=${MASTER_META[t].defaults.length}`).join(" ")}`);
+
+  // Branches — names match the `branch` stored on the demo students and leads.
+  await BranchModel.deleteMany({});
+  await BranchModel.insertMany([
+    { name: "Main Branch", code: "BR-MAIN", address: "2nd Floor, Shanti Plaza, FC Road", city: "Pune", phone: "+91 20 4000 1234" },
+    { name: "Mumbai Branch", code: "BR-MUM01", address: "Knowledge Park, Sector 30, Vashi", city: "Navi Mumbai", phone: "+91 22 4000 5678" },
+  ]);
+  console.log("[seed] branches: 2");
 }
 
 export async function seedDemoData(): Promise<void> {

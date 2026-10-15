@@ -25,6 +25,7 @@ import { RefundModel } from "@/lib/models/Refund";
 import { WaiverModel } from "@/lib/models/Waiver";
 import { AuditLogModel } from "@/lib/models/AuditLog";
 import { writeAudit, writeSystemAudit } from "@/lib/audit";
+import { getBranchScope, studentRefFilter } from "@/lib/branch-scope";
 import { getInstitute, defaultTaxRule, inclusiveGst } from "@/lib/institute";
 import {
   VendorSchema,
@@ -62,7 +63,8 @@ export async function getFinanceStudents(): Promise<
 > {
   await requireRole(["admin", "staff"]);
   await connectDB();
-  const students = await UserModel.find({ role: "student" }).sort({ name: 1 }).lean();
+  const scope = await getBranchScope();
+  const students = await UserModel.find({ role: "student", ...scope.students }).sort({ name: 1 }).lean();
   return students.map((s) => ({
     id: String(s._id),
     name: s.name,
@@ -517,8 +519,10 @@ function invoiceStatus(due: number, dueDate: Date): InvoiceStatus {
 export async function getInvoices(): Promise<{ stats: { collected: number; outstanding: number; overdue: number; invoices: number }; invoices: InvoiceRow[] }> {
   await requireRole(["admin", "staff"]);
   await connectDB();
+  // Branch switcher: scoped through each invoice's student.
+  const own = await studentRefFilter(await getBranchScope());
   const [invoices, users] = await Promise.all([
-    InvoiceModel.find().sort({ createdAt: -1 }).lean(),
+    InvoiceModel.find(own).sort({ createdAt: -1 }).lean(),
     UserModel.find({ role: "student" }).lean(),
   ]);
   const userMap = new Map(users.map((u) => [String(u._id), u]));
@@ -561,8 +565,10 @@ export async function getInvoices(): Promise<{ stats: { collected: number; outst
 export async function syncInvoices(): Promise<{ ok: boolean; message: string; created: number }> {
   const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
+  // Within a branch view, only that branch's students are invoiced.
+  const scope = await getBranchScope();
   const [students, existing] = await Promise.all([
-    UserModel.find({ role: "student", status: "Active" }).lean(),
+    UserModel.find({ role: "student", status: "Active", ...scope.students }).lean(),
     InvoiceModel.find().select("studentId").lean(),
   ]);
   const have = new Set(existing.map((i) => String(i.studentId)));
@@ -621,8 +627,9 @@ export type PaymentRow = {
 export async function getPayments(): Promise<{ stats: { collected: number; count: number; today: number }; payments: PaymentRow[] }> {
   await requireRole(["admin", "staff"]);
   await connectDB();
+  const own = await studentRefFilter(await getBranchScope());
   const [payments, users, invoices] = await Promise.all([
-    PaymentModel.find().sort({ recordedAt: -1 }).lean(),
+    PaymentModel.find(own).sort({ recordedAt: -1 }).lean(),
     UserModel.find({ role: "student" }).lean(),
     InvoiceModel.find().select("invoiceNo").lean(),
   ]);
@@ -655,8 +662,9 @@ export async function getPayments(): Promise<{ stats: { collected: number; count
 export async function getPaidPayments(): Promise<PaymentRow[]> {
   await requireRole(["admin", "staff"]);
   await connectDB();
+  const own = await studentRefFilter(await getBranchScope());
   const [payments, users, invoices] = await Promise.all([
-    PaymentModel.find({ status: "success" }).sort({ recordedAt: -1 }).lean(),
+    PaymentModel.find({ status: "success", ...own }).sort({ recordedAt: -1 }).lean(),
     UserModel.find({ role: "student" }).lean(),
     InvoiceModel.find().select("invoiceNo").lean(),
   ]);
@@ -1033,13 +1041,16 @@ export type OverviewData = {
 export async function getFinanceOverview(): Promise<OverviewData> {
   await requireRole(["admin", "staff"]);
   await connectDB();
+  // Fee figures follow the branch switcher (through the student); expenses
+  // carry no branch, so they stay institute-wide.
+  const own = await studentRefFilter(await getBranchScope());
   const [invoices, payments, expenses, categories, refunds, waivers, users] = await Promise.all([
-    InvoiceModel.find().lean(),
-    PaymentModel.find().lean(),
+    InvoiceModel.find(own).lean(),
+    PaymentModel.find(own).lean(),
     ExpenseModel.find().lean(),
     ExpenseCategoryModel.find().lean(),
-    RefundModel.find().lean(),
-    WaiverModel.find().lean(),
+    RefundModel.find(own).lean(),
+    WaiverModel.find(own).lean(),
     UserModel.find({ role: "student" }).lean(),
   ]);
 

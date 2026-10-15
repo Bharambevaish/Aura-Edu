@@ -18,6 +18,7 @@ import { CourseModel } from "@/lib/models/Course";
 import { BatchModel } from "@/lib/models/Batch";
 import { ExpenseCategoryModel } from "@/lib/models/ExpenseCategory";
 import { ExpenseModel } from "@/lib/models/Expense";
+import { BranchModel } from "@/lib/models/Branch";
 import { MasterItemSchema } from "@/lib/validation";
 
 export type MasterRow = {
@@ -156,9 +157,10 @@ export async function getLiveLookups(): Promise<LiveLookup[]> {
   await requireRole(["admin"]);
   await connectDB();
   const students = { role: "student" };
-  const [courses, batches, categories, byCourse, byBatch, byBranch, byCategory, bySource] = await Promise.all([
+  const [courses, batches, branches, categories, byCourse, byBatch, byBranch, byCategory, bySource] = await Promise.all([
     CourseModel.find().select("title").sort({ title: 1 }).lean<{ title: string }[]>(),
     BatchModel.find().select("name").sort({ name: 1 }).lean<{ name: string }[]>(),
+    BranchModel.find().select("name active").sort({ name: 1 }).lean<{ name: string; active: boolean }[]>(),
     ExpenseCategoryModel.find().select("name").sort({ name: 1 }).lean<{ _id: mongoose.Types.ObjectId; name: string }[]>(),
     UserModel.aggregate<Count>([{ $match: students }, { $group: { _id: "$course", n: { $sum: 1 } } }]),
     UserModel.aggregate<Count>([{ $match: students }, { $group: { _id: "$batch", n: { $sum: 1 } } }]),
@@ -169,6 +171,7 @@ export async function getLiveLookups(): Promise<LiveLookup[]> {
   const map = (rows: Count[]) => new Map(rows.map((r) => [String(r._id), r.n]));
   const course = map(byCourse);
   const batch = map(byBatch);
+  const branch = map(byBranch);
   const category = map(byCategory);
   const source = map(bySource);
   const sourceLabels: Record<string, string> = {
@@ -182,7 +185,7 @@ export async function getLiveLookups(): Promise<LiveLookup[]> {
   return [
     { label: "Courses", managedAt: "LMS → Courses", href: "/admin-dashboard/lms/courses", unit: "students", values: courses.map((c) => ({ name: c.title, count: course.get(c.title) ?? 0 })) },
     { label: "Batches", managedAt: "Student Corner → Batches", href: "/admin-dashboard/lms/students/batches", unit: "students", values: batches.map((b) => ({ name: b.name, count: batch.get(b.name) ?? 0 })) },
-    { label: "Branches", managedAt: "Settings → Branches", href: "/admin-dashboard/settings/config/branch", unit: "students", values: byBranch.map((b) => ({ name: String(b._id), count: b.n })).sort((a, b) => a.name.localeCompare(b.name)) },
+    { label: "Branches", managedAt: "Settings → Branches", href: "/admin-dashboard/settings/config/branch", unit: "students", values: branches.map((b) => ({ name: b.active ? b.name : `${b.name} (inactive)`, count: branch.get(b.name) ?? 0 })) },
     { label: "Expense categories", managedAt: "Finance → Expense Categories", href: "/admin-dashboard/finance/expense-categories", unit: "expenses", values: categories.map((c) => ({ name: c.name, count: category.get(String(c._id)) ?? 0 })) },
     { label: "Lead sources (fixed)", managedAt: "Leads", href: "/admin-dashboard/lms/leads", unit: "leads", values: Object.entries(sourceLabels).map(([k, name]) => ({ name, count: source.get(k) ?? 0 })) },
   ];

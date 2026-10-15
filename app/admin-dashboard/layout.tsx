@@ -2,6 +2,8 @@ import React from "react";
 import AdminShell from "@/components/admin/shell/AdminShell";
 import { requireRole } from "@/lib/dal";
 import ForcePasswordChange from "@/components/auth/ForcePasswordChange";
+import { getBranchScope } from "@/lib/branch-scope";
+import { getActiveBranchNames } from "@/lib/actions/branches";
 
 /**
  * Admin layout gate: every /admin-dashboard route passes
@@ -19,5 +21,10 @@ export default async function AdminDashboardLayout({
   if (user.mustChangePassword) {
     return <ForcePasswordChange name={user.name} />;
   }
-  return <AdminShell user={user}>{children}</AdminShell>;
+  const [scope, branches] = await Promise.all([getBranchScope(), getActiveBranchNames()]);
+  return (
+    <AdminShell user={user} branch={{ current: scope.branch, branches }}>
+      {children}
+    </AdminShell>
+  );
 }

@@ -680,3 +680,22 @@ export const MasterItemSchema = z.object({
   description: z.string().trim().max(300).default(""),
   active: z.boolean().default(true),
 });
+
+/* ------------------------------------------------------------------ */
+/* Branches (multi-branch)                                             */
+/* ------------------------------------------------------------------ */
+
+export const BranchSchema = z.object({
+  name: z.string().trim().min(2, { message: "Branch name must be at least 2 characters." }).max(80),
+  code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .min(2, { message: "Branch code must be at least 2 characters." })
+    .max(20)
+    .regex(/^[A-Z0-9-]+$/, { message: "Use letters, numbers and dashes for the code." }),
+  address: z.string().trim().max(300).default(""),
+  city: z.string().trim().max(80).default(""),
+  phone: z.string().trim().max(25).default(""),
+  active: z.boolean().default(true),
+});

@@ -27,6 +27,7 @@ import StudentDetailModal from "@/components/admin/lms/students/StudentDetailMod
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { useIsAdmin } from "@/components/admin/shell/AdminUserContext";
+import { useBranch, BranchChip } from "@/components/admin/shell/BranchContext";
 import {
   getStudents,
   deleteStudent,
@@ -106,7 +107,6 @@ const STATUS_STYLE: Record<string, string> = {
   Transferred: "bg-slate-500/10 text-slate-400 border-slate-500/20",
 };
 
-const BRANCH_OPTIONS = ["Main Branch", "Mumbai Branch"];
 const COURSE_OPTIONS = [
   "NEET Comprehensive 2026",
   "JEE Main & Advanced 2027",
@@ -118,6 +118,7 @@ export default function StudentManagementPage() {
   const { toast } = useToast();
   // Deleting students and (re)issuing passwords are admin-only (server-enforced).
   const isAdmin = useIsAdmin();
+  const branchOptions = useBranch().branches;
 
   const [data, setData] = useState<{ stats: StudentStats; students: StudentRowDTO[]; totalPages: number; currentPage: number; total: number }>({
     stats: { totalStudents: 0, active: 0, inactive: 0, batchCount: 0, batches: [] },
@@ -488,6 +489,7 @@ export default function StudentManagementPage() {
             <Users className="text-emerald-400" /> Student Management
           </h1>
           <p className="text-sm text-slate-400 mt-1">Manage student records, imports, exports, and profile insights.</p>
+          <BranchChip className="mt-2" />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -1036,10 +1038,10 @@ export default function StudentManagementPage() {
         >
           <option value="">Select a value</option>
           {(assignField === "branch"
-            ? BRANCH_OPTIONS
+            ? branchOptions
             : assignField === "course"
               ? COURSE_OPTIONS
-              : [...stats.batches, ...BRANCH_OPTIONS]
+              : stats.batches
           ).map((v) => (
             <option key={v} value={v}>
               {v}
