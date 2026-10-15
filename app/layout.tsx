@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
+import { connection } from "next/server";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -16,11 +17,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Render per request so every page gets this request's CSP nonce (proxy.ts).
+  await connection();
   return (
     <html lang="en" className={`${outfit.variable} scroll-smooth dark`}>
       <body className="bg-[#070B14] text-slate-100 font-sans selection:bg-[#5E9A2E]/30 selection:text-[#74B53C] antialiased min-h-screen">

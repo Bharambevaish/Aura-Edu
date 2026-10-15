@@ -7,6 +7,10 @@
  *   - An unauthenticated visitor asking for /admin-dashboard or /student-portal
  *     is bounced straight to /login without our server even rendering the page.
  *   - A logged-in user visiting /login is bounced to their own portal.
+ *   - Every page gets a Content-Security-Policy with a fresh script nonce
+ *     (lib/csp.ts). Next reads the nonce from the request header and applies
+ *     it to its own scripts; the root layout renders dynamically so each
+ *     response carries its own nonce.
  *
  * This is defense-in-depth only. Real enforcement lives server-side (layouts
  * and every data action call `requireRole()` in lib/dal.ts); the proxy just
@@ -21,9 +25,32 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import type { Role } from "@/lib/models/User";
+import { buildCsp, frameAncestorsFor } from "@/lib/csp";
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = buildCsp({ nonce, dev: process.env.NODE_ENV === "development", frameAncestors: frameAncestorsFor(pathname) });
+  const withCsp = (res: NextResponse) => {
+    res.headers.set("Content-Security-Policy", csp);
+    return res;
+  };
+
+  const redirect = await authRedirect(request, pathname);
+  if (redirect) return withCsp(redirect);
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+  return withCsp(NextResponse.next({ request: { headers: requestHeaders } }));
+}
+
+/** The sign-in gate: only /login and the two portals need the session. */
+async function authRedirect(request: NextRequest, pathname: string): Promise<NextResponse | null> {
+  const isDashboard = pathname.startsWith("/admin-dashboard");
+  const isStudentPortal = pathname.startsWith("/student-portal");
+  const isProtectedRoute = isDashboard || isStudentPortal;
+  if (!isProtectedRoute && pathname !== "/login") return null;
 
   // Decode the signed Auth.js JWT (same cookie the layouts read). Returns
   // `null` when missing/expired/invalid — i.e. not signed in.
@@ -34,10 +61,6 @@ export default async function proxy(request: NextRequest) {
     // over HTTPS, judged from AUTH_URL when set, else the request itself.
     secureCookie: (process.env.AUTH_URL ? new URL(process.env.AUTH_URL).protocol : request.nextUrl.protocol) === "https:",
   });
-
-  const isDashboard = pathname.startsWith("/admin-dashboard");
-  const isStudentPortal = pathname.startsWith("/student-portal");
-  const isProtectedRoute = isDashboard || isStudentPortal;
 
   if (isProtectedRoute && !token) {
     // Not signed in: send to the login page, keeping the target URL so the
@@ -56,12 +79,11 @@ export default async function proxy(request: NextRequest) {
     );
   }
 
-  return NextResponse.next();
+  return null;
 }
 
-// Run the gate only on the routing paths that need it. Everything else
-// (landing page, /register admissions flow, /api/**) is intentionally bypassed
-// for performance and to avoid interfering with Auth.js's own /api/auth routes.
+// Every page (for the CSP nonce). Skipped: /api/** (Auth.js's own routes and
+// JSON), Next's static/image assets and files with an extension in /public.
 export const config = {
-  matcher: ["/admin-dashboard/:path*", "/student-portal/:path*", "/login"],
+  matcher: ["/((?!api/|_next/static|_next/image|favicon\\.ico|.*\\.[a-zA-Z0-9]+$).*)"],
 };
