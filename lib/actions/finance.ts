@@ -45,15 +45,11 @@ import type {
   WaiverStatus,
 } from "@/lib/finance";
 import { invoiceBalance, invoiceStatus, summarizeFees, refundableAmount } from "@/lib/finance";
+import { nextDocNo } from "@/lib/doc-numbers";
 
 const pad = (n: number, width: number) => String(n).padStart(width, "0");
 
-type Countable = { countDocuments: () => Promise<number> };
-
-async function nextDocNumber(model: Countable, prefix: string, width: number) {
-  const count = await model.countDocuments();
-  return `${prefix}${pad(count + 1, width)}`;
-}
+const year = () => new Date().getFullYear();
 
 const fmtDay = (d: Date) =>
   d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
@@ -388,7 +384,7 @@ export async function createExpense(input: unknown): Promise<{ ok: boolean; mess
     const vendor = await VendorModel.findById(parsed.data.vendorRef).lean();
     if (!vendor) return { ok: false, message: "Pick a valid vendor." };
   }
-  const refNumber = await nextDocNumber(ExpenseModel, "EXP-2026-", 5);
+  const refNumber = await nextDocNo(ExpenseModel, "refNumber", `EXP-${year()}-`, 5);
   const expense = await ExpenseModel.create({
     ...parsed.data,
     refNumber,
@@ -574,7 +570,7 @@ export async function syncInvoices(): Promise<{ ok: boolean; message: string; cr
   for (const s of students) {
     if (have.has(String(s._id))) continue;
     const total = s.course?.toLowerCase().includes("neet") ? 10001 : 9001;
-    const invoiceNo = await nextDocNumber(InvoiceModel, "INV-2026-", 5);
+    const invoiceNo = await nextDocNo(InvoiceModel, "invoiceNo", `INV-${year()}-`, 5);
     await InvoiceModel.create({
       invoiceNo,
       studentId: s._id,
@@ -723,7 +719,7 @@ export async function recordPayment(input: unknown): Promise<{ ok: boolean; mess
 
   const now = new Date();
   const yyyymm = `${now.getFullYear()}${pad(now.getMonth() + 1, 2)}`;
-  const receiptNo = await nextDocNumber(PaymentModel, `RCP-${yyyymm}-`, 4);
+  const receiptNo = await nextDocNo(PaymentModel, "receiptNo", `RCP-${yyyymm}-`, 4);
   const gst = parsed.data.gst ?? 0;
   const gatewayFee = parsed.data.gatewayFee ?? 0;
   await PaymentModel.create({
@@ -839,7 +835,7 @@ export async function createRefund(input: unknown): Promise<{ ok: boolean; messa
         : "This payment has already been fully refunded or requested.",
     };
   }
-  const refundNo = await nextDocNumber(RefundModel, "RUF-2026-", 5);
+  const refundNo = await nextDocNo(RefundModel, "refundNo", `RUF-${year()}-`, 5);
   await RefundModel.create({
     refundNo,
     studentId: payment.studentId,
@@ -987,7 +983,7 @@ export async function createWaiver(input: unknown): Promise<{ ok: boolean; messa
   if (parsed.data.amount > balance) {
     return { ok: false, message: `Waiver cannot exceed the balance on ${openInvoice.invoiceNo} (₹${balance.toLocaleString("en-IN")}).` };
   }
-  const waiverNo = await nextDocNumber(WaiverModel, "WAV-2026-", 5);
+  const waiverNo = await nextDocNo(WaiverModel, "waiverNo", `WAV-${year()}-`, 5);
   await WaiverModel.create({
     waiverNo,
     studentId: student._id,
@@ -1301,7 +1297,7 @@ export async function payMyInvoice(input: unknown): Promise<{ ok: boolean; messa
   }
 
   const now = new Date();
-  const receiptNo = await nextDocNumber(PaymentModel, `RCP-${now.getFullYear()}${pad(now.getMonth() + 1, 2)}-`, 4);
+  const receiptNo = await nextDocNo(PaymentModel, "receiptNo", `RCP-${now.getFullYear()}${pad(now.getMonth() + 1, 2)}-`, 4);
   await PaymentModel.create({
     receiptNo,
     studentId,

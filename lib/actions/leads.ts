@@ -15,6 +15,7 @@ import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { headers } from "next/headers";
 import { connectDB } from "@/lib/db";
+import { nextDocNo } from "@/lib/doc-numbers";
 import { requireRole } from "@/lib/dal";
 import { writeAudit, writeSystemAudit } from "@/lib/audit";
 import { getInstitute, defaultTaxRule, inclusiveGst } from "@/lib/institute";
@@ -88,8 +89,7 @@ function toRow(l: LeadLean): LeadRow {
 }
 
 async function nextLeadNo(): Promise<string> {
-  const count = await LeadModel.countDocuments();
-  return `LD-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+  return nextDocNo(LeadModel, "leadNo", `LD-${new Date().getFullYear()}-`, 4);
 }
 
 /* ------------------------------------------------------------------ */
@@ -296,8 +296,7 @@ export async function convertLead(id: string, input: unknown): Promise<ConvertOu
 
   let invoiceNo: string | undefined;
   if (parsed.data.feeTotal > 0) {
-    const count = await InvoiceModel.countDocuments();
-    invoiceNo = `INV-${now.getFullYear()}-${String(count + 1).padStart(5, "0")}`;
+    invoiceNo = await nextDocNo(InvoiceModel, "invoiceNo", `INV-${now.getFullYear()}-`, 5);
     // Fees are GST-inclusive; record the GST portion from the default rule.
     const rule = defaultTaxRule(await getInstitute());
     await InvoiceModel.create({

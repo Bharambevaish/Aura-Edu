@@ -14,6 +14,7 @@
 import mongoose from "mongoose";
 import { headers } from "next/headers";
 import { connectDB } from "@/lib/db";
+import { nextDocNo } from "@/lib/doc-numbers";
 import { requireRole } from "@/lib/dal";
 import { writeAudit, writeSystemAudit } from "@/lib/audit";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
@@ -256,8 +257,7 @@ export async function getPublicForm(slug: string): Promise<PublicForm | null> {
 export type SubmitFormOutcome = { ok: boolean; message: string; errors?: Record<string, string> };
 
 async function createLeadNo(): Promise<string> {
-  const count = await LeadModel.countDocuments();
-  return `LD-${new Date().getFullYear()}-${String(count + 1).padStart(4, "0")}`;
+  return nextDocNo(LeadModel, "leadNo", `LD-${new Date().getFullYear()}-`, 4);
 }
 
 /**

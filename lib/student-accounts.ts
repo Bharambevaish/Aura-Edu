@@ -5,6 +5,7 @@
  */
 import "server-only";
 import { UserModel } from "@/lib/models/User";
+import { nextDocNo } from "@/lib/doc-numbers";
 
 /** Random one-time password, e.g. "KfR8mQ2x@HTWZ" (no look-alike characters). */
 export function randomPassword(): string {
@@ -16,9 +17,7 @@ export function randomPassword(): string {
   return `${out.slice(0, 8)}@${out.slice(8).toUpperCase()}`;
 }
 
-/** Generates the next ADM-YYYY-#### admission number (rough but monotonic). */
+/** Next ADM-YYYY-#### admission number; generated ones start at 1001. */
 export async function nextAdmissionNo(): Promise<string> {
-  const year = new Date().getFullYear();
-  const count = await UserModel.countDocuments({ role: "student" });
-  return `ADM-${year}-${String(1000 + count + 1).padStart(4, "0")}`;
+  return nextDocNo(UserModel, "admissionNo", `ADM-${new Date().getFullYear()}-`, 4, 1001);
 }
