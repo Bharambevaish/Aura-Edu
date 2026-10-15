@@ -1,20 +1,23 @@
 "use server";
 
 /**
- * STAFF-ONLY grading of written answers.
+ * Grading of written answers.
  *
  *  getGradingAccess     - tells the UI whether the signed-in user may grade
  *  getAttemptForGrading - loads one attempt with the full answer key
  *  gradeWrittenAnswers  - persists awarded marks + recomputes the score
  *
- * Per product decision, only `staff` grades written answers; admins see
- * reports but can't grade (requireRole(["staff"]) is enforced server-side).
+ * Admins can always grade; staff can grade while the institute setting
+ * "Staff can grade written answers" is on (canGradeWritten in
+ * lib/permissions.ts). gradeWrittenAnswers enforces it server-side; staff
+ * can still open an attempt to read it when grading is locked.
  */
 
 import { connectDB } from "@/lib/db";
 import { requireRole } from "@/lib/dal";
 import { writeAudit } from "@/lib/audit";
-import { getSession } from "@/lib/dal";
+import { getStaffCanGrade } from "@/lib/institute";
+import { canGradeWritten, GRADING_LOCKED_MESSAGE } from "@/lib/permissions";
 import { QuestionModel } from "@/lib/models/Question";
 import { AttemptModel } from "@/lib/models/Attempt";
 import { ResultModel } from "@/lib/models/Result";
@@ -30,11 +33,22 @@ export type GradeScreenDTO = {
   score: number;
   totalMarks: number;
   questions: QuestionDTO[];
+  /** Whether the signed-in user may save grades on this screen. */
+  canGrade: boolean;
+  /** Who last saved written grades, if anyone. ISO date. */
+  gradedBy: { name: string; role: "admin" | "staff"; at: string } | null;
 };
 
-/** Staff-only: loads one attempt with full question+answer details for grading. */
+/** The signed-in admin/staff user and whether they may grade right now. */
+async function gradingUser() {
+  const { user } = await requireRole(["admin", "staff"]);
+  const staffCanGrade = user.role === "staff" ? await getStaffCanGrade() : true;
+  return { user, canGrade: canGradeWritten(user.role, staffCanGrade) };
+}
+
+/** Admin + staff: loads one attempt with full question+answer details for grading. */
 export async function getAttemptForGrading(attemptId: string): Promise<GradeScreenDTO | null> {
-  await requireRole(["staff"]);
+  const { canGrade } = await gradingUser();
   await connectDB();
 
   try {
@@ -73,16 +87,20 @@ export async function getAttemptForGrading(attemptId: string): Promise<GradeScre
       score: attempt.score,
       totalMarks: test?.totalMarks ?? 0,
       questions: dtos,
+      canGrade,
+      gradedBy:
+        attempt.graderName && attempt.graderRole && attempt.gradedAt
+          ? { name: attempt.graderName, role: attempt.graderRole, at: new Date(attempt.gradedAt).toISOString() }
+          : null,
     };
   } catch {
     return null;
   }
 }
 
-/** Tells the UI whether the signed-in user may grade written answers (staff only). */
+/** Tells the UI whether the signed-in user may grade written answers (same rule as gradeWrittenAnswers). */
 export async function getGradingAccess(): Promise<boolean> {
-  const session = await getSession();
-  return session?.user?.role === "staff";
+  return (await gradingUser()).canGrade;
 }
 
 export type GradeOutcome = {
@@ -91,14 +109,18 @@ export type GradeOutcome = {
   score: number;
   remainingWritten: number;
   fullyGraded: boolean;
+  message?: string;
 };
 
-/** Staff-only: persists awarded marks for written answers and updates the score. */
+/** Admin always, staff while allowed: persists awarded marks for written answers and updates the score. */
 export async function gradeWrittenAnswers(
   attemptId: string,
   grades: { questionId: string; marks: number }[],
 ): Promise<GradeOutcome> {
-  const { user } = await requireRole(["staff"]);
+  const { user, canGrade } = await gradingUser();
+  if (!canGrade) {
+    return { success: false, writtenScore: 0, score: 0, remainingWritten: 0, fullyGraded: false, message: GRADING_LOCKED_MESSAGE };
+  }
   const validated = GradeWrittenSchema.safeParse({ attemptId, grades });
   if (!validated.success) {
     return { success: false, writtenScore: 0, score: 0, remainingWritten: 0, fullyGraded: false };
@@ -122,7 +144,17 @@ export async function gradeWrittenAnswers(
 
   await AttemptModel.updateOne(
     { _id: attempt._id },
-    { $set: { answers: rebuilt, writtenScore, score, status: "submitted" } },
+    {
+      $set: {
+        answers: rebuilt,
+        writtenScore,
+        score,
+        status: "submitted",
+        graderName: user.name,
+        graderRole: user.role === "admin" ? "admin" : "staff",
+        gradedAt: new Date(),
+      },
+    },
   );
 
   await ResultModel.updateOne(

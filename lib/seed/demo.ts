@@ -710,8 +710,9 @@ export async function seedDemoTests(): Promise<void> {
   ];
 
   await QuestionModel.deleteMany({ testId: active._id });
+  const activeQuestionDocs = [];
   for (const [i, q] of activeQuestions.entries()) {
-    await QuestionModel.create({
+    activeQuestionDocs[i] = await QuestionModel.create({
       testId: active._id,
       type: q.type,
       text: q.text,
@@ -898,6 +899,56 @@ export async function seedDemoTests(): Promise<void> {
       },
       { upsert: true },
     );
+  }
+
+  // Meera has already submitted the active test: MCQs are scored, her written
+  // answers wait in the grading queue (admins, or staff while allowed).
+  const meera = userIds.get("meera.iyer@demo.auraedu.com");
+  if (meera) {
+    const submittedAt = new Date(now.getTime() - 20 * 60 * 1000);
+    const meeraWritten: Record<number, string> = {
+      0: "Pleiotropy: one gene affects several traits. Example: phenylketonuria, where one faulty gene causes intellectual disability and reduced pigmentation.",
+      1: "Drift changes allele frequencies by chance and matters most in small populations; gene flow moves alleles between populations and makes them more alike.",
+    };
+    let writtenSeen = 0;
+    const answers = activeQuestionDocs.map((q) => {
+      if (q.type === "written") {
+        return { questionId: q._id, type: "written" as const, selectedIndices: [], answerText: meeraWritten[writtenSeen++] ?? "", isCorrect: null, awardedMarks: null, graded: false };
+      }
+      // Correct on every MCQ except the multi-select one.
+      const correct = q.correctIndices.length === 1;
+      const selectedIndices = correct ? q.correctIndices : [q.correctIndices[0]];
+      return { questionId: q._id, type: "mcq" as const, selectedIndices, answerText: null, isCorrect: correct, awardedMarks: correct ? q.marks : 0, graded: true };
+    });
+    const mcqScore = answers.reduce((sum, a) => sum + (a.type === "mcq" ? a.awardedMarks ?? 0 : 0), 0);
+    const attempt = await AttemptModel.create({
+      testId: active._id,
+      userId: meera,
+      studentName: "Meera Iyer",
+      batch: BATCH,
+      attemptNumber: 1,
+      status: "submitted",
+      startedAt: new Date(submittedAt.getTime() - 35 * 60 * 1000),
+      submittedAt,
+      deadlineAt: new Date(submittedAt.getTime() + 25 * 60 * 1000),
+      answers,
+      mcqScore,
+      writtenScore: 0,
+      score: mcqScore,
+    });
+    await ResultModel.create({
+      testId: active._id,
+      userId: meera,
+      attemptId: attempt._id,
+      title: active.title,
+      batch: BATCH,
+      totalMarks: active.totalMarks,
+      obtained: mcqScore,
+      mcqScore,
+      writtenScore: 0,
+      fullyGraded: false,
+      submittedAt,
+    });
   }
 
   await TestModel.deleteMany({
@@ -1132,7 +1183,7 @@ export async function seedDemoCourses(): Promise<void> {
   console.log(`[seed] courses=${seeded} (curriculum + storefront, upserted by code)`);
 }
 
-/** Institute profile + the 18% GST rule (reset to these values on reseed). */
+/** Institute profile, the 18% GST rule and staff grading on (reset to these values on reseed). */
 export async function seedDemoInstitute(): Promise<void> {
   await InstituteSettingsModel.findOneAndUpdate(
     { key: "institute" },
@@ -1151,11 +1202,12 @@ export async function seedDemoInstitute(): Promise<void> {
           { id: "gst-0", name: "Exempt (books & study material)", rate: 0, hsn: "4901", description: "Printed books — nil rated" },
         ],
         defaultTaxRuleId: "gst-18",
+        staffCanGrade: true,
       },
     },
     { upsert: true },
   );
-  console.log("[seed] institute profile + GST rules");
+  console.log("[seed] institute profile + GST rules + staff grading on");
 
   // Master Data lookup lists back to their defaults.
   await MasterItemModel.deleteMany({});

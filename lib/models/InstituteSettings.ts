@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 /**
  * Single settings document (key "institute"): the institute profile printed
- * on invoices and certificates, and the GST rules applied to new invoices.
+ * on invoices and certificates, the GST rules applied to new invoices, and
+ * institute-wide permission switches (staffCanGrade).
  */
 export interface TaxRule {
   id: string;
@@ -25,6 +26,8 @@ export interface InstituteSettingsDoc {
   invoiceTerms: string;
   taxRules: TaxRule[];
   defaultTaxRuleId: string;
+  /** Staff may grade written test answers (admins always can). Missing = true. */
+  staffCanGrade: boolean;
   updatedAt: Date;
 }
 
@@ -52,6 +55,7 @@ const instituteSettingsSchema = new mongoose.Schema<InstituteSettingsDoc>(
     invoiceTerms: { type: String, default: "" },
     taxRules: { type: [taxRuleSchema], default: [] },
     defaultTaxRuleId: { type: String, default: "" },
+    staffCanGrade: { type: Boolean, default: true },
   },
   { timestamps: true },
 );

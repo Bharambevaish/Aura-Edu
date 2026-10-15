@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { getAdminAttempts, getAdminTests, type AttemptRowDTO } from "@/lib/actions/tests/admin-tests";
 import { getGradingAccess } from "@/lib/actions/tests/grading";
+import { GRADING_LOCKED_MESSAGE } from "@/lib/permissions";
 import { ArrowLeft, Loader2, CheckCircle2, Clock3, Lock, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -140,18 +141,22 @@ export default function TestReportPage() {
                     </span>
                   </td>
                   <td className="px-4 py-4 text-right">
-                    {a.pendingWritten > 0 && !canGrade ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-500/10 text-slate-400 text-xs font-medium border border-white/10" title="Written grading is handled by faculty only">
-                        <Lock size={13} /> Staff only
-                      </span>
-                    ) : (
-                      <Button
-                        size="md"
-                        onClick={() => router.push(`/admin-dashboard/lms/students/tests/attempts/${a.id}`)}
-                      >
-                        {a.pendingWritten > 0 ? "Grade Written" : "View"}
-                      </Button>
-                    )}
+                    <Button
+                      size="md"
+                      variant={a.pendingWritten > 0 && !canGrade ? "secondary" : undefined}
+                      title={a.pendingWritten > 0 && !canGrade ? GRADING_LOCKED_MESSAGE : undefined}
+                      onClick={() => router.push(`/admin-dashboard/lms/students/tests/attempts/${a.id}`)}
+                    >
+                      {a.pendingWritten > 0 && canGrade ? (
+                        "Grade Written"
+                      ) : a.pendingWritten > 0 ? (
+                        <>
+                          <Lock size={13} /> View (admins grade)
+                        </>
+                      ) : (
+                        "View"
+                      )}
+                    </Button>
                   </td>
                 </tr>
               ))}

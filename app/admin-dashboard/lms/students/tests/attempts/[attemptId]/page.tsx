@@ -3,23 +3,14 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { getAttemptForGrading, gradeWrittenAnswers } from "@/lib/actions/tests/grading";
-import type { QuestionDTO } from "@/lib/services/tests";
-import { ArrowLeft, Loader2, CheckCircle2, XCircle, Save } from "lucide-react";
+import { getAttemptForGrading, gradeWrittenAnswers, type GradeScreenDTO } from "@/lib/actions/tests/grading";
+import { GRADING_LOCKED_MESSAGE } from "@/lib/permissions";
+import { ArrowLeft, Loader2, CheckCircle2, XCircle, Save, Lock, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 export default function GradeAttemptPage() {
   const params = useParams<{ attemptId: string }>();
-  const [data, setData] = useState<{
-    attemptId: string;
-    studentName: string;
-    title: string;
-    mcqScore: number;
-    writtenScore: number;
-    score: number;
-    totalMarks: number;
-    questions: QuestionDTO[];
-  } | null>(null);
+  const [data, setData] = useState<GradeScreenDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [grades, setGrades] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -82,7 +73,7 @@ export default function GradeAttemptPage() {
         setSaved(`Written ${res.writtenScore}, total ${res.score} / ${data.totalMarks}${res.remainingWritten > 0 ? `. ${res.remainingWritten} answer(s) remaining.` : " — fully graded."}`);
         void load();
       } else {
-        setError("Could not save grades.");
+        setError(res.message ?? "Could not save grades.");
       }
     } finally {
       setSaving(false);
@@ -134,14 +125,32 @@ export default function GradeAttemptPage() {
             <p className="text-xs text-slate-400 font-mono uppercase">Written</p>
             <p className="text-lg font-bold font-mono text-emerald-400">{data.writtenScore}</p>
           </div>
-          <Button
-            onClick={() => void handleSave()}
-            disabled={saving || writtenUngraded.length === 0}
-          >
-            <Save size={16} /> {saving ? "Saving..." : "Save Grades"}
-          </Button>
+          {data.canGrade && (
+            <Button
+              onClick={() => void handleSave()}
+              disabled={saving || writtenUngraded.length === 0}
+            >
+              <Save size={16} /> {saving ? "Saving..." : "Save Grades"}
+            </Button>
+          )}
         </div>
       </div>
+
+      {!data.canGrade && (
+        <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm">
+          <Lock size={16} className="mt-0.5 shrink-0" />
+          <p>
+            {GRADING_LOCKED_MESSAGE} You can still read the answers below.
+          </p>
+        </div>
+      )}
+      {data.gradedBy && (
+        <p className="flex items-center gap-1.5 text-xs text-slate-400">
+          <UserCheck size={14} className="text-emerald-400" />
+          Graded by {data.gradedBy.name} ({data.gradedBy.role === "admin" ? "Admin" : "Staff"}) on{" "}
+          {new Date(data.gradedBy.at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+        </p>
+      )}
 
       {saved && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">
@@ -209,7 +218,7 @@ export default function GradeAttemptPage() {
         {/* Written grading */}
         <div className="glass-panel rounded-2xl border border-white/10 p-5">
           <h2 className="text-base font-semibold text-white mb-4">
-            Subjective Answers (grade now)
+            Subjective Answers{data.canGrade ? " (grade now)" : ""}
             {writtenUngraded.length > 0 && (
               <span className="ml-2 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-xs font-semibold border border-amber-500/20">
                 {writtenUngraded.length} pending
@@ -233,7 +242,7 @@ export default function GradeAttemptPage() {
                       max={q.marks}
                       value={grades[q.id] ?? ""}
                       onChange={(e) => setGrades((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                      disabled={q.graded && !writtenUngraded.includes(q)}
+                      disabled={!data.canGrade || (q.graded && !writtenUngraded.includes(q))}
                       className="w-24 px-3 py-1.5 border border-white/10 rounded-lg text-sm bg-slate-900/50 focus:outline-none focus:border-emerald-500 text-white text-right font-mono disabled:opacity-50"
                     />
                     {q.graded && (

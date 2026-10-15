@@ -29,19 +29,47 @@ export function canAccessPath(role: Role, pathname: string): boolean {
 }
 
 /**
+ * Who may grade written test answers: admins always; staff only while the
+ * institute setting "Staff can grade written answers" is on (default on).
+ * Enforced server-side in lib/actions/tests/grading.ts.
+ */
+export function canGradeWritten(role: Role | null | undefined, staffCanGrade: boolean): boolean {
+  if (role === "admin") return true;
+  if (role === "staff") return staffCanGrade;
+  return false;
+}
+
+export const GRADING_LOCKED_MESSAGE = "Grading is limited to administrators — ask an admin.";
+
+/**
  * Human-readable summary of what each role can do — shown on Settings →
  * Permissions. Keep in sync with the requireRole() checks in lib/actions.
  */
 export type Access = "full" | "partial" | "none";
 
-export const PERMISSION_MATRIX: { area: string; admin: Access; staff: Access; note: string }[] = [
+export type MatrixRow = {
+  area: string;
+  admin: Access;
+  staff: Access;
+  note: string;
+  /** Staff access drops to "partial" when "Staff can grade written answers" is off. */
+  dependsOnStaffGrading?: boolean;
+};
+
+export const PERMISSION_MATRIX: MatrixRow[] = [
   { area: "Dashboard, My Account, Leave requests", admin: "full", staff: "full", note: "Everyone manages their own account and leave." },
   { area: "Student Corner", admin: "full", staff: "partial", note: "Staff add, edit, import and assign; only admins delete students or reissue passwords." },
   { area: "Student Logins (block, sign out)", admin: "full", staff: "none", note: "Account security actions are admin-only." },
   { area: "Leads & Online Admissions", admin: "full", staff: "full", note: "Follow up and convert leads into students." },
   { area: "Batches, Attendance, Assignments", admin: "full", staff: "full", note: "" },
   { area: "Courses", admin: "full", staff: "partial", note: "Staff edit content and store settings; only admins delete a course." },
-  { area: "Tests", admin: "partial", staff: "full", note: "Both create tests and see reports; written answers are graded by staff only." },
+  {
+    area: "Tests",
+    admin: "full",
+    staff: "full",
+    note: "Both create tests and see reports. Admins can always grade written answers; staff can grade them while “Staff can grade written answers” is on.",
+    dependsOnStaffGrading: true,
+  },
   { area: "Timetable & schedules", admin: "full", staff: "full", note: "" },
   { area: "Task Manager", admin: "full", staff: "partial", note: "Staff delete only tasks they created or are assigned." },
   { area: "Finance — payments, invoices, expenses, refund/waiver requests", admin: "full", staff: "partial", note: "Staff record and request; admins approve, reject, void, delete and process." },
