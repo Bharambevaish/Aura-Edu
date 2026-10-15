@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useStudent } from "@/context/StudentContext";
 import { getMyCourse, setLessonComplete, type MyCourse, type MyLesson } from "@/lib/actions/student-portal";
+import { DoubtDiscussion } from "@/components/student/DoubtDiscussion";
 import {
   ArrowLeft,
   PlayCircle,
@@ -29,7 +30,14 @@ export default function CourseLearnPage() {
     let ignore = false;
     getMyCourse(courseId)
       .then((data) => {
-        if (!ignore) setCourse(data);
+        if (ignore) return;
+        setCourse(data);
+        // Deep link from a notification: ?lesson=<id>&tab=discussion
+        const q = new URLSearchParams(window.location.search);
+        const lesson = data?.modules.flatMap((m) => m.lessons).find((l) => l.id === q.get("lesson"));
+        if (lesson) setSelectedLesson(lesson);
+        const tab = q.get("tab");
+        if (tab === "overview" || tab === "notes" || tab === "discussion") setActiveTab(tab);
       })
       .catch(() => {
         if (!ignore) setCourse(null);
@@ -263,17 +271,7 @@ export default function CourseLearnPage() {
             )}
 
             {activeTab === "discussion" && (
-              <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex gap-3">
-                  <input
-                    type="text"
-                    disabled
-                    placeholder="Doubt discussions are coming soon — ask your faculty in class meanwhile."
-                    className="flex-1 bg-transparent text-xs text-white outline-none placeholder-slate-500 cursor-not-allowed"
-                  />
-                  <span className="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-500 font-bold text-xs">Coming soon</span>
-                </div>
-              </div>
+              <DoubtDiscussion key={activeLesson.id} courseId={course.id} lessonId={activeLesson.id} lessonTitle={activeLesson.title} />
             )}
           </div>
         </div>

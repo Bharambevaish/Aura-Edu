@@ -680,3 +680,28 @@ export const MasterItemSchema = z.object({
   description: z.string().trim().max(300).default(""),
   active: z.boolean().default(true),
 });
+
+/* ------------------------- Connect group chat ------------------------- */
+
+export const SendChatMessageSchema = z.object({
+  batchName: z.string().trim().min(1, { message: "Pick a group first." }),
+  body: z.string().trim().min(1, { message: "Type a message first." }).max(2000),
+  /** Also deliver to every student's notification hub. */
+  broadcast: z.boolean().default(false),
+  /** Render the broadcast as a simulated WhatsApp send. */
+  whatsapp: z.boolean().default(false),
+});
+
+/* ------------------------------- Doubts ------------------------------- */
+
+export const AskDoubtSchema = z.object({
+  courseId: z.string().trim().min(1),
+  lessonId: z.string().trim().min(1),
+  question: z.string().trim().min(5, { message: "Describe your doubt in a few words (5+ characters)." }).max(1500),
+});
+
+export const ReplyDoubtSchema = z.object({
+  doubtId: z.string().trim().min(1),
+  body: z.string().trim().min(2, { message: "Write a reply first." }).max(3000),
+  markAnswered: z.boolean().default(true),
+});

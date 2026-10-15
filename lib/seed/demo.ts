@@ -33,6 +33,8 @@ import { CalendarEventModel } from "@/lib/models/CalendarEvent";
 import { InstituteSettingsModel } from "@/lib/models/InstituteSettings";
 import { MasterItemModel } from "@/lib/models/MasterItem";
 import { MASTER_META, MASTER_TYPES } from "@/lib/master";
+import { ChatMessageModel } from "@/lib/models/ChatMessage";
+import { DoubtModel } from "@/lib/models/Doubt";
 import type { Role } from "@/lib/models/User";
 
 export interface DemoAccount {
@@ -1101,6 +1103,8 @@ export async function seedDemoData(): Promise<void> {
   await seedDemoLeads();
   await seedDemoFinance();
   await seedDemoConnect();
+  await seedDemoChat();
+  await seedDemoDoubts();
 }
 
 const HOUR = 60 * 60 * 1000;
@@ -2515,4 +2519,140 @@ export async function seedDemoTasks(): Promise<void> {
     }),
   );
   console.log(`[seed] tasks: ${plan.length}.`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Connect group chat                                                  */
+/* ------------------------------------------------------------------ */
+
+/** A few messages per batch group: staff posts plus scripted student replies. */
+export async function seedDemoChat(): Promise<void> {
+  await connectDB();
+  await ChatMessageModel.deleteMany({});
+  const [batches, staff, students, admin] = await Promise.all([
+    BatchModel.find().select("_id name").lean(),
+    UserModel.find({ role: "staff", isDemo: true }).select("_id name").lean(),
+    UserModel.find({ role: "student" }).select("_id name batch").sort({ name: 1 }).lean(),
+    UserModel.findOne({ email: "admin@demo.auraedu.com" }).select("_id name").lean(),
+  ]);
+  const ritu = staff.find((s) => s.name === "Ritu Sharma") ?? staff[0];
+  const now = Date.now();
+  const rows: Record<string, unknown>[] = [];
+  for (const b of batches) {
+    const members = students.filter((s) => s.batch === b.name);
+    const script: [number, "staff" | "admin" | "student", string][] = [
+      [3 * DAY, "admin", `Welcome to the ${b.name} group! Important updates for the batch will be shared here.`],
+      [3 * DAY - 20 * 60 * 1000, "student", "Thank you, sir! 🙏"],
+      [DAY + 2 * HOUR, "staff", "Reminder: the weekly test is on Saturday at 10 AM. Syllabus — everything covered this week."],
+      [DAY + HOUR, "student", "Will the test cover only this week's chapters or the full unit?"],
+      [DAY + 50 * 60 * 1000, "staff", "Only this week's chapters. Revise the formula sheet shared in class."],
+      [3 * HOUR, "staff", "Fee reminder: the second instalment is due on the 25th. You can pay online from the student portal."],
+    ];
+    script.forEach(([ago, role, body], i) => {
+      const sender = role === "admin" ? admin : role === "staff" ? ritu : members[i % Math.max(members.length, 1)];
+      if (!sender) return;
+      const whatsapp = i === script.length - 1;
+      rows.push({
+        batch: b.name,
+        batchId: b._id,
+        senderId: sender._id,
+        senderName: sender.name,
+        senderRole: role,
+        body,
+        channel: whatsapp ? "whatsapp" : "chat",
+        broadcast: whatsapp,
+        delivered: whatsapp ? members.length : 0,
+        simulated: role === "student",
+        createdAt: new Date(now - ago),
+        updatedAt: new Date(now - ago),
+      });
+    });
+  }
+  // Raw insert keeps the back-dated timestamps (Mongoose would overwrite them).
+  if (rows.length > 0) await ChatMessageModel.collection.insertMany(rows);
+  console.log(`[seed] group chat: ${rows.length} messages across ${batches.length} batches.`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Doubt discussion                                                    */
+/* ------------------------------------------------------------------ */
+
+/** Three doubts on the demo student's NEET course — one already answered. */
+export async function seedDemoDoubts(): Promise<void> {
+  await connectDB();
+  await DoubtModel.deleteMany({});
+  const [student, classmate, ritu, course] = await Promise.all([
+    UserModel.findOne({ email: "student@demo.auraedu.com" }).select("_id name batch").lean(),
+    UserModel.findOne({ role: "student", batch: "NEET Batch A", email: { $ne: "student@demo.auraedu.com" } })
+      .select("_id name batch")
+      .lean(),
+    UserModel.findOne({ email: "staff@demo.auraedu.com" }).select("_id name").lean(),
+    CourseModel.findOne({ code: "NEET-MED-2026" }).select("_id title modules").lean(),
+  ]);
+  if (!student || !course) return;
+  const lessons = (course.modules ?? []).flatMap((m) => m.lessons ?? []);
+  if (lessons.length === 0) return;
+  const at = (i: number) => lessons[Math.min(i, lessons.length - 1)];
+  const asker = classmate ?? student;
+  const teacher = { id: ritu?._id ?? null, name: ritu?.name ?? "Ritu Sharma" };
+  const now = Date.now();
+  const answeredAt = new Date(now - DAY - 3 * HOUR);
+  const doubt = (
+    lesson: { id: string; title: string },
+    who: { _id: mongoose.Types.ObjectId; name: string; batch?: string | null },
+    question: string,
+    ago: number,
+  ) => ({
+    _id: new mongoose.Types.ObjectId(),
+    courseId: course._id,
+    lessonId: lesson.id,
+    lessonTitle: lesson.title,
+    studentId: who._id,
+    studentName: who.name,
+    batch: who.batch ?? "",
+    question,
+    status: "open",
+    replies: [] as Record<string, unknown>[],
+    answeredAt: null as Date | null,
+    createdAt: new Date(now - ago),
+    updatedAt: new Date(now - ago),
+  });
+
+  const answered = doubt(
+    at(0),
+    student,
+    "In the derivation at the end of this lesson, why do we only consider the limit from the right side?",
+    2 * DAY,
+  );
+  answered.status = "answered";
+  answered.answeredAt = answeredAt;
+  answered.updatedAt = answeredAt;
+  answered.replies.push({
+    _id: new mongoose.Types.ObjectId(),
+    authorId: teacher.id,
+    authorName: teacher.name,
+    authorRole: "staff",
+    body: "Because the quantity is only defined for positive values there — approaching from the left would leave the domain. We'll redo this example in Thursday's class.",
+    createdAt: answeredAt,
+  });
+
+  await DoubtModel.collection.insertMany([
+    answered,
+    doubt(at(0), asker, "Could you share a few more practice questions on this topic, in the NEET previous-year pattern?", 20 * HOUR),
+    doubt(at(1), student, "The notes and the video use different units for the same constant — which one should we use in the exam?", 5 * HOUR),
+  ]);
+
+  await NotificationModel.create({
+    userId: student._id,
+    title: "Your doubt has been answered",
+    message: `${teacher.name} replied to your question on "${at(0).title}" (${course.title}).`,
+    category: "Courses",
+    sender: teacher.name,
+    read: true,
+    link: `/student-portal/my-courses/${String(course._id)}/learn?lesson=${encodeURIComponent(at(0).id)}&tab=discussion`,
+    ip: "-",
+    os: "-",
+    device: "-",
+  });
+  console.log("[seed] doubts: 3 on the demo student's NEET course (1 answered).");
 }
