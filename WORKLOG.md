@@ -253,8 +253,70 @@ rank #1 of 2, 3 unread notifications (matches DB); marking all 9 lessons
 complete produced a Certificate of Completion; schedule showed today's live
 class, doubt hour and batch test. Re-seeding removed the converted account.
 
+## Stage D — Breadth sweep (2026-10-15)
+
+Branch `stage-d-breadth`, also pushed as `main` on GitHub
+`Nikhil270703/AuraEdu`. Every sidebar module now runs on live data.
+
+- **Certificates + audit:** `lib/certificate-signing.ts` HMAC-signs certificate
+  links; the render route refuses edited links; public `/verify`. Student,
+  login, batch, course, attendance, assignment, test and grading actions write
+  `AuditLog` rows.
+- **Timetable:** `TimetableSlot` model; weekly grid per batch with batch and
+  teacher clash checks; date-wise schedule; the student Schedule includes
+  recurring classes.
+- **Staff:** Staff Corner CRUD (one-time passwords, deactivate signs out,
+  reset); My Account (profile, password, classes taught); forced password
+  change on the admin side too; teaching load comes from the timetable.
+- **Leave + payroll:** `LeaveRequest` with working-day counts, allowances and
+  overlap checks, plus an admin approvals queue. Payroll simulator with printable
+  payslips (LOP from unpaid leave, PF, PT, illustrative TDS).
+- **Task Manager:** `Task` model, Kanban with drag-and-drop, list view, filters,
+  CSV.
+- **Reports Hub:** `runReport()` serves 19 live reports at
+  `/admin-dashboard/reports/<key>` with CSV export; Legacy redirects.
+- **Settings:** `InstituteSettings` (profile + GST rules) feeds invoices;
+  printable tax invoice; Security page (sessions, sign out other devices);
+  Permissions page renders the enforced matrix.
+- **Master Data:** `MasterItem` model + `lib/actions/master.ts`; departments,
+  designations, ID proofs and lost reasons feed the Staff, Student and Leads
+  pickers (`components/admin/useLookups.ts`). Renames cascade; entries in use
+  can only be deactivated. A live reference tab shows usage counts.
+- **Multi-branch:** `Branch` model + `lib/actions/branches.ts`; Settings →
+  Branches; header switcher stored in a cookie; `lib/branch-scope.ts`
+  (`getBranchScope`, `studentRefFilter`) scopes Student Corner, Finance
+  overview/invoices/payments and the dashboard, with a "Branch: X" chip.
+  Renames cascade to students, invoices, payments and leads. Expenses stay
+  institute-wide.
+- **Form Builder:** `Form` + `FormSubmission` models, `lib/actions/forms.ts`,
+  `components/forms/FormBuilder.tsx` / `FormRenderer.tsx` (same renderer for
+  the preview and the public page). Public `/f/<slug>` (+ `?embed=1`) is
+  validated against the stored schema, rate-limited and honeypotted; it
+  creates or refreshes a "Web Form" lead. `next.config.ts` allows framing only
+  for `/f/*`.
+- **Connect chat:** `ChatMessage` model + `lib/actions/chat.ts`; saved group
+  chat per batch; keyword-scripted student replies and a simulated WhatsApp
+  sent → delivered → read preview (labelled; nothing is sent).
+- **Doubts:** `Doubt` model + `lib/actions/doubts.ts`; Learn player Doubt
+  Discussion (enrollment-checked); LMS → Doubts Inbox (staff scoped to their
+  batches); replies notify the student.
+- Multi-branch, Form Builder and chat/doubts were built in parallel worktrees
+  and merged; the only conflicts were appends in `lib/validation.ts` and
+  `lib/seed/demo.ts`.
+
+Verified locally (isolated in-memory Mongo, browser + curl): each piece was
+checked in its own worktree. After merging, `tsc`, `eslint` and `next build`
+pass. The combined seed runs (2 branches, 2 forms / 5 responses, 24 chat
+messages, 3 doubts). The dashboard, Forms, Doubts Inbox, Groups and Branches
+pages load with seeded data. Public `/f/free-demo-class` returns 200 logged
+out and can be framed, while `/login` keeps `X-Frame-Options: DENY`.
+
+Environment notes: Turbopack `next dev` can't resolve the Google font here,
+so use `next dev --webpack`. `next start` over plain http won't keep a login
+because the proxy expects the `__Secure-` cookie; that's by design for HTTPS.
+
 ## TODO next
 
-See `TASKLIST.md` §2–3 (Stages A–F): Phase 1 close-out, go-live, Leads +
-auto-conversion, Online Admissions backend, live admin dashboard/reports,
-timetable, remaining simulated student-portal widgets.
+See `TASKLIST.md` §2–3: Stage E (e2e + unit tests, CSP nonces, mobile and
+performance passes, richer seed, demo-day checklist), then go-live (Atlas +
+Vercel) and Stage F integrations for the modules a client buys.

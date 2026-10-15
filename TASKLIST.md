@@ -15,7 +15,7 @@ effort is a rough single-developer estimate.
 
 ---
 
-## 1. Snapshot (2026-10-14, after Stage C)
+## 1. Snapshot (2026-10-15, after Stage D)
 
 | Area | Status |
 |---|---|
@@ -25,9 +25,8 @@ effort is a rough single-developer estimate.
 | Phase 1 security & core fixes | ✅ Done on branch `phase1-security` |
 | Stage A close-out | ✅ Code items done on branch `stage-a-closeout` · ⏳ owner items: history purge, new remote, PR merge, branch protection |
 | Demo story | ✅ Online admission → leads → follow-up → convert → student → test → grading → certificate → reset (branch `stage-c-demo-story`, script in `docs/DEMO_SCRIPT.md`) |
-| Static-UI modules | ❌ Timetable, Reports, Task Manager, Form Builder, Settings, Master Data, Multi-branch |
-| Not built at all | ❌ Payroll, Leave Management, staff self-service |
-| Deployment | ❌ No Atlas, no Vercel link · ✅ CI workflow written (runs once a GitHub remote exists) |
+| Breadth modules | ✅ Timetable, Reports Hub, Task Manager, Form Builder, Settings, Master Data, Multi-branch, Payroll simulator, Leave, staff self-service, group chat, lesson doubts (branch `stage-d-breadth`) |
+| Deployment | ❌ No Atlas, no Vercel link · ✅ code on GitHub `Nikhil270703/AuraEdu` (`main` = latest) · ✅ CI workflow |
 
 ---
 
@@ -144,26 +143,28 @@ aren't on the demo path.
 - [x] ~~Demo script for the full story: `docs/DEMO_SCRIPT.md`~~
 - [ ] **Decide (you):** who grades written answers. The Definition of Done says "admin grades", but the code allows staff only (the demo script uses the staff login)
 
-### Stage D — Breadth sweep (1–2 weeks)
-- [ ] **Timetable / schedules:** per-batch slots model → admin date-wise, batch and meeting schedules → student Schedule page
-- [ ] **Reports:** Reports Hub charts from real aggregates (fees, attendance, results, enrollments); retire "Legacy Reports" or wire it
-- [ ] **Staff experience:**
-  - [ ] Staff CRUD in Staff Corner
-  - [ ] Assign staff to batches/courses
-  - [ ] Staff see "my batches" first
-  - [ ] Staff profile and password change
-- [ ] **Settings that matter:** institute profile and invoice/tax config that actually feed invoices; Permissions page reflecting `lib/permissions.ts`
-- [ ] **Internal Task Manager:** `Task` model + Kanban CRUD
-- [ ] **Salary & Payroll simulator:** inputs → computed payslip, printable
-- [ ] **Leave Management:** staff request → admin approve
-- [ ] **Multi-branch:** branch switcher that scopes students, finance and dashboards
-- [ ] **Embeddable Form Builder:** persisted form schema + live preview (+ submissions feeding leads)
-- [ ] **Master Data Center** wired to real lookups (courses, categories, branches)
-- [ ] Audit log for non-finance admin actions (student CRUD, block/logout, batch moves, test publish)
-- [ ] Connect scripted chat / WhatsApp simulation
-- [ ] Reports Hub: its report links are still `#` placeholders
-- [ ] Learn player: "Doubt discussion" is marked coming soon; lesson material opens only when a lesson has a URL
-- [ ] **Certificate verification:** `/certificates/render` prints whatever name/course is in the URL, so a printed certificate can't be trusted on its own. Add a public `/verify/<credential>` check (or sign the parameters)
+### Stage D — Breadth sweep ✅ (branch `stage-d-breadth`, 2026-10-15)
+- [x] ~~**Timetable / schedules:** weekly `TimetableSlot` per batch with batch and teacher clash checks; date-wise schedule; student Schedule includes recurring classes~~
+- [x] ~~**Reports:** Reports Hub with 19 live reports (revenue, receivables, expenses & payroll, students & courses, leads) and CSV export; "Legacy Reports" redirects to the hub~~
+- [x] ~~**Staff experience:**~~
+  - [x] ~~Staff CRUD in Staff Corner (one-time password, deactivate, reset)~~
+  - [x] ~~Assign staff to batches/courses: through the timetable (teaching load comes from it)~~
+  - [x] ~~Staff see "my batches" first: dashboard shows the teacher's classes today; Doubts Inbox is scoped to their batches~~
+  - [x] ~~Staff profile and password change (My Account)~~
+- [x] ~~**Settings that matter:** institute profile + GST rules feed invoices; printable tax invoice; Security page; Permissions page renders the enforced role matrix~~
+- [x] ~~**Internal Task Manager:** `Task` model + Kanban CRUD~~
+- [x] ~~**Salary & Payroll simulator:** computed, printable payslips (labelled a simulator)~~
+- [x] ~~**Leave Management:** staff request → admin approve~~
+- [x] ~~**Multi-branch:** `Branch` model, Settings → Branches, header switcher (cookie) scoping Student Corner, Finance overview/invoices/payments and the dashboard~~
+- [x] ~~**Embeddable Form Builder:** persisted schema, two-pane builder with live preview, public `/f/<slug>` (+ `?embed=1` iframe), responses + CSV, each response becomes a "Web Form" lead~~
+- [x] ~~**Master Data Center:** editable lookup lists (departments, designations, ID proofs, lost reasons) feeding real pickers, rename cascades, live reference tab~~
+- [x] ~~Audit log for non-finance admin actions~~
+- [x] ~~Connect scripted chat / WhatsApp simulation: saved batch group chat, scripted student replies, simulated WhatsApp ticks~~
+- [x] ~~Reports Hub links no longer `#`~~
+- [x] ~~Learn player "Doubt discussion": students ask on a lesson; LMS → Doubts Inbox for replies, with a notification back~~
+- [ ] Learn player: lesson material opens only when a lesson has a URL (needs file uploads, Stage F)
+- [x] ~~**Certificate verification:** HMAC-signed certificate links and a public `/verify` page~~
+- [ ] Multi-branch follow-ups: expenses are institute-wide; reports, attendance and leads are not branch-scoped yet
 
 ### Stage E — Harden & polish (~1 week)
 - [ ] Playwright e2e test of the full demo story (§6) running in CI
@@ -197,17 +198,17 @@ aren't on the demo path.
 | Assignments + notifications | **Working** |
 | Certificates | **Working** (stateless generator) |
 | Finance (10 screens) | **Working** (one admin payment bug, Stage A) |
-| Communications (5 screens) | **Working** (chat simulated) |
+| Communications (5 screens) | **Working** (group chat saved; student replies and WhatsApp simulated) |
 | Student Portal | **Working** (all widgets on live data) |
-| Staff permissions | **Working** · staff CRUD/self-service pending (Stage D) |
+| Staff permissions + self-service | **Working** (CRUD, My Account, leave, payslips) |
 | Leads + conversion | **Working** (live DB) |
 | Online Admissions | **Working** (creates leads) |
 | Admin dashboard home | **Working** (live aggregates) |
-| Timetable / schedules | Static (Stage D) |
-| Reports | Static (Stage D) |
-| Task Manager · Form Builder · Master Data · Settings | Static (Stage D) |
-| Multi-branch | Not built (Stage D) |
-| Payroll · Leave Management | Not built (Stage D) |
+| Timetable / schedules | **Working** |
+| Reports Hub | **Working** (19 live reports) |
+| Task Manager · Form Builder · Master Data · Settings | **Working** |
+| Multi-branch | **Working** (students, finance, dashboard scoped) |
+| Payroll · Leave Management | **Working** (payroll is a simulator) |
 
 ---
 
