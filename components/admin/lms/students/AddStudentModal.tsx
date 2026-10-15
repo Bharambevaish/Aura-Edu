@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { createStudent, updateStudent, getStudentDetail, type StudentRowDTO } from "@/lib/actions/students";
 import { useToast } from "@/components/ui/Toast";
+import { useLookups } from "@/components/admin/useLookups";
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -98,6 +99,7 @@ const withCurrent = (base: readonly string[], current: string) =>
 
 export default function AddStudentModal({ isOpen, onClose, student, onSaved }: AddStudentModalProps) {
   const { toast } = useToast();
+  const lookups = useLookups();
   const [currentStep, setCurrentStep] = useState(1);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -600,7 +602,7 @@ export default function AddStudentModal({ isOpen, onClose, student, onSaved }: A
                           <div>
                             <label className={labelCls}>ID Proof Type</label>
                             <select className={inputCls} value={form.idProofType} onChange={set("idProofType")}>
-                              {withCurrent(["Aadhar", "PAN", "Passport"], form.idProofType).map((t) => (
+                              {withCurrent(lookups.id_proof, form.idProofType).map((t) => (
                                 <option key={t}>{t}</option>
                               ))}
                             </select>

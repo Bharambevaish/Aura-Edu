@@ -8,6 +8,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageHeader, StatCard, Button, Modal, useToast } from "@/components/ui";
+import { useLookups } from "@/components/admin/useLookups";
 import {
   Plus,
   RefreshCw,
@@ -90,6 +91,7 @@ export default function AllLeadsPage() {
   const [convert, setConvert] = useState<LeadRow | null>(null);
   const [converted, setConverted] = useState<{ name: string; email: string; password: string; invoiceNo?: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const lookups = useLookups();
 
   // Form state
   const [addForm, setAddForm] = useState({ name: "", email: "", phone: "", type: "student", priority: "medium", source: "walk_in", interestedCourse: "", note: "" });
@@ -477,7 +479,10 @@ export default function AllLeadsPage() {
               </label>
             </div>
             {fuForm.stage === "lost" && (
-              <input className={inputCls} placeholder="Reason the lead was lost *" value={fuForm.lostReason} onChange={(e) => setFuForm({ ...fuForm, lostReason: e.target.value })} />
+              <>
+                <input className={inputCls} list="lost-reasons" placeholder="Reason the lead was lost *" value={fuForm.lostReason} onChange={(e) => setFuForm({ ...fuForm, lostReason: e.target.value })} />
+                <datalist id="lost-reasons">{lookups.lost_reason.map((r) => <option key={r} value={r} />)}</datalist>
+              </>
             )}
             <textarea className={inputCls} rows={2} placeholder="Note from this call / visit" value={fuForm.note} onChange={(e) => setFuForm({ ...fuForm, note: e.target.value })} />
 

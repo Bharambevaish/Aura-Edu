@@ -1,285 +1,217 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Database,
-  Search,
-  Plus,
-  Edit2,
-  Trash2,
-  X,
-  CheckCircle2,
-  AlertCircle
-} from 'lucide-react';
+/**
+ * Master Data Center — the lookup lists behind the app's pickers (staff
+ * department/designation, student ID proof, lead lost reasons), plus the live
+ * reference data owned by other modules. Renaming an entry updates every
+ * record using it; entries in use can only be deactivated.
+ */
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { PageHeader, Button, Modal, useToast } from "@/components/ui";
+import { Database, Plus, Edit2, Trash2, Search, ExternalLink } from "lucide-react";
+import { MASTER_META, MASTER_TYPES, type MasterType } from "@/lib/master";
+import { getMasterItems, saveMasterItem, deleteMasterItem, getLiveLookups, type MasterRow, type LiveLookup } from "@/lib/actions/master";
+
+const inputCls =
+  "w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500";
+
+type Tab = MasterType | "live";
+type Form = { id: string | null; name: string; description: string; active: boolean };
 
 export default function MasterDataCenterPage() {
-  const [activeTab, setActiveTab] = useState('Class');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { toast } = useToast();
+  const [tab, setTab] = useState<Tab>("department");
+  const [rows, setRows] = useState<MasterRow[] | null>(null);
+  const [live, setLive] = useState<LiveLookup[] | null>(null);
+  const [query, setQuery] = useState("");
+  const [form, setForm] = useState<Form | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [reload, setReload] = useState(0);
 
-  const tabs = [
-    'Class', 'Department', 'Designation', 'Lead For', 'Lead Source', 
-    'Course Duration', 'Semester & Year', 'College'
-  ];
+  useEffect(() => {
+    let ignore = false;
+    const load = tab === "live" ? getLiveLookups().then((l) => !ignore && setLive(l)) : getMasterItems(tab).then((r) => !ignore && setRows(r));
+    load.catch(() => toast("Could not load master data.", "error"));
+    return () => {
+      ignore = true;
+    };
+  }, [tab, reload, toast]);
 
-  // Mock data generator for tables
-  const generateMockData = (type: string) => {
-    return Array.from({ length: 5 }).map((_, i) => ({
-      id: `${type.toUpperCase().substring(0, 3)}-00${i + 1}`,
-      name: `Sample ${type} ${i + 1}`,
-      status: i % 3 === 0 ? 'Inactive' : 'Active',
-      addedBy: 'Admin',
-      date: '19 Jul 2026'
-    }));
+  const switchTab = (t: Tab) => {
+    setRows(null);
+    setQuery("");
+    setTab(t);
   };
+  const refresh = useCallback(() => setReload((n) => n + 1), []);
 
-  const data = generateMockData(activeTab);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (rows ?? []).filter((r) => !q || r.name.toLowerCase().includes(q) || r.description.toLowerCase().includes(q));
+  }, [rows, query]);
 
-  const getModalContent = () => {
-    switch (activeTab) {
-      case 'College':
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">College Name *</label>
-                <input type="text" className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" placeholder="Enter college name" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">University/Board</label>
-                <input type="text" className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" placeholder="Enter university" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Address</label>
-              <textarea rows={2} className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none custom-scrollbar" placeholder="Enter full address"></textarea>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">City</label>
-                <input type="text" className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">State</label>
-                <input type="text" className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">PIN Code</label>
-                <input type="text" className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Contact Person Email</label>
-              <input type="email" className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" placeholder="email@college.edu" />
-            </div>
-          </div>
-        );
-      case 'Semester & Year':
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Type *</label>
-                <select className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none">
-                  <option>Semester</option>
-                  <option>Year</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1.5">Number/Name *</label>
-                <input type="text" className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" placeholder="e.g. 1, 2, First Year" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Description (Optional)</label>
-              <textarea rows={2} className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none custom-scrollbar" placeholder="Description"></textarea>
-            </div>
-          </div>
-        );
-      default:
-        // Generic modal for Class, Department, Designation, Lead For, Lead Source, Duration
-        return (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">{activeTab} Name *</label>
-              <input 
-                type="text" 
-                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" 
-                placeholder={`Enter ${activeTab.toLowerCase()} name`} 
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Description (Optional)</label>
-              <textarea 
-                rows={3} 
-                className="w-full bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none custom-scrollbar" 
-                placeholder="Enter description"
-              ></textarea>
-            </div>
-            <div className="flex items-center gap-3">
-              <label className="text-sm font-medium text-slate-300">Status:</label>
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="status" defaultChecked className="text-emerald-500 bg-slate-900 border-white/10" />
-                  <span className="text-sm text-white">Active</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="radio" name="status" className="text-emerald-500 bg-slate-900 border-white/10" />
-                  <span className="text-sm text-slate-400">Inactive</span>
-                </label>
-              </div>
-            </div>
-          </div>
-        );
+  const save = async () => {
+    if (!form || tab === "live") return;
+    setBusy(true);
+    const res = await saveMasterItem(form.id, { type: tab, name: form.name, description: form.description, active: form.active });
+    setBusy(false);
+    toast(res.message, res.ok ? "success" : "error");
+    if (res.ok) {
+      setForm(null);
+      refresh();
     }
   };
 
+  const remove = async (row: MasterRow) => {
+    if (!confirm(`Delete “${row.name}”?`)) return;
+    const res = await deleteMasterItem(row.id);
+    toast(res.message, res.ok ? "success" : "error");
+    if (res.ok) refresh();
+  };
+
+  const meta = tab === "live" ? null : MASTER_META[tab];
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Database className="text-emerald-400" /> Master Data Center
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">Manage all central reference data, classifications, and parameters.</p>
-        </div>
-      </div>
+      <PageHeader title="Master Data Center" subtitle="The lookup lists behind every picker in the app, and the live reference data they connect to." icon={<Database size={20} className="text-emerald-400" />}>
+        {meta && (
+          <Button size="sm" onClick={() => setForm({ id: null, name: "", description: "", active: true })}>
+            <Plus size={14} /> Add entry
+          </Button>
+        )}
+      </PageHeader>
 
-      <div className="glass-panel p-2 rounded-xl flex overflow-x-auto custom-scrollbar gap-2 bg-white/[0.02]">
-        {tabs.map(tab => (
+      <div className="glass-panel p-2 rounded-xl flex overflow-x-auto custom-scrollbar gap-2">
+        {[...MASTER_TYPES, "live" as const].map((t) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-              activeTab === tab 
-                ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' 
-                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-            }`}
+            key={t}
+            onClick={() => switchTab(t)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${tab === t ? "bg-emerald-500 text-white" : "text-slate-400 hover:text-slate-200 hover:bg-white/5"}`}
           >
-            {tab}
+            {t === "live" ? "Live reference data" : MASTER_META[t].label}
           </button>
         ))}
       </div>
 
-      <motion.div 
-        key={activeTab}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-panel rounded-2xl overflow-hidden"
-      >
-        <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-white/[0.02]">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input 
-              type="text" 
-              placeholder={`Search ${activeTab}...`} 
-              className="w-full bg-slate-900/50 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-            />
+      {meta && (
+        <div className="glass-panel rounded-2xl overflow-hidden">
+          <div className="p-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input className={`${inputCls} pl-8`} placeholder={`Search ${meta.label.toLowerCase()}…`} value={query} onChange={(e) => setQuery(e.target.value)} />
+            </div>
+            <p className="text-xs text-slate-400">Used in: <span className="text-slate-200">{meta.usedIn}</span></p>
           </div>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg transition-colors text-sm font-medium shadow-lg shadow-emerald-600/20 w-full sm:w-auto"
-          >
-            <Plus size={16} /> Add {activeTab}
-          </button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-slate-900/50 text-slate-400 border-b border-white/10">
-              <tr>
-                <th className="px-6 py-4 font-medium">ID</th>
-                <th className="px-6 py-4 font-medium">{activeTab} Name</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Added By</th>
-                <th className="px-6 py-4 font-medium">Added On</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {data.map((row) => (
-                <tr key={row.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="px-6 py-4 font-mono text-emerald-400 font-medium">{row.id}</td>
-                  <td className="px-6 py-4 text-slate-200 font-medium">{row.name}</td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                      row.status === 'Active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                    }`}>
-                      {row.status === 'Active' ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-400">{row.addedBy}</td>
-                  <td className="px-6 py-4 text-slate-400">{row.date}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="p-2 text-slate-400 hover:text-blue-400 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-white/5">
-                        <Edit2 size={16} />
-                      </button>
-                      <button className="p-2 text-slate-400 hover:text-red-400 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-white/5">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
+              <thead>
+                <tr className="text-left text-[10px] uppercase tracking-wider text-slate-400 border-b border-white/10">
+                  <th className="py-3 px-4">Name</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">In use</th>
+                  <th className="py-3 px-4">Added by</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="p-4 border-t border-white/10 flex items-center justify-between text-sm text-slate-400 bg-white/[0.01]">
-          <div>Showing 1 to 5 of 24 entries</div>
-          <div className="flex gap-1">
-            <button className="px-2 py-1 rounded hover:bg-white/10 transition-colors">Prev</button>
-            <button className="px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 font-medium border border-emerald-500/30">1</button>
-            <button className="px-2 py-1 rounded hover:bg-white/10 transition-colors">2</button>
-            <button className="px-2 py-1 rounded hover:bg-white/10 transition-colors">Next</button>
+              </thead>
+              <tbody>
+                {!rows && (
+                  <tr><td colSpan={5} className="py-6 px-4 text-slate-500">Loading…</td></tr>
+                )}
+                {rows && filtered.length === 0 && (
+                  <tr><td colSpan={5} className="py-6 px-4 text-slate-500">No entries.</td></tr>
+                )}
+                {filtered.map((r) => (
+                  <tr key={r.id} className="border-b border-white/5">
+                    <td className="py-3 px-4">
+                      <p className="text-white">{r.name}</p>
+                      {r.description && <p className="text-[11px] text-slate-500">{r.description}</p>}
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] border ${r.active ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/20" : "bg-slate-500/10 text-slate-400 border-slate-500/20"}`}>
+                        {r.active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-300">{r.usage} record{r.usage === 1 ? "" : "s"}</td>
+                    <td className="py-3 px-4 text-xs text-slate-400">
+                      {r.createdByName}
+                      <br />
+                      {new Date(r.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                    </td>
+                    <td className="py-3 px-4">
+                      <div className="flex justify-end gap-2">
+                        <button onClick={() => setForm({ id: r.id, name: r.name, description: r.description, active: r.active })} className="p-2 rounded-md bg-slate-800 text-slate-400 hover:text-blue-400" title="Edit">
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => remove(r)}
+                          disabled={r.usage > 0}
+                          className="p-2 rounded-md bg-slate-800 text-slate-400 hover:text-rose-400 disabled:opacity-30 disabled:hover:text-slate-400"
+                          title={r.usage > 0 ? "In use — deactivate instead" : "Delete"}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+          <p className="px-4 py-3 text-[11px] text-slate-500 border-t border-white/5">
+            Inactive entries are hidden from pickers but kept on existing records. Renaming updates every record that uses the entry.
+          </p>
         </div>
-      </motion.div>
+      )}
 
-      {/* Add/Edit Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }} 
-              className="absolute inset-0 bg-[#070B14]/80 backdrop-blur-sm"
-              onClick={() => setIsModalOpen(false)}
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
-              animate={{ opacity: 1, scale: 1, y: 0 }} 
-              exit={{ opacity: 0, scale: 0.95, y: 20 }} 
-              className="relative w-full max-w-lg lg:max-w-xl glass-panel rounded-2xl shadow-2xl border border-white/10 overflow-hidden"
-            >
-              <div className="p-6 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Database size={20} className="text-emerald-400" />
-                  Add New {activeTab}
-                </h2>
-                <button onClick={() => setIsModalOpen(false)} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors">
-                  <X size={20} />
-                </button>
+      {tab === "live" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {!live && <p className="text-sm text-slate-400">Loading…</p>}
+          {live?.map((l) => (
+            <div key={l.label} className="glass-panel rounded-2xl p-5 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-white">{l.label}</p>
+                  <p className="text-[11px] text-slate-500">Managed in {l.managedAt}</p>
+                </div>
+                <Link href={l.href} className="text-emerald-400 hover:text-emerald-300" title={`Open ${l.managedAt}`}>
+                  <ExternalLink size={14} />
+                </Link>
               </div>
-              
-              <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                {getModalContent()}
-              </div>
+              <ul className="space-y-1 text-sm max-h-56 overflow-y-auto custom-scrollbar">
+                {l.values.length === 0 && <li className="text-slate-500 text-xs">None yet.</li>}
+                {l.values.map((v) => (
+                  <li key={v.name} className="flex justify-between gap-2">
+                    <span className="text-slate-200 truncate">{v.name}</span>
+                    <span className="text-xs text-slate-500 whitespace-nowrap">{v.count} {v.count === 1 ? l.unit.replace(/s$/, "") : l.unit}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
 
-              <div className="p-6 border-t border-white/10 bg-white/[0.02] flex justify-end gap-3">
-                <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 text-sm font-medium text-slate-300 hover:text-white transition-colors">
-                  Cancel
-                </button>
-                <button onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-emerald-600/20">
-                  Save {activeTab}
-                </button>
-              </div>
-            </motion.div>
+      <Modal
+        open={!!form}
+        onClose={() => setForm(null)}
+        title={form?.id ? `Edit ${meta?.label.replace(/s$/, "") ?? "entry"}` : `Add ${meta?.label.replace(/s$/, "") ?? "entry"}`}
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setForm(null)}>Cancel</Button>
+            <Button size="sm" onClick={save} disabled={busy}>{busy ? "Saving…" : "Save"}</Button>
+          </>
+        }
+      >
+        {form && (
+          <div className="space-y-3">
+            <input className={inputCls} placeholder="Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <textarea rows={2} className={inputCls} placeholder="Description (optional)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <label className="flex items-center gap-2 text-sm text-slate-300">
+              <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} /> Active (shown in pickers)
+            </label>
           </div>
         )}
-      </AnimatePresence>
+      </Modal>
     </div>
   );
 }

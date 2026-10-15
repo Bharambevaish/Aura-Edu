@@ -673,3 +673,10 @@ export const TaxRulesSchema = z.object({
     .max(20),
   defaultIndex: z.number().int().min(0).nullable(),
 });
+
+export const MasterItemSchema = z.object({
+  type: z.enum(["department", "designation", "id_proof", "lost_reason"]),
+  name: z.string().trim().min(2, { message: "Name must be at least 2 characters." }).max(80),
+  description: z.string().trim().max(300).default(""),
+  active: z.boolean().default(true),
+});

@@ -31,6 +31,8 @@ import { NoticeModel } from "@/lib/models/Notice";
 import { MeetingModel } from "@/lib/models/Meeting";
 import { CalendarEventModel } from "@/lib/models/CalendarEvent";
 import { InstituteSettingsModel } from "@/lib/models/InstituteSettings";
+import { MasterItemModel } from "@/lib/models/MasterItem";
+import { MASTER_META, MASTER_TYPES } from "@/lib/master";
 import type { Role } from "@/lib/models/User";
 
 export interface DemoAccount {
@@ -1076,6 +1078,11 @@ export async function seedDemoInstitute(): Promise<void> {
     { upsert: true },
   );
   console.log("[seed] institute profile + GST rules");
+
+  // Master Data lookup lists back to their defaults.
+  await MasterItemModel.deleteMany({});
+  await MasterItemModel.insertMany(MASTER_TYPES.flatMap((type) => MASTER_META[type].defaults.map((name) => ({ type, name }))));
+  console.log(`[seed] master data: ${MASTER_TYPES.map((t) => `${t}=${MASTER_META[t].defaults.length}`).join(" ")}`);
 }
 
 export async function seedDemoData(): Promise<void> {
@@ -2313,7 +2320,7 @@ export async function seedDemoLeads(): Promise<void> {
     { name: "Arnav Saxena", email: "arnav.saxena@demo.auraedu.com", phone: "9876500035", stage: "qualified", priority: "medium", source: "phone", course: "MERN Stack Web Development Specialization", createdDaysAgo: 8, followUpInDays: 2, owner: "System Administrator", notes: ["Demo class attended, liked the project-based format."] },
     { name: "Diya Menon", email: "diya.menon@demo.auraedu.com", phone: "9876500036", stage: "follow_up", priority: "low", source: "campaign", course: "NEET Comprehensive 2026", createdDaysAgo: 10, followUpInDays: 4, owner: "Ritu Sharma", notes: ["Came from the Instagram campaign."] },
     { name: "Yash Agarwal", email: "yash.agarwal@demo.auraedu.com", phone: "9876500037", stage: "new", priority: "medium", source: "phone", course: "JEE Main & Advanced Mathematics Crash Course", createdDaysAgo: 2, notes: ["Enquiry call — wants weekend batch."] },
-    { name: "Nisha Pillai", email: "nisha.pillai@demo.auraedu.com", phone: "9876500038", stage: "lost", priority: "low", source: "walk_in", course: "NEET Comprehensive 2026", createdDaysAgo: 20, owner: "Ritu Sharma", lostReason: "Joined a coaching centre closer to home.", notes: ["Fee concern raised on first visit."] },
+    { name: "Nisha Pillai", email: "nisha.pillai@demo.auraedu.com", phone: "9876500038", stage: "lost", priority: "low", source: "walk_in", course: "NEET Comprehensive 2026", createdDaysAgo: 20, owner: "Ritu Sharma", lostReason: "Joined another institute", notes: ["Fee concern raised on first visit."] },
     { name: "Sunrise Public School", email: "principal@sunrise-school.example", phone: "02240000039", stage: "contacted", priority: "medium", source: "referral", course: "Institution licence (50 seats)", createdDaysAgo: 5, followUpInDays: 1, owner: "System Administrator", type: "client", notes: ["Interested in a white-label portal for Class 11–12."] },
     { name: "Meera Iyer", email: "meera.iyer@demo.auraedu.com", phone: "9876500016", stage: "converted", priority: "medium", source: "web_register", course: "NEET Comprehensive 2026", createdDaysAgo: 120, owner: "Ritu Sharma", convertedTo: meera?._id, notes: ["Applied through the online admission form.", "Converted to student → NEET Batch B"] },
     { name: "Kabir Singh", email: "kabir.singh@demo.auraedu.com", phone: "9876500017", stage: "converted", priority: "high", source: "walk_in", course: "JEE Main & Advanced Mathematics Crash Course", createdDaysAgo: 90, owner: "System Administrator", convertedTo: kabir?._id, notes: ["Walk-in enquiry.", "Converted to student → JEE Batch A"] },

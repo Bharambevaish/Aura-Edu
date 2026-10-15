@@ -16,6 +16,7 @@ import {
   type StaffUserDTO,
 } from "@/lib/actions/staff";
 import { PageHeader, Button, StatCard, Modal, useToast } from "@/components/ui";
+import { useLookups, withValue } from "@/components/admin/useLookups";
 
 const inputCls =
   "w-full px-3 py-2 bg-slate-900/50 border border-slate-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500";
@@ -33,7 +34,7 @@ type Form = {
   joiningDate: string;
   monthlySalary: string;
 };
-const EMPTY: Form = { name: "", email: "", phone: "", employeeId: "", designation: "", department: "Academics", joiningDate: "", monthlySalary: "0" };
+const EMPTY: Form = { name: "", email: "", phone: "", employeeId: "", designation: "", department: "", joiningDate: "", monthlySalary: "0" };
 
 export default function StaffCornerPage() {
   const { toast } = useToast();
@@ -44,6 +45,7 @@ export default function StaffCornerPage() {
   const [form, setForm] = useState<Form>(EMPTY);
   const [creds, setCreds] = useState<{ email: string; password: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  const lookups = useLookups();
 
   useEffect(() => {
     let ignore = false;
@@ -66,7 +68,7 @@ export default function StaffCornerPage() {
   }, [staff, search]);
 
   const openNew = () => {
-    setForm(EMPTY);
+    setForm({ ...EMPTY, department: lookups.department[0] ?? "" });
     setEditing("new");
   };
   const openEdit = (s: StaffUserDTO) => {
@@ -216,9 +218,12 @@ export default function StaffCornerPage() {
           <input className={inputCls} placeholder="Email (login) *" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           <input className={inputCls} placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
           <input className={inputCls} placeholder="Employee ID (auto if blank)" value={form.employeeId} onChange={(e) => setForm({ ...form, employeeId: e.target.value })} />
-          <input className={inputCls} placeholder="Designation, e.g. Faculty — Physics" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} />
+          <select className={inputCls} value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })}>
+            <option value="">Designation…</option>
+            {withValue(lookups.designation, form.designation).map((d) => <option key={d}>{d}</option>)}
+          </select>
           <select className={inputCls} value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
-            {["Academics", "Technology", "Finance", "Administration", "Front Office"].map((d) => <option key={d}>{d}</option>)}
+            {withValue(lookups.department, form.department).map((d) => <option key={d}>{d}</option>)}
           </select>
           <label className="text-xs text-slate-400 space-y-1">
             <span>Joining date</span>
