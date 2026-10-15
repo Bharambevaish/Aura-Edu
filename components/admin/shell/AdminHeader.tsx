@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { 
@@ -13,6 +13,9 @@ import {
   Building
 } from 'lucide-react';
 import { logoutAction } from '@/lib/actions/auth';
+import { setBranchScope } from '@/lib/actions/branches';
+import { useToast } from '@/components/ui';
+import { useBranch } from './BranchContext';
 import type { SessionUser } from '@/lib/dal';
 
 export default function AdminHeader({ user }: { user: SessionUser }) {
@@ -20,7 +23,21 @@ export default function AdminHeader({ user }: { user: SessionUser }) {
   const [time, setTime] = useState<Date | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isBranchOpen, setIsBranchOpen] = useState(false);
-  const [selectedBranch, setSelectedBranch] = useState('Main Branch');
+  const { current: selectedBranch, branches } = useBranch();
+  const [switching, startSwitch] = useTransition();
+  const { toast } = useToast();
+
+  // The choice lives in a cookie; refreshing re-renders the layout, which
+  // passes the new scope down and remounts the page so its data refetches.
+  const switchBranch = (name: string | null) => {
+    setIsBranchOpen(false);
+    if (name === selectedBranch) return;
+    startSwitch(async () => {
+      const res = await setBranchScope(name);
+      if (!res.ok) toast(res.message, 'error');
+      router.refresh();
+    });
+  };
 
   useEffect(() => {
     const id = setTimeout(() => setTime(new Date()), 0);
@@ -82,10 +99,12 @@ export default function AdminHeader({ user }: { user: SessionUser }) {
         <div className="relative">
           <button 
             onClick={() => setIsBranchOpen(!isBranchOpen)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+            disabled={switching}
+            aria-label="Switch branch"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-60"
           >
             <MapPin size={16} className="text-emerald-400" />
-            <span className="text-sm text-slate-200 font-medium">{selectedBranch}</span>
+            <span className="text-sm text-slate-200 font-medium">{switching ? 'Switching…' : selectedBranch ?? 'All branches'}</span>
             <ChevronDown size={14} className="text-slate-400" />
           </button>
           
@@ -97,18 +116,15 @@ export default function AdminHeader({ user }: { user: SessionUser }) {
                 exit={{ opacity: 0, y: 10 }}
                 className="absolute right-0 mt-2 w-48 rounded-xl bg-slate-900 border border-white/10 shadow-xl overflow-hidden py-1 z-50"
               >
-                {['Main Branch', 'Mumbai Branch', 'Pune Branch'].map(branch => (
+                {[null, ...branches].map((branch) => (
                   <button
-                    key={branch}
-                    onClick={() => {
-                      setSelectedBranch(branch);
-                      setIsBranchOpen(false);
-                    }}
+                    key={branch ?? '*'}
+                    onClick={() => switchBranch(branch)}
                     className={`w-full text-left px-4 py-2 text-sm transition-colors ${
                       selectedBranch === branch ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-300 hover:bg-white/5 hover:text-white'
                     }`}
                   >
-                    {branch}
+                    {branch ?? 'All branches'}
                   </button>
                 ))}
               </motion.div>

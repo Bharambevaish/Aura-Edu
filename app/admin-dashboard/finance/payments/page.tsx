@@ -6,6 +6,7 @@ import { getInvoices } from "@/lib/actions/finance";
 import { PAYMENT_MODES, PAYMENT_SOURCES, STATUS_PILL } from "@/lib/finance";
 import { Plus, RefreshCw, DollarSign, FileText, CheckCircle, Eye, Loader2, RotateCcw, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { BranchChip } from "@/components/admin/shell/BranchContext";
 import { StatCard } from "@/components/ui/StatCard";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/Button";
@@ -114,6 +115,7 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Student Payments" subtitle="Record offline payments, review the ledger, save receipts." icon={<DollarSign size={20} className="text-emerald-400" />}>
+        <BranchChip />
         <Button variant="secondary" size="sm" onClick={() => fetchData().catch(() => {})}><RefreshCw size={14} /></Button>
         <Button size="sm" onClick={openRecord}><Plus size={16} />Record Payment</Button>
       </PageHeader>

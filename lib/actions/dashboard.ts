@@ -5,6 +5,9 @@
  * Activity is built from domain events (applications, payments, admissions,
  * submissions) rather than the admin-only audit log, because staff see this
  * page too.
+ *
+ * Student, fee, lead, attendance and result numbers follow the header's
+ * branch switcher; courses, batches and expenses are institute-wide.
  */
 
 import { connectDB } from "@/lib/db";
@@ -22,6 +25,7 @@ import { SubmissionModel } from "@/lib/models/Submission";
 import { ExpenseModel } from "@/lib/models/Expense";
 import { TimetableSlotModel } from "@/lib/models/TimetableSlot";
 import mongoose from "mongoose";
+import { getBranchScope, scopedStudentIds } from "@/lib/branch-scope";
 
 export type RevenueBar = { label: string; amount: number };
 
@@ -61,6 +65,13 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   const sevenDaysStart = new Date(todayStart.getTime() - 6 * DAY);
   const endOfToday = new Date(todayStart.getTime() + DAY - 1);
 
+  const scope = await getBranchScope();
+  const ids = await scopedStudentIds(scope);
+  const byStudent = ids ? { studentId: { $in: ids } } : {};
+  const byUser = ids ? { userId: { $in: ids } } : {};
+  const scopedIds = ids ? new Set(ids.map(String)) : null;
+  const byLeadBranch = scope.branch ? { branch: scope.branch } : {};
+
   const [
     activeStudents,
     newStudents,
@@ -78,10 +89,11 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     recentStudents,
     recentSubmissions,
   ] = await Promise.all([
-    UserModel.countDocuments({ role: "student", status: "Active" }),
+    UserModel.countDocuments({ role: "student", status: "Active", ...scope.students }),
     // Admission date when known (seeded/imported students), else account creation.
     UserModel.countDocuments({
       role: "student",
+      ...scope.students,
       $or: [
         { admissionDate: { $gte: monthStart } },
         { admissionDate: { $exists: false }, createdAt: { $gte: monthStart } },
@@ -90,19 +102,19 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     CourseModel.countDocuments({ published: true }),
     CourseModel.countDocuments(),
     BatchModel.countDocuments(),
-    PaymentModel.find({ status: "success", recordedAt: { $gte: sixMonthsStart } })
+    PaymentModel.find({ status: "success", recordedAt: { $gte: sixMonthsStart }, ...byStudent })
       .select("amount recordedAt studentId")
       .sort({ recordedAt: -1 })
       .lean(),
-    InvoiceModel.find().select("total paid waived dueDate").lean(),
-    LeadModel.find().select("name stage source nextFollowUpAt createdAt").sort({ createdAt: -1 }).lean(),
-    AttendanceModel.find({ date: { $gte: new Date(now.getTime() - 30 * DAY) } }).select("entries.status").lean(),
-    ResultModel.find().select("testId obtained").lean(),
+    InvoiceModel.find(byStudent).select("total paid waived dueDate").lean(),
+    LeadModel.find(byLeadBranch).select("name stage source nextFollowUpAt createdAt").sort({ createdAt: -1 }).lean(),
+    AttendanceModel.find({ date: { $gte: new Date(now.getTime() - 30 * DAY) } }).select("entries.status entries.studentId").lean(),
+    ResultModel.find(byUser).select("testId obtained").lean(),
     TestModel.find().select("passMarks").lean(),
-    SubmissionModel.countDocuments({ status: "pending_review" }),
+    SubmissionModel.countDocuments({ status: "pending_review", ...byUser }),
     ExpenseModel.countDocuments({ status: "pending" }),
-    UserModel.find({ role: "student" }).select("name batch admissionDate createdAt").sort({ admissionDate: -1, createdAt: -1 }).limit(4).lean(),
-    SubmissionModel.find().select("studentName submittedAt").sort({ submittedAt: -1 }).limit(4).lean(),
+    UserModel.find({ role: "student", ...scope.students }).select("name batch admissionDate createdAt").sort({ admissionDate: -1, createdAt: -1 }).limit(4).lean(),
+    SubmissionModel.find(byUser).select("studentName submittedAt").sort({ submittedAt: -1 }).limit(4).lean(),
   ]);
   const myClasses = await TimetableSlotModel.find({
     teacherId: new mongoose.Types.ObjectId(user.id),
@@ -165,6 +177,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   let attended = 0;
   for (const reg of attendance) {
     for (const e of reg.entries ?? []) {
+      if (scopedIds && !scopedIds.has(String(e.studentId))) continue;
       marked += 1;
       if (e.status !== "absent") attended += 1;
     }

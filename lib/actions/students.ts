@@ -22,6 +22,8 @@ import { requireRole } from "@/lib/dal";
 import { writeAudit } from "@/lib/audit";
 import { nextAdmissionNo, randomPassword } from "@/lib/student-accounts";
 import { UserModel } from "@/lib/models/User";
+import { BranchModel } from "@/lib/models/Branch";
+import { getBranchScope } from "@/lib/branch-scope";
 import { SessionModel } from "@/lib/models/Session";
 import { AttemptModel } from "@/lib/models/Attempt";
 import { ResultModel } from "@/lib/models/Result";
@@ -102,7 +104,9 @@ export async function getStudents(input: {
   const sortCol = SORTABLE[input.sortCol ?? "name"] ?? "name";
   const sortDir = input.sortDir === "desc" ? -1 : 1;
 
-  const filter: Record<string, unknown> = { role: "student" };
+  // Header branch switcher: roster and stats follow the selected branch.
+  const scope = await getBranchScope();
+  const filter: Record<string, unknown> = { role: "student", ...scope.students };
   const ors: Record<string, unknown>[] = [];
 
   const search = input.search?.trim();
@@ -122,7 +126,7 @@ export async function getStudents(input: {
       .skip(limit === PAGE_SIZE ? (page - 1) * PAGE_SIZE : 0)
       .limit(limit)
       .lean(),
-    UserModel.find({ role: "student" }).lean(),
+    UserModel.find({ role: "student", ...scope.students }).lean(),
   ]);
 
   const total = await UserModel.countDocuments(filter);
@@ -243,6 +247,13 @@ function safeDate(value: string): Date | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
+/** A student's branch must be one of the institute's branches (Settings → Branches). */
+async function unknownBranch(branch: unknown): Promise<string | null> {
+  if (typeof branch !== "string" || !branch.trim()) return null;
+  const exists = await BranchModel.exists({ name: branch.trim() });
+  return exists ? null : `“${branch}” is not a branch — add it under Settings → Branches first.`;
+}
+
 function toStudentDoc(input: Record<string, unknown>) {
   const {
     gender, dateOfBirth, phone, alternatePhone, guardianName, guardianPhone,
@@ -296,6 +307,9 @@ export async function createStudent(input: Record<string, unknown>): Promise<Stu
 
   await connectDB();
 
+  const badBranch = await unknownBranch(parsed.data.branch);
+  if (badBranch) return { ok: false, message: badBranch };
+
   const existing = await UserModel.findOne({ email: parsed.data.email }).lean();
   if (existing) {
     return { ok: false, message: `A user with ${parsed.data.email} already exists.` };
@@ -334,6 +348,11 @@ export async function updateStudent(id: string, input: Record<string, unknown>):
   const student = await UserModel.findById(id).lean();
   if (!student || student.role !== "student") {
     return { ok: false, message: "Student not found." };
+  }
+
+  if (parsed.data.branch && parsed.data.branch !== student.branch) {
+    const badBranch = await unknownBranch(parsed.data.branch);
+    if (badBranch) return { ok: false, message: badBranch };
   }
 
   const { name, email, ...profileInput } = parsed.data;
@@ -402,6 +421,10 @@ export async function bulkAssignStudents(input: unknown): Promise<BulkOutcome> {
   await connectDB();
 
   const { ids, field, value } = parsed.data;
+  if (field === "branch") {
+    const active = await BranchModel.exists({ name: value, active: true });
+    if (!active) return { ok: false, message: `“${value}” is not an active branch.` };
+  }
   const res = await UserModel.updateMany(
     { _id: { $in: ids }, role: "student" },
     { $set: { [field]: value } },

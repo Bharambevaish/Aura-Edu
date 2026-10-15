@@ -5,6 +5,7 @@ import { getInvoices, syncInvoices, type InvoiceRow } from "@/lib/actions/financ
 import { STATUS_PILL } from "@/lib/finance";
 import { RefreshCw, FileText, Loader2, Wallet, AlertTriangle, CheckCircle2, ArrowDownToLine } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { BranchChip } from "@/components/admin/shell/BranchContext";
 import { StatCard } from "@/components/ui/StatCard";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/Button";
@@ -66,6 +67,7 @@ export default function InvoicesPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Invoices" subtitle="Auto-generated fee invoices per active student." icon={<FileText size={20} className="text-blue-400" />}>
+        <BranchChip />
         <Button variant="secondary" size="sm" onClick={() => fetchData().catch(() => {})}><RefreshCw size={14} /></Button>
         <Button size="sm" loading={syncing} onClick={runSync}><ArrowDownToLine size={14} />Sync Invoices</Button>
       </PageHeader>

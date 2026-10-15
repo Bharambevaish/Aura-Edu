@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { getAdminOverview, type AdminOverview, type ActivityItem } from '@/lib/actions/dashboard';
 import { useIsAdmin } from '@/components/admin/shell/AdminUserContext';
+import { BranchChip } from '@/components/admin/shell/BranchContext';
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
@@ -102,6 +103,7 @@ export default function AdminDashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Overview Dashboard</h1>
           <p className="text-sm text-slate-400 mt-1">Welcome back, here&apos;s what&apos;s happening in your workspace today.</p>
+          <BranchChip className="mt-2" />
         </div>
         <button
           onClick={() => setReloadKey((k) => k + 1)}

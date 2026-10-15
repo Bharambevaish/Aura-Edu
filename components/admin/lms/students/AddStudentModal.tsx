@@ -15,6 +15,7 @@ import {
 import { createStudent, updateStudent, getStudentDetail, type StudentRowDTO } from "@/lib/actions/students";
 import { useToast } from "@/components/ui/Toast";
 import { useLookups } from "@/components/admin/useLookups";
+import { useBranch } from "@/components/admin/shell/BranchContext";
 
 interface AddStudentModalProps {
   isOpen: boolean;
@@ -100,6 +101,7 @@ const withCurrent = (base: readonly string[], current: string) =>
 export default function AddStudentModal({ isOpen, onClose, student, onSaved }: AddStudentModalProps) {
   const { toast } = useToast();
   const lookups = useLookups();
+  const { branches, current: currentBranch } = useBranch();
   const [currentStep, setCurrentStep] = useState(1);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
@@ -122,7 +124,8 @@ export default function AddStudentModal({ isOpen, onClose, student, onSaved }: A
     if (!isOpen) return;
 
     const t = setTimeout(() => {
-      setForm(EMPTY_FORM);
+      // New students default to the branch the header is scoped to.
+      setForm({ ...EMPTY_FORM, branch: currentBranch ?? "" });
       setErrors({});
       setLoadError(null);
       setCurrentStep(1);
@@ -181,7 +184,7 @@ export default function AddStudentModal({ isOpen, onClose, student, onSaved }: A
       }
     }, 0);
     return () => clearTimeout(t);
-  }, [isOpen, student]);
+  }, [isOpen, student, currentBranch]);
 
   if (!isOpen) return null;
 
@@ -581,7 +584,7 @@ export default function AddStudentModal({ isOpen, onClose, student, onSaved }: A
                           <label className={labelCls}>Branch *</label>
                           <select className={`${inputCls} ${errors.branch ? "border-red-500/50" : ""}`} value={form.branch} onChange={set("branch")}>
                             <option value="">Select Branch</option>
-                            {withCurrent(["Main Branch", "Mumbai Branch"], form.branch).map((b) => (
+                            {withCurrent(branches, form.branch).map((b) => (
                               <option key={b}>{b}</option>
                             ))}
                           </select>

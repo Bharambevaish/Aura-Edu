@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getFinanceOverview, type OverviewData } from "@/lib/actions/finance";
 import { CircleDollarSign, DollarSign, AlertCircle, Users, ArrowRight, CreditCard, Loader2, PiggyBank, ReceiptText } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { BranchChip, useBranch } from "@/components/admin/shell/BranchContext";
 
 const stats = [
   { key: "collected", label: "Total Collected", accent: "text-blue-400", icon: <DollarSign size={14} /> },
@@ -33,6 +34,7 @@ export default function FinanceOverviewPage() {
     return () => { ignore = true; };
   }, []);
 
+  const scoped = useBranch().current !== null;
   const expectTotal = (data?.collected ?? 0) + (data?.outstanding ?? 0);
   const rate = data?.collectionRate ?? 0;
   const profit = (data?.collected ?? 0) - (data?.approvedExpenses ?? 0);
@@ -44,6 +46,7 @@ export default function FinanceOverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Finance Overview" subtitle="Money received, money still owed, and where it goes." icon={<CircleDollarSign size={20} className="text-blue-400" />}>
+        <BranchChip />
         <span className="px-3 py-1.5 bg-slate-900/50 border border-white/10 text-slate-300 rounded-lg text-xs font-medium">
           {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
         </span>
@@ -62,7 +65,7 @@ export default function FinanceOverviewPage() {
               {stats.map((s) => (
                 <div key={s.key} className="glass-panel rounded-xl p-4 border border-white/5">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{s.label}</p>
+                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider">{s.key === "profit" && scoped ? "Branch fees − all expenses" : s.label}</p>
                     <span className={s.accent}>{s.icon}</span>
                   </div>
                   <p className="text-2xl font-bold text-white mt-2">{statValues[s.key as keyof typeof statValues]}</p>
@@ -114,7 +117,7 @@ export default function FinanceOverviewPage() {
             {/* Expense by category */}
             <div className="lg:col-span-1 bg-slate-900/50 border border-slate-800 rounded-xl p-5 shadow-sm h-fit">
               <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">EXPENSE BY CATEGORY</h3>
-              <p className="text-xs text-slate-500 mb-4">Approved expenses, grouped.</p>
+              <p className="text-xs text-slate-500 mb-4">Approved expenses, grouped (institute-wide — expenses carry no branch).</p>
               <div className="space-y-3">
                 {(data?.expenseByCategory.length ? data.expenseByCategory : [{ name: "No approved expense", count: 0, amount: 0 }]).map((c) => (
                   <div key={c.name}>
