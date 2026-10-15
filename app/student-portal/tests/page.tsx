@@ -172,7 +172,7 @@ export default function TestsPage() {
                   </button>
                 ) : (
                   <button disabled className="w-full py-3 rounded-xl bg-slate-800 text-slate-400 font-semibold text-xs opacity-60">
-                    Starts on {test.date}
+                    {test.status === "Missed" ? `Closed on ${test.date} — not attempted` : `Starts on ${test.date}`}
                   </button>
                 )}
               </div>

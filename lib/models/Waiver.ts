@@ -31,6 +31,9 @@ const waiverSchema = new mongoose.Schema<WaiverDoc>(
   { timestamps: true },
 );
 
+waiverSchema.index({ invoiceId: 1 });
+waiverSchema.index({ studentId: 1 });
+
 export const WaiverModel =
   (mongoose.models.Waiver as mongoose.Model<WaiverDoc>) ??
   mongoose.model<WaiverDoc>("Waiver", waiverSchema);

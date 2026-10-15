@@ -24,7 +24,7 @@ import { SubmitTestSchema } from "@/lib/validation";
 import {
   fmtDate,
   fmtTime,
-  rankFor,
+  ranksFor,
   hasSubmittedAttempt,
   findResult,
   toSafeQuestions,
@@ -42,7 +42,8 @@ export type TestCardDTO = {
   time: string;
   durationMinutes: number;
   totalMarks: number;
-  status: "Upcoming" | "Active Now" | "Completed";
+  /** Missed: the window closed without an attempt. */
+  status: "Upcoming" | "Active Now" | "Completed" | "Missed";
   obtainedMarks?: number;
   rank?: number;
   totalStudents?: number;
@@ -82,6 +83,7 @@ export async function getStudentTests(): Promise<TestCardDTO[]> {
     .lean();
 
   const out: TestCardDTO[] = [];
+  const ranked = new Map((await ranksFor(results)).map((rank, i) => [String(results[i].testId), rank]));
 
   for (const test of tests) {
     const result = results.find((r) => String(r.testId) === String(test._id));
@@ -99,7 +101,7 @@ export async function getStudentTests(): Promise<TestCardDTO[]> {
     };
 
     if (result) {
-      const { rank, total } = await rankFor(result);
+      const { rank, total } = ranked.get(String(result.testId))!;
       out.push({
         ...base,
         status: "Completed",
@@ -119,7 +121,7 @@ export async function getStudentTests(): Promise<TestCardDTO[]> {
     if (now >= test.startAt && now <= test.endAt) {
       out.push({ ...base, status: "Active Now" });
     } else {
-      out.push({ ...base, status: "Upcoming" });
+      out.push({ ...base, status: now > test.endAt ? "Missed" : "Upcoming" });
     }
   }
 

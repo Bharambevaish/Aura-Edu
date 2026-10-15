@@ -61,9 +61,11 @@ async function renameUsage(type: MasterType, from: string, to: string): Promise<
   return res.modifiedCount;
 }
 
-/** Fill a list with its defaults the first time it is read. */
+/** Fill a list with its defaults the first time it is read (checked once per process). */
+let defaultsChecked = false;
 async function ensureMasterDefaults(): Promise<void> {
   await connectDB();
+  if (defaultsChecked) return;
   for (const type of MASTER_TYPES) {
     if (await MasterItemModel.exists({ type })) continue;
     await MasterItemModel.insertMany(
@@ -71,6 +73,7 @@ async function ensureMasterDefaults(): Promise<void> {
       { ordered: false },
     ).catch(() => undefined);
   }
+  defaultsChecked = true;
 }
 
 export async function getMasterItems(type: MasterType): Promise<MasterRow[]> {

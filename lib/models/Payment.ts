@@ -42,6 +42,9 @@ const paymentSchema = new mongoose.Schema<PaymentDoc>(
   { timestamps: true },
 );
 
+paymentSchema.index({ studentId: 1, recordedAt: -1 });
+paymentSchema.index({ invoiceId: 1 });
+
 export const PaymentModel =
   (mongoose.models.Payment as mongoose.Model<PaymentDoc>) ??
   mongoose.model<PaymentDoc>("Payment", paymentSchema);

@@ -118,6 +118,9 @@ const userSchema = new mongoose.Schema<UserDoc>(
   { timestamps: true },
 );
 
+userSchema.index({ role: 1, batch: 1 });
+userSchema.index({ role: 1, branch: 1 });
+
 export const UserModel =
   (mongoose.models.User as mongoose.Model<UserDoc>) ??
   mongoose.model<UserDoc>("User", userSchema);

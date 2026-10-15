@@ -23,7 +23,7 @@ import { AttemptModel } from "@/lib/models/Attempt";
 import { ResultModel } from "@/lib/models/Result";
 import { UserModel } from "@/lib/models/User";
 import { CreateTestSchema } from "@/lib/validation";
-import { fmtDate, fmtDateTime, rankFor } from "@/lib/services/tests";
+import { fmtDate, fmtDateTime, ranksFor } from "@/lib/services/tests";
 
 export type AdminTestDTO = {
   id: string;
@@ -253,8 +253,9 @@ export async function getAdminTestCardDetail(studentId: string): Promise<TestCar
   const rows: TestCardDetailDTO["rows"] = [];
   let pendingWritten = 0;
 
-  for (const r of results) {
-    const { rank, total } = await rankFor(r);
+  const ranks = await ranksFor(results);
+  for (const [i, r] of results.entries()) {
+    const { rank, total } = ranks[i];
     if (!r.fullyGraded) pendingWritten++;
     rows.push({
       testId: String(r.testId),

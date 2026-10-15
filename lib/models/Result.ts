@@ -42,6 +42,8 @@ const resultSchema = new mongoose.Schema<ResultDoc>(
   { timestamps: true },
 );
 
+resultSchema.index({ testId: 1, userId: 1 });
+
 export const ResultModel =
   (mongoose.models.Result as mongoose.Model<ResultDoc>) ??
   mongoose.model<ResultDoc>("Result", resultSchema);

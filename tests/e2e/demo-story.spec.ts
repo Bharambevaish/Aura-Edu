@@ -158,6 +158,8 @@ test("5. staff grade the written answer", async ({ browser }) => {
 test("6. the student sees the final graded score", async () => {
   await student.goto("/student-portal/tests");
   await expect(student.getByText(`Score: ${finalScore}`).first()).toBeVisible();
+  // A batch test whose window closed before the student joined is "Missed", not "Upcoming".
+  await expect(student.getByText(/Closed on .* — not attempted/).first()).toBeVisible();
 });
 
 test("7. blocking the student signs them out at once; staff can't open Settings", async ({ browser }) => {

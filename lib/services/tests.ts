@@ -40,10 +40,22 @@ export function fmtDateTime(date: Date): string {
 }
 
 /** Rank of a result within its test (1 = top score), plus total students. */
-export async function rankFor(result: { testId: Types.ObjectId; obtained: number }): Promise<{ rank: number; total: number }> {
-  const totals = await ResultModel.find({ testId: result.testId }).select("obtained").lean();
-  const rank = totals.filter((r) => r.obtained > result.obtained).length + 1;
-  return { rank, total: totals.length };
+/** Ranks for many results with one query (rank 1 = highest score in the test). */
+export async function ranksFor(results: { testId: Types.ObjectId; obtained: number }[]): Promise<{ rank: number; total: number }[]> {
+  if (results.length === 0) return [];
+  const testIds = [...new Set(results.map((r) => String(r.testId)))];
+  const all = await ResultModel.find({ testId: { $in: testIds } }).select("testId obtained").lean();
+  const scoresByTest = new Map<string, number[]>();
+  for (const r of all) {
+    const key = String(r.testId);
+    scoresByTest.set(key, [...(scoresByTest.get(key) ?? []), r.obtained]);
+  }
+  return results.map((r) => rankAmong(r.obtained, scoresByTest.get(String(r.testId)) ?? []));
+}
+
+/** Standard competition ranking: ties share a rank, the next rank skips. */
+export function rankAmong(score: number, scores: number[]): { rank: number; total: number } {
+  return { rank: scores.filter((s) => s > score).length + 1, total: scores.length };
 }
 
 /** True if this student already has a submitted attempt for the test. */

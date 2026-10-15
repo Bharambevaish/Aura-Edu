@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyWrittenGrades, buildGradedAnswers, sumWrittenScore } from "@/lib/services/tests";
+import { applyWrittenGrades, buildGradedAnswers, rankAmong, sumWrittenScore } from "@/lib/services/tests";
 
 const mcq = (id: string, correct: number[], marks = 4) => ({ _id: id, type: "mcq", correctIndices: correct, marks });
 const written = (id: string, marks = 10) => ({ _id: id, type: "written", correctIndices: [], marks });
@@ -81,5 +81,14 @@ describe("applyWrittenGrades", () => {
         { type: "mcq", graded: true, awardedMarks: 4 },
       ]),
     ).toBe(6);
+  });
+});
+
+describe("rankAmong", () => {
+  it("ranks by score with ties sharing a rank", () => {
+    const scores = [40, 35, 35, 20];
+    expect(rankAmong(40, scores)).toEqual({ rank: 1, total: 4 });
+    expect(rankAmong(35, scores)).toEqual({ rank: 2, total: 4 });
+    expect(rankAmong(20, scores)).toEqual({ rank: 4, total: 4 });
   });
 });

@@ -39,6 +39,8 @@ const refundSchema = new mongoose.Schema<RefundDoc>(
   { timestamps: true },
 );
 
+refundSchema.index({ paymentId: 1 });
+
 export const RefundModel =
   (mongoose.models.Refund as mongoose.Model<RefundDoc>) ??
   mongoose.model<RefundDoc>("Refund", refundSchema);
