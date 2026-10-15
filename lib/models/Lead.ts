@@ -4,14 +4,15 @@ import mongoose from "mongoose";
  * A prospective student (or B2B client) before they become a `users` row.
  *
  * Pipeline: new → contacted → follow_up → qualified → converted | lost.
- * Online Admissions (/register) creates leads with source "web_register";
+ * Online Admissions (/register) creates leads with source "web_register" and
+ * Form Builder forms (/f/<slug>) create leads with source "form";
  * staff add walk-ins, calls and referrals by hand. `convertLead()` turns a
  * student lead into a student account and links it via `convertedStudentId`.
  */
 export type LeadStage = "new" | "contacted" | "follow_up" | "qualified" | "converted" | "lost";
 export type LeadPriority = "low" | "medium" | "high";
 export type LeadType = "student" | "client";
-export type LeadSource = "web_register" | "walk_in" | "phone" | "referral" | "campaign" | "other";
+export type LeadSource = "web_register" | "form" | "walk_in" | "phone" | "referral" | "campaign" | "other";
 
 export interface LeadNote {
   text: string;
@@ -73,7 +74,7 @@ const leadSchema = new mongoose.Schema<LeadDoc>(
     priority: { type: String, enum: ["low", "medium", "high"], default: "medium" },
     source: {
       type: String,
-      enum: ["web_register", "walk_in", "phone", "referral", "campaign", "other"],
+      enum: ["web_register", "form", "walk_in", "phone", "referral", "campaign", "other"],
       default: "other",
     },
     interestedCourse: { type: String, default: "" },
