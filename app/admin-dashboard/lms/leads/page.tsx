@@ -5,7 +5,7 @@
  * enquiries land here; Follow-up moves them through the pipeline and Convert
  * turns a student lead into a student account (lib/actions/leads.ts).
  */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { PageHeader, StatCard, Button, Modal, useToast } from "@/components/ui";
 import { useLookups } from "@/components/admin/useLookups";
@@ -77,6 +77,7 @@ export default function AllLeadsPage() {
   const [data, setData] = useState<{ stats: LeadStats; leads: LeadRow[] } | null>(null);
   const [options, setOptions] = useState<ConversionOptions | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const deepLinked = useRef(false);
 
   const [search, setSearch] = useState("");
   const [stage, setStage] = useState("");
@@ -104,6 +105,12 @@ export default function AllLeadsPage() {
       .then(([leads, opts]) => {
         if (ignore) return;
         setData(leads);
+        // Deep link from a form response: /admin-dashboard/lms/leads?q=LD-2026-0012
+        if (!deepLinked.current) {
+          deepLinked.current = true;
+          const q = new URLSearchParams(window.location.search).get("q");
+          if (q) setSearch(q);
+        }
         setOptions(opts);
       })
       .catch(() => toast("Could not load leads.", "error"));
@@ -438,7 +445,7 @@ export default function AllLeadsPage() {
             {LEAD_PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label} priority</option>)}
           </select>
           <select className={inputCls} value={addForm.source} onChange={(e) => setAddForm({ ...addForm, source: e.target.value })}>
-            {LEAD_SOURCES.filter((s) => s.value !== "web_register").map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            {LEAD_SOURCES.filter((s) => s.value !== "web_register" && s.value !== "form").map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <textarea className={`${inputCls} md:col-span-2`} rows={2} placeholder="First note (optional)" value={addForm.note} onChange={(e) => setAddForm({ ...addForm, note: e.target.value })} />
         </div>

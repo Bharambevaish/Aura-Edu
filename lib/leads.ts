@@ -21,6 +21,7 @@ export const LEAD_PRIORITIES: { value: LeadPriority; label: string }[] = [
 
 export const LEAD_SOURCES: { value: LeadSource; label: string }[] = [
   { value: "web_register", label: "Online Admission" },
+  { value: "form", label: "Web Form" },
   { value: "walk_in", label: "Walk-in" },
   { value: "phone", label: "Phone" },
   { value: "referral", label: "Referral" },

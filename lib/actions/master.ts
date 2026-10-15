@@ -173,6 +173,7 @@ export async function getLiveLookups(): Promise<LiveLookup[]> {
   const source = map(bySource);
   const sourceLabels: Record<string, string> = {
     web_register: "Online admission",
+    form: "Web form",
     walk_in: "Walk-in",
     phone: "Phone",
     referral: "Referral",

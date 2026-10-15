@@ -680,3 +680,52 @@ export const MasterItemSchema = z.object({
   description: z.string().trim().max(300).default(""),
   active: z.boolean().default(true),
 });
+
+/* ------------------------------------------------------------------ */
+/* Form Builder                                                        */
+/* ------------------------------------------------------------------ */
+
+export const FormFieldSchema = z
+  .object({
+    id: z.string().trim().regex(/^[A-Za-z0-9_-]{1,40}$/, { message: "Invalid field id." }),
+    label: z.string().trim().min(1, { message: "Every field needs a label." }).max(120),
+    type: z.enum(["text", "email", "phone", "number", "select", "textarea", "checkbox", "date"]),
+    required: z.boolean().default(false),
+    options: z.array(z.string().trim().min(1).max(100)).max(30).default([]),
+    placeholder: z.string().trim().max(120).default(""),
+  })
+  .refine((f) => f.type !== "select" || f.options.length >= 1, {
+    message: "Dropdown fields need at least one option.",
+    path: ["options"],
+  });
+
+export const FormInputSchema = z
+  .object({
+    title: z.string().trim().min(3, { message: "Give the form a title (3+ characters)." }).max(120),
+    slug: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .max(60)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, { message: "Link name may use lowercase letters, numbers and dashes." })
+      .or(z.literal("")),
+    description: z.string().trim().max(1000).default(""),
+    thankYouMessage: z.string().trim().max(500).default(""),
+    active: z.boolean().default(true),
+    fields: z.array(FormFieldSchema).min(1, { message: "Add at least one field." }).max(30, { message: "Up to 30 fields per form." }),
+  })
+  .refine((d) => new Set(d.fields.map((f) => f.id)).size === d.fields.length, {
+    message: "Field ids must be unique.",
+    path: ["fields"],
+  })
+  .refine((d) => d.fields.some((f) => f.type === "email" || f.type === "phone"), {
+    message: "Add an Email or Phone field so the lead can be contacted.",
+    path: ["fields"],
+  });
+
+/** Public /f/[slug] submission: answers keyed by field id (checked against the stored form). */
+export const FormSubmitSchema = z.object({
+  answers: z.record(z.string().max(40), z.union([z.string().max(5000), z.boolean()])),
+  /** Honeypot: real users never fill this hidden field. */
+  website: z.string().max(0).optional().or(z.literal("")),
+});

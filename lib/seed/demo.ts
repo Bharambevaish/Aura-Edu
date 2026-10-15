@@ -32,6 +32,9 @@ import { MeetingModel } from "@/lib/models/Meeting";
 import { CalendarEventModel } from "@/lib/models/CalendarEvent";
 import { InstituteSettingsModel } from "@/lib/models/InstituteSettings";
 import { MasterItemModel } from "@/lib/models/MasterItem";
+import { FormModel } from "@/lib/models/Form";
+import { FormSubmissionModel } from "@/lib/models/FormSubmission";
+import type { FormField } from "@/lib/forms";
 import { MASTER_META, MASTER_TYPES } from "@/lib/master";
 import type { Role } from "@/lib/models/User";
 
@@ -1099,6 +1102,7 @@ export async function seedDemoData(): Promise<void> {
   await seedDemoProgress();
   await seedDemoLoginState();
   await seedDemoLeads();
+  await seedDemoForms();
   await seedDemoFinance();
   await seedDemoConnect();
 }
@@ -2359,6 +2363,125 @@ export async function seedDemoLeads(): Promise<void> {
     });
   }
   console.log(`[seed] leads=${plan.length} (pipeline across all stages); removed ${strays.length} converted demo account(s).`);
+}
+
+/* ------------------------------------------------------------------ */
+/* Form Builder                                                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Two live lead-capture forms with a few responses each. Each response is a
+ * "Web Form" lead, so they show up in Leads. Runs after seedDemoLeads (which
+ * wipes leads), and wipes forms + responses itself, so reset restores them.
+ */
+export async function seedDemoForms(): Promise<void> {
+  await connectDB();
+  await FormSubmissionModel.deleteMany({});
+  await FormModel.deleteMany({});
+
+  const f = (id: string, label: string, type: FormField["type"], required: boolean, extra: Partial<FormField> = {}): FormField => ({
+    id, label, type, required, options: [], placeholder: "", ...extra,
+  });
+
+  const plan: {
+    title: string; slug: string; description: string; thankYouMessage: string; createdDaysAgo: number; fields: FormField[];
+    responses: { daysAgo: number; answers: Record<string, string> }[];
+  }[] = [
+    {
+      title: "Free Demo Class Request",
+      slug: "free-demo-class",
+      description: "Book a free 60-minute demo class with our faculty. Pick your course and a convenient date — we'll confirm the slot on WhatsApp.",
+      thankYouMessage: "Thanks! Your demo class request is in. Our counsellor will call you within one working day to confirm the slot.",
+      createdDaysAgo: 30,
+      fields: [
+        f("full_name", "Student name", "text", true, { placeholder: "Full name" }),
+        f("phone", "Phone number", "phone", true),
+        f("email", "Email address", "email", false, { placeholder: "you@example.com" }),
+        f("course", "Course interested in", "select", true, { options: ["NEET Comprehensive 2026", "JEE Main & Advanced Mathematics Crash Course", "MERN Stack Web Development Specialization"] }),
+        f("class", "Current class", "select", false, { options: ["Class 10", "Class 11", "Class 12", "Dropper"] }),
+        f("date", "Preferred demo date", "date", false),
+        f("consent", "I agree to be contacted on WhatsApp", "checkbox", true),
+      ],
+      responses: [
+        { daysAgo: 0, answers: { full_name: "Aditi Kulkarni", phone: "9876500041", email: "aditi.kulkarni@demo.auraedu.com", course: "NEET Comprehensive 2026", class: "Class 11", date: "", consent: "Yes" } },
+        { daysAgo: 2, answers: { full_name: "Rohan Gupta", phone: "9876500042", email: "rohan.gupta@demo.auraedu.com", course: "JEE Main & Advanced Mathematics Crash Course", class: "Class 12", date: "", consent: "Yes" } },
+        { daysAgo: 4, answers: { full_name: "Sneha Rao", phone: "9876500043", email: "", course: "MERN Stack Web Development Specialization", class: "Dropper", date: "", consent: "Yes" } },
+      ],
+    },
+    {
+      title: "Scholarship Test Registration",
+      slug: "scholarship-test",
+      description: "Register for the AuraEdu Scholarship Test (ASAT). Top scorers get up to 90% off the course fee.",
+      thankYouMessage: "You're registered for the scholarship test! Your admit card and test centre details will be emailed a week before the test.",
+      createdDaysAgo: 20,
+      fields: [
+        f("full_name", "Student name", "text", true),
+        f("email", "Email address", "email", true),
+        f("phone", "Phone number", "phone", true),
+        f("parent", "Parent / guardian name", "text", false),
+        f("school", "School name", "text", false),
+        f("stream", "Stream", "select", true, { options: ["Medical (NEET)", "Engineering (JEE)"] }),
+        f("marks", "Last exam percentage", "number", false),
+        f("notes", "Anything we should know?", "textarea", false),
+      ],
+      responses: [
+        { daysAgo: 1, answers: { full_name: "Kavya Nair", email: "kavya.nair@demo.auraedu.com", phone: "9876500044", parent: "Suresh Nair", school: "Kendriya Vidyalaya, Pune", stream: "Medical (NEET)", marks: "91", notes: "" } },
+        { daysAgo: 3, answers: { full_name: "Aryan Joshi", email: "aryan.joshi@demo.auraedu.com", phone: "9876500045", parent: "Meena Joshi", school: "DPS Nashik", stream: "Engineering (JEE)", marks: "88", notes: "Needs a Sunday test slot." } },
+      ],
+    },
+  ];
+
+  const admin = await UserModel.findOne({ email: "admin@demo.auraedu.com" }).select("name").lean();
+  let leadCount = await LeadModel.countDocuments();
+  let responses = 0;
+  for (const p of plan) {
+    const form = await FormModel.create({
+      title: p.title,
+      slug: p.slug,
+      description: p.description,
+      thankYouMessage: p.thankYouMessage,
+      fields: p.fields,
+      active: true,
+      submissionCount: p.responses.length,
+      createdByName: admin?.name ?? "System Administrator",
+      createdAt: daysFromNow(-p.createdDaysAgo),
+    });
+    const courseField = p.fields.find((x) => x.id === "course" || x.id === "stream");
+    for (const r of p.responses) {
+      leadCount += 1;
+      const at = daysFromNow(-r.daysAgo);
+      const course = courseField ? r.answers[courseField.id] : "";
+      const leadNo = `LD-${at.getFullYear()}-${String(leadCount).padStart(4, "0")}`;
+      const lead = await LeadModel.create({
+        leadNo,
+        name: r.answers.full_name,
+        email: r.answers.email,
+        phone: r.answers.phone,
+        type: "student",
+        stage: "new",
+        priority: "medium",
+        source: "form",
+        interestedCourse: course,
+        branch: "Main Branch",
+        ownerName: "Unassigned",
+        notes: [{ text: `Submitted the “${p.title}” form${course ? ` (${course})` : ""}.`, byName: "Web Form", at }],
+        createdAt: at,
+      });
+      await FormSubmissionModel.create({
+        formId: form._id,
+        formTitle: p.title,
+        answers: p.fields.map((x) => ({ fieldId: x.id, label: x.label, value: r.answers[x.id] ?? "" })),
+        name: r.answers.full_name,
+        email: r.answers.email,
+        phone: r.answers.phone,
+        leadId: lead._id,
+        leadNo,
+        createdAt: at,
+      });
+      responses += 1;
+    }
+  }
+  console.log(`[seed] forms=${plan.length} responses=${responses} (each a Web Form lead).`);
 }
 
 /* ------------------------------------------------------------------ */
