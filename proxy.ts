@@ -30,8 +30,9 @@ export default async function proxy(request: NextRequest) {
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,
-    // Prod serves over HTTPS => cookie uses the secure prefix; match it here.
-    secureCookie: process.env.NODE_ENV === "production",
+    // Same rule Auth.js uses to name the cookie: the __Secure- prefix only
+    // over HTTPS, judged from AUTH_URL when set, else the request itself.
+    secureCookie: (process.env.AUTH_URL ? new URL(process.env.AUTH_URL).protocol : request.nextUrl.protocol) === "https:",
   });
 
   const isDashboard = pathname.startsWith("/admin-dashboard");

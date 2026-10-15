@@ -7,7 +7,13 @@
  * stacks duplicates. Uses the running local Mongo (`npm run mongo`) or the
  * Atlas URI set in .env.
  */
-process.loadEnvFile();
+// .env is optional (CI and the e2e server pass MONGODB_URI directly); it
+// never overrides variables that are already set.
+try {
+  process.loadEnvFile();
+} catch {
+  /* no .env file */
+}
 
 import { connectDB } from "@/lib/db";
 import { seedDemoData } from "@/lib/seed/demo";
