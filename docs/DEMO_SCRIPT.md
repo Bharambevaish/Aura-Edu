@@ -5,7 +5,8 @@ follows up and converts them → the new student signs in, pays, learns and sits
 a test → staff grade the written answer → a certificate is earned → an admin
 locks an account → Reset for the next client.**
 
-Every step below runs on live data. Times are rough.
+Every step below runs on live data. Times are rough. Preparation, a shorter
+tour path and fallbacks are in [`DEMO_DAY_CHECKLIST.md`](DEMO_DAY_CHECKLIST.md).
 
 ---
 

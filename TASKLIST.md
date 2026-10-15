@@ -15,7 +15,7 @@ effort is a rough single-developer estimate.
 
 ---
 
-## 1. Snapshot (2026-10-15, after Stage D)
+## 1. Snapshot (2026-10-15, after Stage E)
 
 | Area | Status |
 |---|---|
@@ -26,7 +26,8 @@ effort is a rough single-developer estimate.
 | Stage A close-out | ✅ Code items done on branch `stage-a-closeout` · ⏳ owner items: history purge, new remote, PR merge, branch protection |
 | Demo story | ✅ Online admission → leads → follow-up → convert → student → test → grading → certificate → reset (branch `stage-c-demo-story`, script in `docs/DEMO_SCRIPT.md`) |
 | Breadth modules | ✅ Timetable, Reports Hub, Task Manager, Form Builder, Settings, Master Data, Multi-branch, Payroll simulator, Leave, staff self-service, group chat, lesson doubts (branch `stage-d-breadth`) |
-| Deployment | ❌ No Atlas, no Vercel link · ✅ code on GitHub `Nikhil270703/AuraEdu` (`main` = latest) · ✅ CI workflow |
+| Quality gates | ✅ CI: typecheck, lint, 42 unit tests, build, Playwright e2e (demo story, CSP, phone layout) |
+| Deployment | ❌ No Atlas, no Vercel link · ✅ code on GitHub `Nikhil270703/AuraEdu` · ✅ CI workflow |
 
 ---
 
@@ -166,14 +167,15 @@ aren't on the demo path.
 - [x] ~~**Certificate verification:** HMAC-signed certificate links and a public `/verify` page~~
 - [ ] Multi-branch follow-ups: expenses are institute-wide; reports, attendance and leads are not branch-scoped yet
 
-### Stage E — Harden & polish (~1 week)
-- [ ] Playwright e2e test of the full demo story (§6) running in CI
-- [ ] Unit tests for MCQ grading, finance math (balances, refunds, waivers) and the session/permission gates
-- [ ] Tighten CSP (nonces; drop `unsafe-eval` in production)
-- [ ] Mobile responsiveness pass (admin and student)
-- [ ] Performance pass (slow pages, indexes, N+1 queries)
-- [ ] Richer seed data (20+ students, more history) for fuller charts
-- [ ] Demo-day checklist: one-click login, reset, tour path through the wow modules
+### Stage E — Harden & polish ✅ (branch `stage-e-hardening`, 2026-10-15)
+- [x] ~~Playwright e2e test of the full demo story (§6) running in CI~~ (`tests/e2e`, `npm run test:e2e`; also CSP and phone-width checks)
+- [x] ~~Unit tests for MCQ grading, finance math (balances, refunds, waivers) and the session/permission gates~~ (Vitest, 42 tests, `npm test`)
+- [x] ~~Tighten CSP (nonces; drop `unsafe-eval` in production)~~
+- [x] ~~Mobile responsiveness pass (admin and student)~~: admin sidebar becomes a drawer; no page scrolls sideways at 375px
+- [x] ~~Performance pass (slow pages, indexes, N+1 queries)~~: batched test ranks, compound indexes
+- [x] ~~Richer seed data (20+ students, more history) for fuller charts~~: 24 students, six months of fees relative to today
+- [x] ~~Demo-day checklist: one-click login, reset, tour path through the wow modules~~ (`docs/DEMO_DAY_CHECKLIST.md`)
+- [x] ~~Bugs found on the way~~: written answers counted as graded on submit; refunds/waivers could exceed what was paid/owed; marks not capped; duplicate document numbers after deletions; production over http couldn't keep a login; missed tests shown as upcoming
 
 ### Stage F — Productionize (only for modules a client buys)
 - [ ] File uploads to object storage (assignment attachments, avatars) with size/type limits and signed URLs
@@ -244,9 +246,9 @@ One-click Admin login → every sidebar module does something visible → a
 auto-scored → a written answer is graded → a certificate is generated →
 **Reset demo data** → clean state for the next client. Build green, live link up.
 
-The story itself now runs end to end locally (`docs/DEMO_SCRIPT.md`).
-Still blocked by: the live link (Stage B), the grading-role decision (Stage C),
-static modules in the sidebar (Stage D).
+The story runs end to end and is checked by the e2e suite on every push
+(`docs/DEMO_SCRIPT.md`, `docs/DEMO_DAY_CHECKLIST.md`). Still blocked by:
+the live link (Stage B) and the grading-role decision (Stage C).
 
 ---
 

@@ -315,8 +315,56 @@ Environment notes: Turbopack `next dev` can't resolve the Google font here,
 so use `next dev --webpack`. `next start` over plain http won't keep a login
 because the proxy expects the `__Secure-` cookie; that's by design for HTTPS.
 
+## Stage E — Harden & polish (2026-10-15)
+
+Branch `stage-e-hardening`.
+
+- **Unit tests (Vitest, 42):** `tests/unit` covers MCQ grading and written
+  grading, ranks, invoice balances, fee summaries, refundable amounts,
+  document numbers, permissions, the login rate limit, payslips,
+  certificate signing and the CSP builder. `vitest.config.ts` aliases `@` and
+  stubs `server-only`. Run with `npm test`.
+- **E2E (Playwright):** `tests/e2e/demo-story.spec.ts` walks the demo script
+  (apply → convert → forced password change → test → staff grading → score →
+  block → staff kept out of Settings → Reset). `security-headers.spec.ts`
+  checks the nonce CSP with no violations on public, admin and student pages.
+  `mobile-layout.spec.ts` checks that none of 69 pages scrolls sideways at
+  375px. `scripts/e2e-server.mjs` runs an in-memory Mongo, the seed and
+  `next start`. Run with `npm run build && npm run test:e2e`. CI runs both
+  suites and uploads the Playwright report on failure.
+- **Bugs fixed:**
+  - Submitting a test with an answered written question marked the result
+    fully graded. Only blank answers counted as pending.
+  - Staff could award more marks than a question's maximum.
+  - Several refund requests on one payment could add up to more than was paid.
+  - Waivers attached to already-paid invoices and could push paid + waived
+    past the total. Approval is now an atomic capped update.
+  - Document numbers were `count + 1` and repeated after a deletion, so the
+    save failed on the unique index. Several prefixes also hard-coded 2026.
+    `lib/doc-numbers.ts` fixes both.
+  - The proxy looked for the `__Secure-` cookie whenever
+    NODE_ENV=production, so a production build over http could never stay
+    signed in. It now follows Auth.js's rule.
+  - Tests whose window closed without an attempt showed as "Upcoming". They
+    are now "Missed".
+  - Negative net profit read "₹-26,298".
+- **CSP:** `lib/csp.ts` + `proxy.ts` set a per-request nonce with
+  'strict-dynamic'. There is no 'unsafe-inline'/'unsafe-eval' for scripts in
+  production. The root layout renders per request (`connection()`).
+- **Mobile:** below `lg` the admin sidebar is an off-canvas drawer (menu
+  button in the header) and the content has no 260px padding.
+- **Performance:** `ranksFor()` replaces one query per result. New compound
+  indexes on invoices, payments, refunds, waivers, users (role+batch/branch)
+  and results. Master Data defaults are checked once per process.
+- **Seed:** 14 extra students (24 total) across all batches and both
+  branches, with invoices and instalment payments over the six months up to
+  the seed date. Each demo password is hashed once.
+- **Docs:** `docs/DEMO_DAY_CHECKLIST.md` (prep, tour path, fallbacks).
+
+Verified locally: `tsc`, `eslint`, 42 unit tests, `next build` and the 11
+e2e tests all pass on the production build against a throwaway database.
+
 ## TODO next
 
-See `TASKLIST.md` §2–3: Stage E (e2e + unit tests, CSP nonces, mobile and
-performance passes, richer seed, demo-day checklist), then go-live (Atlas +
-Vercel) and Stage F integrations for the modules a client buys.
+See `TASKLIST.md`: go-live (Atlas + Vercel, Stage B), the grading-role
+decision, then Stage F integrations for the modules a client buys.
