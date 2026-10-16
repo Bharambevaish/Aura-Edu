@@ -364,6 +364,35 @@ Branch `stage-e-hardening`.
 Verified locally: `tsc`, `eslint`, 42 unit tests, `next build` and the 11
 e2e tests all pass on the production build against a throwaway database.
 
+## Go-live prep (2026-10-16)
+
+Branch `stage-f-golive`, merged from two parallel sessions.
+
+- **Grading access:** `canGradeWritten()` in `lib/permissions.ts` means admins
+  always grade and staff grade while `InstituteSettings.staffCanGrade` is on
+  (default; a missing field counts as on). It's enforced in
+  `lib/actions/tests/grading.ts`. The toggle is on Settings → Permissions and is
+  audit-logged. Attempts record graderName/graderRole/gradedAt. The seed adds
+  Meera's submitted attempt to the grading queue. Unit and e2e tests
+  (`tests/e2e/grading-access.spec.ts`) cover it.
+- **Deploy readiness:**
+  - `lib/mongo-uri.ts`: the DB name comes from the URI path (Atlas
+    `AuraEdu`), else MONGODB_DB, else `auraedu`. A failed connection is retried.
+  - `DEMO_MODE` (`lib/demo-mode.ts`, read at request time) gates the one-click
+    logins (`app/login/page.tsx` → `LoginForm.tsx`), the demo banner and
+    Reset (refused server-side when off).
+  - `npm run seed` refuses a non-local URI. `npm run seed:remote` confirms
+    and prints the target host and DB.
+  - `GET /api/health` pings the DB.
+  - `proxy.ts` uses Web APIs only.
+  - `engines.node >=20`.
+  - `.env.example` and `docs/DEPLOYMENT.md` (Atlas + Vercel step by step) added.
+- Local `.env` now points at Atlas (Cluster2, DB AuraEdu) with placeholder
+  credentials. The local URI is kept as a comment.
+
+Verified on the merged branch: `tsc`, `eslint`, 58 unit tests, `next build`
+and 16 e2e tests pass. Nothing was run against Atlas.
+
 ## TODO next
 
 See `TASKLIST.md`: go-live (Atlas + Vercel, Stage B), the grading-role

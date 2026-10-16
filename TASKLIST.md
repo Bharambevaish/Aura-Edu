@@ -142,7 +142,7 @@ aren't on the demo path.
 - [x] ~~**Lesson progress:** `LessonProgress` model, working Mark Complete, real % on My Courses and dashboard~~
 - [x] ~~Dead links: "Forgot Password?" now explains who resets passwords; `/privacy-policy` page added~~
 - [x] ~~Demo script for the full story: `docs/DEMO_SCRIPT.md`~~
-- [ ] **Decide (you):** who grades written answers. The Definition of Done says "admin grades", but the code allows staff only (the demo script uses the staff login)
+- [x] ~~**Decided:** admins and staff both grade written answers; an admin switch (Settings → Permissions, default on) can limit grading to admins~~
 
 ### Stage D — Breadth sweep ✅ (branch `stage-d-breadth`, 2026-10-15)
 - [x] ~~**Timetable / schedules:** weekly `TimetableSlot` per batch with batch and teacher clash checks; date-wise schedule; student Schedule includes recurring classes~~
@@ -248,7 +248,7 @@ auto-scored → a written answer is graded → a certificate is generated →
 
 The story runs end to end and is checked by the e2e suite on every push
 (`docs/DEMO_SCRIPT.md`, `docs/DEMO_DAY_CHECKLIST.md`). Still blocked by:
-the live link (Stage B) and the grading-role decision (Stage C).
+the live link (Stage B). Deployment steps: `docs/DEPLOYMENT.md`.
 
 ---
 
