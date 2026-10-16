@@ -21,6 +21,8 @@ jobs:
       AUTH_SECRET: ci-build-placeholder-not-a-real-secret
       AUTH_URL: http://localhost:3000
       AUTH_TRUST_HOST: "true"
+      # The e2e demo story needs the one-click logins and Reset (scripts/e2e-server.mjs sets it too).
+      DEMO_MODE: "true"
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4

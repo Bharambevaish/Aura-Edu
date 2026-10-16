@@ -2,12 +2,16 @@
   "name": "edu",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx scripts/seed.ts",
+    "seed:remote": "tsx scripts/seed.ts --confirm-remote",
     "mongo": "node scripts/dev-mongo.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test"

@@ -13,6 +13,9 @@
  * not protection. The admin gate below runs before any DB access, so a
  * logged-out caller is redirected to /login and a staff/student caller to "/",
  * with nothing deleted.
+ *
+ * Outside DEMO_MODE (a real institute's deployment) it refuses before even
+ * the role check — the button is hidden then, but this is the real gate.
  */
 
 import { auth } from "@/auth";
@@ -37,8 +40,10 @@ import { CourseModel } from "@/lib/models/Course";
 import { AttendanceModel } from "@/lib/models/Attendance";
 import { AssignmentModel } from "@/lib/models/Assignment";
 import { seedDemoData } from "@/lib/seed/demo";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export async function resetDemoData(): Promise<void> {
+  if (!isDemoMode()) throw new Error("Demo reset is disabled on this deployment.");
   const { user } = await requireRole(["admin"]);
   const mySessionId = (await auth())?.user?.sessionId;
   await connectDB();

@@ -19,10 +19,13 @@ import { BranchProvider, type BranchState } from './BranchContext';
 export default function AdminShell({
   user,
   branch,
+  demoMode,
   children,
 }: {
   user: SessionUser;
   branch: BranchState;
+  /** DEMO_MODE, read server-side by the layout. */
+  demoMode: boolean;
   children: React.ReactNode;
 }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -48,7 +51,7 @@ export default function AdminShell({
           className={`flex flex-col min-h-screen min-w-0 transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:pl-20' : 'lg:pl-[260px]'}`}
         >
           <AdminHeader user={user} onMenu={() => setDrawerFor(mobileOpen ? null : pathname)} />
-          <DemoBanner tone="emerald" canReset={user.role === "admin"} />
+          {demoMode && <DemoBanner tone="emerald" canReset={user.role === "admin"} />}
           {denied && (
             <div className="mx-4 sm:mx-6 mt-4 px-4 py-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-medium">
               That section is restricted to administrators.

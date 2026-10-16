@@ -19,7 +19,7 @@
  *
  * NOTE: we deliberately do NOT import `@/auth` here — that module pulls in
  * mongoose (Node-only). Instead we decode the JWT cookie with `getToken`,
- * which works on the edge runtime via jose.
+ * which works on any runtime via jose.
  */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -29,7 +29,9 @@ import { buildCsp, frameAncestorsFor } from "@/lib/csp";
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  // Web APIs only (btoa + crypto.randomUUID): Next 16 runs the proxy on Node.js
+  // (Vercel included), but this also works unchanged on an edge runtime.
+  const nonce = btoa(crypto.randomUUID());
   const csp = buildCsp({ nonce, dev: process.env.NODE_ENV === "development", frameAncestors: frameAncestorsFor(pathname) });
   const withCsp = (res: NextResponse) => {
     res.headers.set("Content-Security-Policy", csp);
