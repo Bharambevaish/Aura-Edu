@@ -1,8 +1,8 @@
 "use server";
 
 /**
- * Settings (admin-only): institute profile used on invoices, GST rules, and
- * the admin's own sign-in sessions. Also the printable-invoice data, which
+ * Settings (admin-only): institute profile used on invoices, GST rules, the
+ * "Staff can grade written answers" switch, and the admin's own sign-in sessions. Also the printable-invoice data, which
  * staff may read too (Finance is shared).
  */
 
@@ -12,7 +12,7 @@ import { connectDB } from "@/lib/db";
 import { auth } from "@/auth";
 import { requireRole } from "@/lib/dal";
 import { writeAudit } from "@/lib/audit";
-import { getInstitute, defaultTaxRule, inclusiveGst, type InstituteProfile } from "@/lib/institute";
+import { getInstitute, getStaffCanGrade, defaultTaxRule, inclusiveGst, type InstituteProfile } from "@/lib/institute";
 import { InstituteSettingsModel } from "@/lib/models/InstituteSettings";
 import { SessionModel } from "@/lib/models/Session";
 import { InvoiceModel } from "@/lib/models/Invoice";
@@ -54,6 +54,29 @@ export async function saveTaxRules(input: unknown): Promise<SettingsOutcome> {
   );
   await writeAudit(user, "updated tax rules", rules.map((r) => `${r.name} ${r.rate}%`).join(", ") || "none");
   return { ok: true, message: "Tax rules saved." };
+}
+
+/** Settings → Permissions: institute-wide permission switches. */
+export async function getPermissionSettings(): Promise<{ staffCanGrade: boolean }> {
+  await requireRole(["admin"]);
+  return { staffCanGrade: await getStaffCanGrade() };
+}
+
+/** Turn staff grading of written answers on or off (admins can always grade). */
+export async function setStaffCanGrade(enabled: unknown): Promise<SettingsOutcome> {
+  const { user } = await requireRole(["admin"]);
+  if (typeof enabled !== "boolean") return { ok: false, message: "Invalid setting." };
+  await connectDB();
+  await InstituteSettingsModel.updateOne(
+    { key: "institute" },
+    { $set: { staffCanGrade: enabled }, $setOnInsert: { key: "institute" } },
+    { upsert: true },
+  );
+  await writeAudit(user, enabled ? "allowed staff to grade written answers" : "limited written grading to admins", enabled ? "Staff can grade: on" : "Staff can grade: off");
+  return {
+    ok: true,
+    message: enabled ? "Staff can now grade written answers." : "Only admins can grade written answers now.",
+  };
 }
 
 export type MySession = { sessionId: string; browser: string; os: string; ip: string; startedAt: string; lastSeenAt: string; current: boolean };

@@ -36,6 +36,10 @@ export interface AttemptDoc {
   mcqScore: number;
   writtenScore: number;
   score: number;
+  /** Who last saved written grades — set by gradeWrittenAnswers. */
+  graderName: string | null;
+  graderRole: "admin" | "staff" | null;
+  gradedAt: Date | null;
   createdAt: Date;
 }
 
@@ -67,6 +71,9 @@ const attemptSchema = new mongoose.Schema<AttemptDoc>(
     mcqScore: { type: Number, default: 0 },
     writtenScore: { type: Number, default: 0 },
     score: { type: Number, default: 0 },
+    graderName: { type: String, default: null },
+    graderRole: { type: String, enum: ["admin", "staff", null], default: null },
+    gradedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

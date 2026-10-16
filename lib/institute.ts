@@ -19,6 +19,7 @@ export const DEFAULT_INSTITUTE: InstituteProfile = {
   invoiceTerms: "",
   taxRules: [],
   defaultTaxRuleId: "",
+  staffCanGrade: true,
 };
 
 export async function getInstitute(): Promise<InstituteProfile> {
@@ -36,7 +37,15 @@ export async function getInstitute(): Promise<InstituteProfile> {
     invoiceTerms: doc.invoiceTerms,
     taxRules: (doc.taxRules ?? []).map((r) => ({ id: r.id, name: r.name, rate: r.rate, hsn: r.hsn, description: r.description })),
     defaultTaxRuleId: doc.defaultTaxRuleId,
+    staffCanGrade: doc.staffCanGrade !== false,
   };
+}
+
+/** "Staff can grade written answers" — a missing field (older databases) counts as on. */
+export async function getStaffCanGrade(): Promise<boolean> {
+  await connectDB();
+  const doc = await InstituteSettingsModel.findOne({ key: "institute" }).select("staffCanGrade").lean();
+  return doc?.staffCanGrade !== false;
 }
 
 export function defaultTaxRule(profile: InstituteProfile): TaxRule | null {
