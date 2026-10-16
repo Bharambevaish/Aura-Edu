@@ -14,6 +14,8 @@ const env = {
   AUTH_URL: `http://localhost:${PORT}`,
   AUTH_SECRET: process.env.AUTH_SECRET ?? "e2e-only-secret-not-used-anywhere-else",
   AUTH_TRUST_HOST: "true",
+  // The e2e story drives the one-click demo logins and Reset demo data.
+  DEMO_MODE: "true",
   NEXT_TELEMETRY_DISABLED: "1",
 };
 

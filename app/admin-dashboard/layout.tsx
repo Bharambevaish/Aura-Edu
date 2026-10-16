@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/dal";
 import ForcePasswordChange from "@/components/auth/ForcePasswordChange";
 import { getBranchScope } from "@/lib/branch-scope";
 import { getActiveBranchNames } from "@/lib/actions/branches";
+import { isDemoMode } from "@/lib/demo-mode";
 
 /**
  * Admin layout gate: every /admin-dashboard route passes
@@ -23,7 +24,7 @@ export default async function AdminDashboardLayout({
   }
   const [scope, branches] = await Promise.all([getBranchScope(), getActiveBranchNames()]);
   return (
-    <AdminShell user={user} branch={{ current: scope.branch, branches }}>
+    <AdminShell user={user} branch={{ current: scope.branch, branches }} demoMode={isDemoMode()}>
       {children}
     </AdminShell>
   );

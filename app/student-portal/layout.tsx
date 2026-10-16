@@ -6,6 +6,7 @@ import { getMyProfile } from "@/lib/actions/student-portal";
 import { getMyFees } from "@/lib/actions/finance";
 import { getStudentNotifications } from "@/lib/actions/assignments";
 import ForcePasswordChange from "@/components/auth/ForcePasswordChange";
+import { isDemoMode } from "@/lib/demo-mode";
 
 /**
  * Student layout gate: every /student-portal route requires a signed-in
@@ -30,7 +31,7 @@ export default async function StudentDashboardLayout({
   ]);
   return (
     <StudentProvider profile={profile} pendingFee={fees.outstanding} notifications={notifications}>
-      <StudentShell>{children}</StudentShell>
+      <StudentShell demoMode={isDemoMode()}>{children}</StudentShell>
     </StudentProvider>
   );
 }

@@ -5,9 +5,11 @@
  * temporarily locks the identity out after too many consecutive failures.
  *
  * Scope note (POC):
- *  - State lives in a plain Map, so it resets on process restart and does not
- *    scale across Vercel serverless instances. For a single-node local dev
- *    server (how the demo runs) this is the right trade-off.
+ *  - State lives in a plain Map, so it resets on process restart and is
+ *    per instance: on Vercel each warm function instance keeps its own count,
+ *    so an attacker spread across instances gets more than MAX_ATTEMPTS
+ *    tries. Acceptable for the demo and small institutes (see
+ *    docs/DEPLOYMENT.md); not a distributed lockout.
  *  - The upgrade path to a distributed store is to swap these functions for a
  *    similar API backed by Upstash Redis / a Mongo collection.
  *

@@ -9,8 +9,13 @@
  * Connection string source: `MONGODB_URI` (see .env / .env.example). Local
  * dev uses a memory/port server via `npm run mongo`; swap the URI for the
  * Atlas string to go live (nothing else changes).
+ *
+ * Database name: the URI path (`.../AuraEdu?...`), else MONGODB_DB, else
+ * "auraedu". Passing a `dbName` that differs from the URI only in case is a
+ * hard error on Atlas, so the URI always wins.
  */
 import mongoose from "mongoose";
+import { resolveDbName } from "@/lib/mongo-uri";
 
 type MongooseCache = {
   conn: typeof mongoose | null;
@@ -43,12 +48,19 @@ export async function connectDB(): Promise<typeof mongoose> {
       );
     }
 
-    cached.promise = mongoose.connect(MONGODB_URI, {
-      dbName: "auraedu",
-      // Don't buffer model operations while connecting — fail fast in dev
-      // instead of hanging a request on an unconfigured database.
-      bufferCommands: false,
-    });
+    cached.promise = mongoose
+      .connect(MONGODB_URI, {
+        dbName: resolveDbName(MONGODB_URI, process.env.MONGODB_DB),
+        // Don't buffer model operations while connecting — fail fast in dev
+        // instead of hanging a request on an unconfigured database.
+        bufferCommands: false,
+      })
+      .catch((error) => {
+        // Forget the failed attempt so the next request retries instead of
+        // a warm serverless instance failing until it is recycled.
+        cached.promise = null;
+        throw error;
+      });
   }
 
   cached.conn = await cached.promise;
