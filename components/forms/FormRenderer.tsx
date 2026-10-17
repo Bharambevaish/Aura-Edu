@@ -5,19 +5,29 @@
  * /f/[slug] page and the builder's live preview, so the preview is exactly
  * what visitors see. In preview mode (no `onSubmit`) submitting only runs the
  * client-side checks and shows the thank-you screen; nothing is saved.
+ *
+ * Every form ends with the privacy-notice consent box. It is not a builder
+ * field: it is always present and the submit action re-checks it.
  */
 import React, { useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { DEFAULT_THANK_YOU, validateAnswers, type FormField, type PublicFormView } from "@/lib/forms";
 
 type Outcome = { ok: boolean; message: string; errors?: Record<string, string> };
 
+export type FormConsent = { consent: boolean; byGuardian: boolean };
+
 interface Props {
   form: PublicFormView;
   /** Live submit; omit for the builder preview. */
-  onSubmit?: (answers: Record<string, string | boolean>, website: string) => Promise<Outcome>;
+  onSubmit?: (answers: Record<string, string | boolean>, website: string, consent: FormConsent) => Promise<Outcome>;
   closed?: boolean;
+  /** Named in the consent text; defaults to "the institute". */
+  instituteName?: string;
 }
+
+const CONSENT_ERROR = "Please agree to the Privacy Notice to continue.";
 
 const inputCls =
   "w-full bg-slate-900/80 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all";
@@ -64,22 +74,24 @@ function FieldInput({ field, value, onChange }: { field: FormField; value: strin
   }
 }
 
-export function FormRenderer({ form, onSubmit, closed }: Props) {
+export function FormRenderer({ form, onSubmit, closed, instituteName }: Props) {
   const [values, setValues] = useState<Record<string, string | boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [website, setWebsite] = useState("");
+  const [consent, setConsent] = useState<FormConsent>({ consent: false, byGuardian: false });
   const preview = !onSubmit;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
     const check = validateAnswers(form.fields, values);
-    setErrors(check.errors);
-    if (Object.keys(check.errors).length) {
-      setMessage("Please fix the highlighted fields.");
+    const nextErrors = { ...check.errors, ...(consent.consent ? {} : { "@privacy": CONSENT_ERROR }) };
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) {
+      setMessage(Object.keys(check.errors).length ? "Please fix the highlighted fields." : CONSENT_ERROR);
       return;
     }
     if (preview) {
@@ -88,7 +100,7 @@ export function FormRenderer({ form, onSubmit, closed }: Props) {
     }
     setBusy(true);
     try {
-      const res = await onSubmit(values, website);
+      const res = await onSubmit(values, website, consent);
       if (res.ok) setDone(res.message);
       else {
         setErrors(res.errors ?? {});
@@ -103,6 +115,7 @@ export function FormRenderer({ form, onSubmit, closed }: Props) {
 
   const reset = () => {
     setValues({});
+    setConsent({ consent: false, byGuardian: false });
     setErrors({});
     setMessage(null);
     setDone(null);
@@ -158,6 +171,39 @@ export function FormRenderer({ form, onSubmit, closed }: Props) {
               {errors[f.id] && <p className="text-xs text-rose-400 mt-1">{errors[f.id]}</p>}
             </div>
           ))}
+
+          {form.fields.length > 0 && (
+            <div className="space-y-3 rounded-xl border border-white/10 bg-slate-900/40 p-4">
+              <label htmlFor="ff-privacy-consent" className="flex items-start gap-3 text-sm text-slate-200 cursor-pointer">
+                <input
+                  id="ff-privacy-consent"
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-emerald-500"
+                  checked={consent.consent}
+                  onChange={(e) => setConsent((c) => ({ ...c, consent: e.target.checked }))}
+                />
+                <span>
+                  I agree to the{" "}
+                  <Link href="/privacy-policy" target="_blank" className="text-emerald-400 underline hover:text-emerald-300">
+                    Privacy Notice
+                  </Link>{" "}
+                  and consent to {instituteName || "the institute"} processing this data to respond to this enquiry and for admission.
+                  <span className="text-rose-400"> *</span>
+                </span>
+              </label>
+              <label htmlFor="ff-privacy-guardian" className="flex items-start gap-3 text-sm text-slate-400 cursor-pointer">
+                <input
+                  id="ff-privacy-guardian"
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-emerald-500"
+                  checked={consent.byGuardian}
+                  onChange={(e) => setConsent((c) => ({ ...c, byGuardian: e.target.checked }))}
+                />
+                <span>The student is under 18 and I am their parent/guardian, giving consent on their behalf.</span>
+              </label>
+              {errors["@privacy"] && <p className="text-xs text-rose-400">{errors["@privacy"]}</p>}
+            </div>
+          )}
 
           {message && (
             <p className="flex items-center gap-2 text-sm text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3">

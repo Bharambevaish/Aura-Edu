@@ -19,6 +19,7 @@ import { nextDocNo } from "@/lib/doc-numbers";
 import { requireRole } from "@/lib/dal";
 import { writeAudit, writeSystemAudit } from "@/lib/audit";
 import { getInstitute, defaultTaxRule, inclusiveGst } from "@/lib/institute";
+import { buildConsent } from "@/lib/privacy";
 import { checkRateLimit, recordFailure } from "@/lib/rate-limit";
 import { nextAdmissionNo, randomPassword } from "@/lib/student-accounts";
 import { LeadModel, type LeadDoc, type LeadPriority, type LeadSource, type LeadStage, type LeadType } from "@/lib/models/Lead";
@@ -286,6 +287,8 @@ export async function convertLead(id: string, input: unknown): Promise<ConvertOu
       admissionStatus: "Active",
       isDemo: false,
       mustChangePassword: true,
+      // The applicant's privacy-notice consent follows them onto the account.
+      consent: lead.consent?.given ? lead.consent : undefined,
     });
     studentId = student._id as mongoose.Types.ObjectId;
   } catch {
@@ -349,11 +352,14 @@ export async function convertLead(id: string, input: unknown): Promise<ConvertOu
 /* Public: Online Admissions (/register)                               */
 /* ------------------------------------------------------------------ */
 
-/** Published course titles for the admission form (public storefront data). */
-export async function getAdmissionOptions(): Promise<{ courses: string[] }> {
+/** Published course titles + the institute name (for the consent text) for the admission form. */
+export async function getAdmissionOptions(): Promise<{ courses: string[]; instituteName: string }> {
   await connectDB();
-  const courses = await CourseModel.find({ published: true }).select("title").sort({ title: 1 }).lean();
-  return { courses: courses.map((c) => c.title) };
+  const [courses, institute] = await Promise.all([
+    CourseModel.find({ published: true }).select("title").sort({ title: 1 }).lean(),
+    getInstitute(),
+  ]);
+  return { courses: courses.map((c) => c.title), instituteName: institute.name };
 }
 
 export type AdmissionOutcome = { ok: boolean; message: string; reference?: string };
@@ -361,7 +367,8 @@ export type AdmissionOutcome = { ok: boolean; message: string; reference?: strin
 /**
  * Public, unauthenticated. Creates (or refreshes) a *lead* — never an account;
  * staff review it on the Leads page and convert it. Rate-limited per IP and
- * protected by a honeypot field.
+ * protected by a honeypot field. Privacy-notice consent (and guardian consent
+ * for a minor) is required by the schema and stored on the lead.
  */
 export async function submitAdmission(input: unknown): Promise<AdmissionOutcome> {
   const h = await headers();
@@ -398,6 +405,7 @@ export async function submitAdmission(input: unknown): Promise<AdmissionOutcome>
     guardianRelation: d.guardianRelation,
     guardianPhone: d.guardianPhone,
     address: d.address,
+    consent: buildConsent({ byGuardian: d.guardianConsent, ip }),
   };
 
   // Re-application with the same email: refresh the open lead, don't duplicate.

@@ -102,3 +102,10 @@ export async function checkAccess(userId: string, sessionId: string | undefined)
 
   return { name: user.name, email: user.email, role: user.role, mustChangePassword: !!user.mustChangePassword };
 }
+
+/** End every active session of a user (Block, erase); they are signed out on their next request. */
+export async function endAllSessions(userId: string): Promise<number> {
+  await connectDB();
+  const res = await SessionModel.updateMany({ userId, active: true }, { $set: { active: false } });
+  return res.modifiedCount;
+}
