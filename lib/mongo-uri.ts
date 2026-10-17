@@ -66,6 +66,17 @@ export function isLocalUri(uri: string): boolean {
   return hosts.length > 0 && hosts.every((h) => LOCAL_HOSTS.has(h));
 }
 
+/**
+ * A connection string copied from Atlas still holding "<db_username>" /
+ * "<db_password>" fails with a confusing server-selection or auth error;
+ * name the real problem instead. Returns null when the URI looks usable.
+ */
+export function uriPlaceholderProblem(uri: string): string | null {
+  return /<[^>]*>/.test(uri)
+    ? "MONGODB_URI still contains placeholders like <db_username> or <db_password>. Replace them with your Atlas database user and password (URL-encode special characters)."
+    : null;
+}
+
 export type SeedTarget =
   | { ok: true; remote: boolean; hosts: string[]; dbName: string }
   | { ok: false; reason: string };
@@ -76,6 +87,8 @@ export type SeedTarget =
  */
 export function checkSeedTarget(uri: string | undefined, argv: string[], envDbName?: string): SeedTarget {
   if (!uri) return { ok: false, reason: "MONGODB_URI is not set." };
+  const placeholder = uriPlaceholderProblem(uri);
+  if (placeholder) return { ok: false, reason: placeholder };
   const hosts = hostsFromUri(uri);
   if (hosts.length === 0) return { ok: false, reason: "MONGODB_URI is not a mongodb:// or mongodb+srv:// URI." };
   const dbName = resolveDbName(uri, envDbName);

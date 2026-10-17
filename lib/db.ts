@@ -15,7 +15,7 @@
  * hard error on Atlas, so the URI always wins.
  */
 import mongoose from "mongoose";
-import { resolveDbName } from "@/lib/mongo-uri";
+import { resolveDbName, uriPlaceholderProblem } from "@/lib/mongo-uri";
 
 type MongooseCache = {
   conn: typeof mongoose | null;
@@ -47,6 +47,8 @@ export async function connectDB(): Promise<typeof mongoose> {
         "MONGODB_URI is missing. Copy .env.example to .env and paste your Atlas connection string.",
       );
     }
+    const placeholder = uriPlaceholderProblem(MONGODB_URI);
+    if (placeholder) throw new Error(placeholder);
 
     cached.promise = mongoose
       .connect(MONGODB_URI, {

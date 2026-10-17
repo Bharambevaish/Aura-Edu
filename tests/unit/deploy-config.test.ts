@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkSeedTarget, dbNameFromUri, hostsFromUri, isLocalUri, resolveDbName } from "@/lib/mongo-uri";
+import { checkSeedTarget, dbNameFromUri, hostsFromUri, isLocalUri, resolveDbName, uriPlaceholderProblem } from "@/lib/mongo-uri";
 import { isDemoMode } from "@/lib/demo-mode";
 
 const ATLAS = "mongodb+srv://owner:p%40ss%2Fw0rd@cluster2.1tgshhd.mongodb.net/AuraEdu?retryWrites=true&w=majority&appName=Cluster2";
@@ -95,5 +95,18 @@ describe("isDemoMode", () => {
     expect(isDemoMode({ DEMO_MODE: "false" })).toBe(false);
     expect(isDemoMode({ DEMO_MODE: "1" })).toBe(false);
     expect(isDemoMode({ DEMO_MODE: "yes" })).toBe(false);
+  });
+});
+
+describe("uriPlaceholderProblem", () => {
+  it("flags a URI copied from Atlas with its placeholders left in", () => {
+    expect(uriPlaceholderProblem("mongodb+srv://<db_username>:<db_password>@cluster2.x.mongodb.net/AuraEdu")).toMatch(/placeholders/);
+  });
+  it("accepts a filled-in URI", () => {
+    expect(uriPlaceholderProblem("mongodb+srv://app:S3cret@cluster2.x.mongodb.net/AuraEdu?retryWrites=true")).toBeNull();
+  });
+  it("makes the seed refuse a placeholder URI", () => {
+    const r = checkSeedTarget("mongodb+srv://<db_username>:<db_password>@cluster2.x.mongodb.net/AuraEdu", ["--confirm-remote"]);
+    expect(r.ok).toBe(false);
   });
 });
