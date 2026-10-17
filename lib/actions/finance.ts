@@ -46,6 +46,7 @@ import type {
 } from "@/lib/finance";
 import { invoiceBalance, invoiceStatus, summarizeFees, refundableAmount } from "@/lib/finance";
 import { nextDocNo } from "@/lib/doc-numbers";
+import { isDemoMode } from "@/lib/demo-mode";
 
 const pad = (n: number, width: number) => String(n).padStart(width, "0");
 
@@ -1267,9 +1268,16 @@ export async function getMyFees(): Promise<MyFees> {
  * simulated in the POC, but the payment is real: it is applied to the
  * student's oldest invoice with a balance, recorded with source "Student
  * Portal", and audit-logged — so it shows up in admin Finance immediately.
+ *
+ * With no payment gateway, that means a student could mark their own fees
+ * paid, so outside DEMO_MODE (a real institute) it is refused until a
+ * gateway (e.g. Razorpay) confirms the money.
  */
 export async function payMyInvoice(input: unknown): Promise<{ ok: boolean; message: string }> {
   const { user } = await requireRole(["student"]);
+  if (!isDemoMode()) {
+    return { ok: false, message: "Online payment isn't enabled yet. Please pay at the institute office; your fees update as soon as it is recorded." };
+  }
   const parsed = StudentPaymentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid payment." };
   const { amount, mode } = parsed.data;

@@ -24,6 +24,7 @@ import { CalendarEventModel } from "@/lib/models/CalendarEvent";
 import { TimetableSlotModel } from "@/lib/models/TimetableSlot";
 import type { CourseDoc, CourseLesson } from "@/lib/models/Course";
 import { UpdateMyProfileSchema, ChangePasswordSchema } from "@/lib/validation";
+import { isDemoMode } from "@/lib/demo-mode";
 import { signedCertificateQuery } from "@/lib/certificate-signing";
 import { writeAudit } from "@/lib/audit";
 
@@ -319,11 +320,20 @@ export async function getCourseStore(): Promise<StoreCourse[]> {
  * Enroll the signed-in student in a published course. Checkout is simulated
  * in the POC (no payment gateway) — the enrollment itself is real and shows
  * up in My Courses and the admin Course Center roster/revenue.
+ *
+ * Outside DEMO_MODE only free courses self-enroll: without a payment gateway
+ * a paid course would be given away.
  */
 export async function enrollInCourse(courseId: string): Promise<ProfileOutcome> {
   const { user } = await requireRole(["student"]);
   if (!mongoose.isValidObjectId(courseId)) return { ok: false, message: "Course not found." };
   await connectDB();
+  if (!isDemoMode()) {
+    const course = await CourseModel.findOne({ _id: courseId, published: true }).select("price").lean<{ price?: number }>();
+    if (course && (course.price ?? 0) > 0) {
+      return { ok: false, message: "Online payment isn't enabled yet. Ask the institute office to enroll you in this course." };
+    }
+  }
   const res = await CourseModel.updateOne(
     { _id: courseId, published: true },
     { $addToSet: { enrolledStudents: new mongoose.Types.ObjectId(user.id) } },
