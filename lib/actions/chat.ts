@@ -20,6 +20,7 @@ import { ChatMessageModel } from "@/lib/models/ChatMessage";
 import type { ChatChannel, ChatSenderRole } from "@/lib/models/ChatMessage";
 import { SendChatMessageSchema } from "@/lib/validation";
 import { sendBatchBroadcast } from "@/lib/actions/connect";
+import { isDemoMode } from "@/lib/demo-mode";
 
 export type ChatMessageRow = {
   id: string;
@@ -175,6 +176,12 @@ function pickReply(text: string, seed: number): string {
   return pool[seed % pool.length];
 }
 
+/** Whether the chat's demo simulations (scripted replies, WhatsApp preview) are on. */
+export async function getChatDemoMode(): Promise<boolean> {
+  await requireRole(["admin", "staff"]);
+  return isDemoMode();
+}
+
 /**
  * Demo simulation: post a canned student reply to one staff message. Each
  * staff message gets at most one reply; the "student" is a real member of
@@ -182,6 +189,8 @@ function pickReply(text: string, seed: number): string {
  */
 export async function postScriptedReply(messageId: string): Promise<Outcome<{ message: ChatMessageRow | null }>> {
   const { user } = await requireRole(["admin", "staff"]);
+  // Never invent messages from real students on a real institute's deployment.
+  if (!isDemoMode()) return { ok: true, message: null };
   if (!mongoose.isValidObjectId(messageId)) return { ok: false, message: "Message not found." };
   await connectDB();
 

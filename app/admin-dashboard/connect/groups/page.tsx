@@ -7,6 +7,7 @@ import {
   getChatPreviews,
   sendChatMessage,
   postScriptedReply,
+  getChatDemoMode,
   type ChatMessageRow,
 } from "@/lib/actions/chat";
 import {
@@ -109,6 +110,8 @@ export default function GroupsChatPage() {
   const [sending, setSending] = useState(false);
   const [typing, setTyping] = useState<string | null>(null);
   const [waPreview, setWaPreview] = useState<ChatMessageRow | null>(null);
+  // Scripted replies and the WhatsApp preview only exist on the sales demo.
+  const [demo, setDemo] = useState(false);
   const activeRef = useRef(active);
   const endRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -116,6 +119,10 @@ export default function GroupsChatPage() {
   useEffect(() => {
     activeRef.current = active;
   }, [active]);
+
+  useEffect(() => {
+    getChatDemoMode().then(setDemo).catch(() => setDemo(false));
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -191,6 +198,7 @@ export default function GroupsChatPage() {
       if (res.message.channel === "whatsapp") setWaPreview(res.message);
 
       // Demo simulation: a scripted student reply after a short "typing" delay.
+      if (!demo) return;
       setTyping(batch);
       const delay = 1800 + Math.floor(Math.random() * 1400);
       setTimeout(async () => {
@@ -291,12 +299,14 @@ export default function GroupsChatPage() {
                     </p>
                   </div>
                 </div>
+                {demo && (
                 <span
                   className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300"
                   title="Student replies in this demo are scripted, not sent by real students"
                 >
                   <FlaskConical size={12} /> Demo: student replies are simulated
                 </span>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-4">
@@ -389,6 +399,7 @@ export default function GroupsChatPage() {
                     />
                     <Megaphone size={13} className="text-emerald-400" /> Broadcast to students&apos; notification hub
                   </label>
+                  {demo && (
                   <label className="flex items-center gap-2 cursor-pointer select-none" title="Simulated — no real WhatsApp message is sent">
                     <input
                       type="checkbox"
@@ -403,6 +414,7 @@ export default function GroupsChatPage() {
                     <CheckCheck size={13} className="text-emerald-400" /> Send as WhatsApp
                     <span className="text-[10px] text-amber-300/80">(simulated)</span>
                   </label>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 bg-slate-900 border border-white/10 rounded-xl p-2">
                   <textarea
