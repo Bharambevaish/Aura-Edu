@@ -2,7 +2,8 @@ import { defineConfig } from "vitest/config";
 import path from "node:path";
 
 // Unit tests for pure business rules (grading, finance, permissions, payroll,
-// rate limiting, certificate signing). No database or Next runtime needed.
+// rate limiting, certificate signing). No Next runtime needed; the only
+// database test (setup-institute.db) starts its own in-memory MongoDB.
 export default defineConfig({
   resolve: {
     alias: {

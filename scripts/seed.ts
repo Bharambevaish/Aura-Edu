@@ -9,7 +9,9 @@
  *
  * Safety: seeding wipes and rewrites collections, so a non-local MONGODB_URI
  * (Atlas) is refused unless run as `npm run seed:remote` (--confirm-remote),
- * which first prints the host and database it is about to write to.
+ * which first prints the host and database it is about to write to. A
+ * database holding any non-demo account (a real institute, see
+ * `npm run setup:institute`) is always refused.
  */
 // .env is optional (CI and the e2e server pass MONGODB_URI directly); it
 // never overrides variables that are already set.
@@ -20,7 +22,9 @@ try {
 }
 
 import { connectDB } from "@/lib/db";
-import { seedDemoData } from "@/lib/seed/demo";
+import { DEMO_ACCOUNTS, seedDemoData } from "@/lib/seed/demo";
+import { demoSeedRefusal } from "@/lib/seed/guard";
+import { UserModel } from "@/lib/models/User";
 import mongoose from "mongoose";
 import { checkSeedTarget } from "@/lib/mongo-uri";
 
@@ -34,6 +38,13 @@ async function main() {
     console.log(`Seeding REMOTE database "${target.dbName}" on ${target.hosts.join(", ")} (existing demo data will be replaced).`);
   }
   await connectDB();
+  const emails = (await UserModel.distinct("email")) as string[];
+  const refusal = demoSeedRefusal(emails, DEMO_ACCOUNTS.map((a) => a.email));
+  if (refusal) {
+    console.error(`Refusing to seed: ${refusal}`);
+    await mongoose.disconnect();
+    process.exit(1);
+  }
   await seedDemoData();
   console.log("Seeded demo users, tests, questions, attempts and results.");
   await mongoose.disconnect();
