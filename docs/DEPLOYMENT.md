@@ -252,7 +252,7 @@ Working as intended: `.env` points at a remote database. Use
 
 **Too many login attempts**
 After 5 failed logins an email+IP is locked out for 15 minutes. The counter
-lives in each server instance's memory, so on Vercel it resets when the
-instance restarts and isn't shared between instances. That's fine for the demo
-and small institutes. A shared store (e.g. Redis) would be the upgrade for
-large public deployments.
+lives in MongoDB (the `ratelimits` collection), so every Vercel instance shares
+it and restarts don't reset it; old entries delete themselves. A successful
+login clears it. If the database can't be reached, the limiter lets the attempt
+through and logs a warning instead of locking everyone out.

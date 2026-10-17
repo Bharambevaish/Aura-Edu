@@ -269,7 +269,7 @@ export async function submitForm(slug: string, input: unknown): Promise<SubmitFo
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "local";
   const key = `form|${ip}`;
-  const limit = checkRateLimit(key);
+  const limit = await checkRateLimit(key);
   if (!limit.ok) {
     return { ok: false, message: `Too many submissions from this network. Try again in ${limit.retryAfterSeconds}s.` };
   }
@@ -288,7 +288,7 @@ export async function submitForm(slug: string, input: unknown): Promise<SubmitFo
     return { ok: false, message: "Please fix the highlighted fields.", errors };
   }
   // Every accepted submission counts toward the per-IP limit (5 per 10 min).
-  recordFailure(key);
+  await recordFailure(key);
   const thanks = form.thankYouMessage || DEFAULT_THANK_YOU;
   // Honeypot filled → a bot. Pretend success, store nothing.
   if (parsed.data.website) return { ok: true, message: thanks };

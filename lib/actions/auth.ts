@@ -64,9 +64,9 @@ export async function login(
   const { email, password } = validated.data;
   const identity = await identityFor(email);
 
-  // Brute-force gate — reject early, generically, without touching the DB, so
-  // attackers cannot even reach bcrypt while an identity is locked.
-  const limit = checkRateLimit(identity);
+  // Brute-force gate — reject early and generically (one indexed lookup in the
+  // shared limiter), so attackers cannot even reach bcrypt while locked.
+  const limit = await checkRateLimit(identity);
   if (!limit.ok) {
     return {
       message: `Too many failed attempts. Try again in ${limit.retryAfterSeconds}s.`,
@@ -86,16 +86,16 @@ export async function login(
         return { message: "This account is temporarily blocked. Contact your institute." };
       }
 
-      // Track the failure in memory (active lockout) and on the user doc
+      // Track the failure in the shared limiter (active lockout) and on the user doc
       // (light audit trail that survives restarts).
-      recordFailure(identity);
+      await recordFailure(identity);
       const nextFails = (user?.failedAttempts ?? 0) + 1;
       const userLocked = nextFails >= MAX_ATTEMPTS;
       await UserModel.updateOne(
         { email },
         {
           $inc: { failedAttempts: 1 },
-          // Reflect the in-memory lockout as an absolute timestamp so the doc
+          // Reflect the limiter lockout as an absolute timestamp so the doc
           // tells a coherent story; cleared again on a successful login.
           $set: { lockoutUntil: userLocked ? new Date(Date.now() + LOCK_MS) : null },
         },
@@ -111,7 +111,7 @@ export async function login(
   }
 
   // Success: reset the limiter + the audit counters for this identity.
-  clearRateLimit(identity);
+  await clearRateLimit(identity);
   await UserModel.updateOne(
     { email },
     { $set: { failedAttempts: 0, lockoutUntil: null } },

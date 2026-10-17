@@ -367,7 +367,7 @@ export async function submitAdmission(input: unknown): Promise<AdmissionOutcome>
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "local";
   const key = `admission|${ip}`;
-  const limit = checkRateLimit(key);
+  const limit = await checkRateLimit(key);
   if (!limit.ok) {
     return { ok: false, message: `Too many applications from this network. Try again in ${limit.retryAfterSeconds}s.` };
   }
@@ -375,7 +375,7 @@ export async function submitAdmission(input: unknown): Promise<AdmissionOutcome>
   const parsed = AdmissionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Please check the form." };
   // Every accepted submission counts toward the per-IP limit (5 per 10 min).
-  recordFailure(key);
+  await recordFailure(key);
 
   const d = parsed.data;
   // Honeypot filled → a bot. Pretend success, store nothing.
