@@ -103,3 +103,27 @@ export function checkSeedTarget(uri: string | undefined, argv: string[], envDbNa
   }
   return { ok: true, remote, hosts, dbName };
 }
+
+/**
+ * Restore-script guard: like checkSeedTarget, a restore replaces every
+ * collection, so a remote database also needs an explicit `--confirm-remote`.
+ * (`--confirm-restore` itself is checked by the script after it prints the plan.)
+ */
+export function checkRestoreTarget(uri: string | undefined, argv: string[], envDbName?: string): SeedTarget {
+  if (!uri) return { ok: false, reason: "MONGODB_URI is not set." };
+  const placeholder = uriPlaceholderProblem(uri);
+  if (placeholder) return { ok: false, reason: placeholder };
+  const hosts = hostsFromUri(uri);
+  if (hosts.length === 0) return { ok: false, reason: "MONGODB_URI is not a mongodb:// or mongodb+srv:// URI." };
+  const dbName = resolveDbName(uri, envDbName);
+  const remote = !isLocalUri(uri);
+  if (remote && !argv.includes("--confirm-remote")) {
+    return {
+      ok: false,
+      reason:
+        `MONGODB_URI points at a remote server (${hosts.join(", ")}). Restoring replaces ` +
+        `everything in the "${dbName}" database. Add --confirm-remote if you really mean it.`,
+    };
+  }
+  return { ok: true, remote, hosts, dbName };
+}

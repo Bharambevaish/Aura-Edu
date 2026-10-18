@@ -2,11 +2,12 @@
 
 /**
  * Security settings (admin): change password, own active sign-ins (sign out
- * the others) and the login protection actually enforced by the app.
+ * the others), the login protection actually enforced by the app and the
+ * "Download all institute data" export (app/api/admin/export).
  */
 import React, { useCallback, useEffect, useState } from "react";
 import { PageHeader, Button, useToast } from "@/components/ui";
-import { Shield, KeyRound, Monitor, LogOut } from "lucide-react";
+import { Shield, KeyRound, Monitor, LogOut, Download } from "lucide-react";
 import { changeOwnPassword } from "@/lib/actions/account";
 import { getMySecurity, signOutMyOtherSessions } from "@/lib/actions/settings";
 
@@ -90,6 +91,21 @@ export default function SecuritySettingsPage() {
             {s.current && <span className="ml-auto px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-300">This device</span>}
           </div>
         ))}
+      </div>
+
+      <div className="glass-panel rounded-2xl p-6 space-y-3">
+        <h2 className="text-sm font-semibold text-white flex items-center gap-2"><Download size={16} className="text-emerald-400" /> Your institute&apos;s data</h2>
+        <p className="text-sm text-slate-300">
+          Download everything the institute has stored — students, staff, fees, attendance, tests, courses and more — as one JSON file.
+          Password hashes and sign-in sessions are left out. The download is recorded in the audit log.
+        </p>
+        <a
+          href="/api/admin/export"
+          download
+          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-[#5E9A2E] text-white hover:bg-[#4A7E24] shadow-sm shadow-black/20"
+        >
+          <Download size={14} /> Download all institute data
+        </a>
       </div>
     </div>
   );
