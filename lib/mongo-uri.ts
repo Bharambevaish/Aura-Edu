@@ -81,11 +81,25 @@ export type SeedTarget =
   | { ok: true; remote: boolean; hosts: string[]; dbName: string }
   | { ok: false; reason: string };
 
+/** Why a remote write was refused, given the hosts and database it would touch. */
+export type RemoteRefusal = (hosts: string[], dbName: string) => string;
+
+const seedRemoteRefusal: RemoteRefusal = (hosts, dbName) =>
+  `MONGODB_URI points at a remote server (${hosts.join(", ")}). Seeding wipes and rewrites ` +
+  `the "${dbName}" database. Run \`npm run seed:remote\` if you really mean it.`;
+
 /**
  * Seed-script guard: the seed wipes and rewrites collections, so a remote
  * database (Atlas) is only written with an explicit `--confirm-remote`.
+ * Other scripts that write a database (setup:institute) pass their own
+ * refusal message.
  */
-export function checkSeedTarget(uri: string | undefined, argv: string[], envDbName?: string): SeedTarget {
+export function checkSeedTarget(
+  uri: string | undefined,
+  argv: string[],
+  envDbName?: string,
+  remoteRefusal: RemoteRefusal = seedRemoteRefusal,
+): SeedTarget {
   if (!uri) return { ok: false, reason: "MONGODB_URI is not set." };
   const placeholder = uriPlaceholderProblem(uri);
   if (placeholder) return { ok: false, reason: placeholder };
@@ -94,12 +108,7 @@ export function checkSeedTarget(uri: string | undefined, argv: string[], envDbNa
   const dbName = resolveDbName(uri, envDbName);
   const remote = !isLocalUri(uri);
   if (remote && !argv.includes("--confirm-remote")) {
-    return {
-      ok: false,
-      reason:
-        `MONGODB_URI points at a remote server (${hosts.join(", ")}). Seeding wipes and rewrites ` +
-        `the "${dbName}" database. Run \`npm run seed:remote\` if you really mean it.`,
-    };
+    return { ok: false, reason: remoteRefusal(hosts, dbName) };
   }
   return { ok: true, remote, hosts, dbName };
 }

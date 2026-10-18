@@ -3,7 +3,8 @@ import path from "node:path";
 
 // Unit tests for pure business rules (grading, finance, permissions, payroll,
 // rate limiting, certificate signing) need no database or Next runtime.
-// tests/integration/ runs against a throwaway mongodb-memory-server.
+// Database tests (tests/integration/, tests/unit/*.db.test.ts) start their
+// own throwaway mongodb-memory-server.
 export default defineConfig({
   resolve: {
     alias: {

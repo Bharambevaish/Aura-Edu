@@ -99,6 +99,8 @@ Plain `npm run seed` refuses to touch any database that is not on your own
 computer. Seeding **replaces** the demo data, so only use `seed:remote` on the
 sales-demo database. **Do not run it on a client institute's database:** it
 creates the public demo accounts (`admin@demo.auraedu.com` / `Admin@123` …).
+A real institute is set up with `npm run setup:institute` instead (section 6),
+and the seed refuses any database that already holds non-demo accounts.
 
 Afterwards, switch `.env` back to your local database
 (`mongodb://127.0.0.1:27017/auraedu`) so local work never touches Atlas.
@@ -207,15 +209,77 @@ Open each URL on your live domain:
 
 ---
 
-## 6. A client institute deployment
+## 6. Deploying for a real institute
 
-Repeat sections 1–5 as a **new Vercel project** (same repo), with:
+A real institute gets its **own** deployment and its **own** database, never
+the sales-demo ones, and never the demo seed. Do this once per institute.
 
-- its own Atlas database name in `MONGODB_URI` (and ideally its own Atlas user),
+### 6.1 A separate database
+
+In Atlas, create a separate database for the institute, or better a separate
+cluster (or project) so its data, users and backups are fully apart from the
+demo. Give it its own database user (1.1) and network access (1.2), and use
+its own database name in the connection string (1.3), e.g.
+
+```
+mongodb+srv://sunrise-app:YOUR_PASSWORD@<institute-cluster>.mongodb.net/SunriseAcademy?retryWrites=true&w=majority
+```
+
+### 6.2 A separate Vercel project
+
+Repeat section 3 as a **new Vercel project** (same repo), with:
+
+- `MONGODB_URI` set to the institute's string from 6.1,
 - its own `AUTH_SECRET` and `AUTH_URL`,
-- **no `DEMO_MODE`**: the one-click demo logins, demo banner and Reset are
-  gone, and the reset action refuses on the server even if called directly,
-- **no** `seed:remote` (that would create the public demo accounts).
+- **`DEMO_MODE` left unset.** Without it there are no one-click demo logins,
+  no demo banner and no Reset button, and the reset action refuses on the
+  server even if called directly.
+
+Then sections 4 and 5 (check it, custom domain) as usual.
+
+### 6.3 Create the first admin (once)
+
+**Never run `npm run seed` / `seed:remote` here.** It would create the public
+demo accounts (`admin@demo.auraedu.com` / `Admin@123` …). The seed refuses a
+database that already has real accounts, but don't rely on that on an empty one.
+
+Instead, from your computer, put the institute's `MONGODB_URI` in `.env` and run:
+
+```bash
+npm run setup:institute -- --confirm-remote --name "Asha Rao" --email asha@sunriseacademy.in --institute "Sunrise Academy" --branch "Main Branch"
+```
+
+- `--name`, `--email`: the institute's first admin (their own email, not a
+  `@demo.auraedu.com` one; those are refused).
+- `--institute`: the name printed on invoices and certificates.
+- `--branch`: optional, creates the first branch.
+- `--confirm-remote`: required for any database not on your computer. The
+  script first prints the host and database it is writing to; check them.
+
+It writes the institute profile (with the standard GST rules: 18% on coaching,
+0% on books), the Master Data defaults (departments, designations, ID proofs,
+lost reasons) and the admin account, and nothing else: no demo students,
+tests or finance data. It prints a **one-time password once**. Hand it to the
+admin securely (not in a shared chat), then switch `.env` back to your local
+database.
+
+The script refuses to run if the database already has any user, so running it
+twice can't create a second "first" admin or overwrite the profile. To add
+another admin later:
+
+```bash
+npm run setup:institute -- --confirm-remote --add-admin --name "Ravi Kumar" --email ravi@sunriseacademy.in
+```
+
+That only adds the admin (with its own one-time password); it changes nothing else.
+
+### 6.4 First sign-in
+
+The admin opens the institute's URL, signs in with their email and the
+one-time password, and is asked to choose their own password before anything
+else opens. Then, in **Settings**, they fill in the legal name, address, GSTIN,
+PAN, support contacts and invoice terms, and add branches, batches, staff and
+students.
 
 ---
 
