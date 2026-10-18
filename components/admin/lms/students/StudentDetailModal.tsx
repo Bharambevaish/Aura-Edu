@@ -16,11 +16,15 @@ import {
 } from "lucide-react";
 import { getStudentDetail, type StudentDetailDTO } from "@/lib/actions/students";
 import { Modal } from "@/components/ui/Modal";
+import { useIsAdmin } from "@/components/admin/shell/AdminUserContext";
+import StudentPrivacyPanel from "./StudentPrivacyPanel";
 
 interface StudentDetailModalProps {
   open: boolean;
   studentId: string | null;
   onClose: () => void;
+  /** Called after the student's data changed here (e.g. erased), to reload the list. */
+  onChanged?: () => void;
 }
 
 function Field({ icon: Icon, label, value }: { icon: React.ComponentType<{ size?: number; className?: string }>; label: string; value: string }) {
@@ -37,9 +41,11 @@ function Field({ icon: Icon, label, value }: { icon: React.ComponentType<{ size?
   );
 }
 
-export default function StudentDetailModal({ open, studentId, onClose }: StudentDetailModalProps) {
+export default function StudentDetailModal({ open, studentId, onClose, onChanged }: StudentDetailModalProps) {
   const [detail, setDetail] = useState<StudentDetailDTO | null>(null);
   const [loading, setLoading] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const isAdmin = useIsAdmin();
 
   useEffect(() => {
     if (!open || !studentId) return;
@@ -59,7 +65,7 @@ export default function StudentDetailModal({ open, studentId, onClose }: Student
       cancelled = true;
       clearTimeout(t);
     };
-  }, [open, studentId]);
+  }, [open, studentId, reloadKey]);
 
   return (
     <Modal
@@ -129,6 +135,16 @@ export default function StudentDetailModal({ open, studentId, onClose }: Student
               Attendance and fee ledgers for this student are managed in the Attendance and Finance modules. Test metrics above are computed from live attempt and result records.
             </p>
           </div>
+
+          {isAdmin && (
+            <StudentPrivacyPanel
+              detail={detail}
+              onErased={() => {
+                setReloadKey((k) => k + 1);
+                onChanged?.();
+              }}
+            />
+          )}
         </div>
       )}
     </Modal>

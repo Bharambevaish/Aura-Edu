@@ -22,7 +22,8 @@ import { FormModel, type FormDoc } from "@/lib/models/Form";
 import { FormSubmissionModel, type FormSubmissionDoc } from "@/lib/models/FormSubmission";
 import { LeadModel, type LeadDoc } from "@/lib/models/Lead";
 import { DEFAULT_THANK_YOU, leadFieldMap, slugify, validateAnswers, type FormField, type PublicFormView } from "@/lib/forms";
-import { FormInputSchema, FormSubmitSchema } from "@/lib/validation";
+import { CONSENT_REQUIRED_MESSAGE, FormInputSchema, FormSubmitSchema } from "@/lib/validation";
+import { buildConsent } from "@/lib/privacy";
 
 export type FormRow = {
   id: string;
@@ -264,6 +265,7 @@ async function createLeadNo(): Promise<string> {
  * Public, unauthenticated. Validates the answers against the *stored* form
  * (never the browser's copy), stores them, and creates a Lead — or adds a note
  * to the open lead with the same email. Rate-limited per IP; honeypot-protected.
+ * Privacy-notice consent is required and stored on the submission and lead.
  */
 export async function submitForm(slug: string, input: unknown): Promise<SubmitFormOutcome> {
   const h = await headers();
@@ -275,7 +277,10 @@ export async function submitForm(slug: string, input: unknown): Promise<SubmitFo
   }
 
   const parsed = FormSubmitSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, message: "Please check the form and try again." };
+  if (!parsed.success) {
+    const noConsent = parsed.error.issues.some((i) => i.path[0] === "consent");
+    return { ok: false, message: noConsent ? CONSENT_REQUIRED_MESSAGE : "Please check the form and try again." };
+  }
 
   await connectDB();
   const form = typeof slug === "string" ? await FormModel.findOne({ slug: slug.toLowerCase() }).lean<FormLean>() : null;
@@ -303,6 +308,7 @@ export async function submitForm(slug: string, input: unknown): Promise<SubmitFo
   }
 
   const now = new Date();
+  const consent = buildConsent({ byGuardian: parsed.data.byGuardian, ip, at: now });
   const noteText = `Submitted the “${form.title}” form${course ? ` (${course})` : ""}.`;
   let leadId: mongoose.Types.ObjectId;
   let leadNo: string;
@@ -320,6 +326,7 @@ export async function submitForm(slug: string, input: unknown): Promise<SubmitFo
         $set: {
           ...(phone && !open.phone ? { phone } : {}),
           ...(course && !open.interestedCourse ? { interestedCourse: course } : {}),
+          consent,
         },
         $push: { notes: { text: noteText, byName: "Web Form", at: now } },
       },
@@ -341,6 +348,7 @@ export async function submitForm(slug: string, input: unknown): Promise<SubmitFo
           interestedCourse: course,
           ownerName: "Unassigned",
           notes: [{ text: noteText, byName: "Web Form", at: now }],
+          consent,
         });
         created = { _id: doc._id as mongoose.Types.ObjectId, leadNo: doc.leadNo };
       } catch (err) {
@@ -361,6 +369,7 @@ export async function submitForm(slug: string, input: unknown): Promise<SubmitFo
     phone,
     leadId,
     leadNo,
+    consent,
   });
   await FormModel.updateOne({ _id: form._id }, { $inc: { submissionCount: 1 } });
   await writeSystemAudit(open ? "form response added to lead" : "form response received", `${form.title} → ${leadNo} — ${name}`);

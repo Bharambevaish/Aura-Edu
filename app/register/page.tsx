@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { getAdmissionOptions, submitAdmission } from '@/lib/actions/leads';
+import { isMinor } from '@/lib/privacy';
 
 type Form = {
   firstName: string;
@@ -38,6 +39,10 @@ type Form = {
   guardianRelation: string;
   guardianPhone: string;
   address: string;
+  /** Privacy-notice consent (Review step). */
+  consent: boolean;
+  /** Parent/guardian consent — required when the applicant is under 18. */
+  guardianConsent: boolean;
   website: string; // honeypot
 };
 
@@ -55,6 +60,8 @@ const EMPTY: Form = {
   guardianRelation: 'Father',
   guardianPhone: '',
   address: '',
+  consent: false,
+  guardianConsent: false,
   website: '',
 };
 
@@ -76,6 +83,12 @@ function stepError(step: number, f: Form): string | null {
     if (f.guardianPhone.replace(/\D/g, '').length < 7) return "Enter the guardian's phone number.";
     if (f.address.trim().length < 5) return 'Enter your address.';
   }
+  if (step === 4) {
+    if (!f.consent) return 'Please agree to the Privacy Notice to continue.';
+    if (isMinor(f.dateOfBirth) && !f.guardianConsent) {
+      return 'The applicant is under 18, so a parent/guardian must give consent on their behalf.';
+    }
+  }
   return null;
 }
 
@@ -83,6 +96,7 @@ export default function StudentRegistrationPage() {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<Form>(EMPTY);
   const [courses, setCourses] = useState<string[]>([]);
+  const [instituteName, setInstituteName] = useState('AuraEdu Institute');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
@@ -92,7 +106,9 @@ export default function StudentRegistrationPage() {
     let ignore = false;
     getAdmissionOptions()
       .then((o) => {
-        if (!ignore) setCourses(o.courses);
+        if (ignore) return;
+        setCourses(o.courses);
+        if (o.instituteName) setInstituteName(o.instituteName);
       })
       .catch(() => {
         if (!ignore) setError('Could not load courses. Please refresh the page.');
@@ -127,7 +143,8 @@ export default function StudentRegistrationPage() {
     // Step 4 → submit.
     setSubmitting(true);
     try {
-      const res = await submitAdmission(form);
+      // Guardian consent only counts for a minor; an adult consents for themself.
+      const res = await submitAdmission({ ...form, guardianConsent: minor && form.guardianConsent });
       if (!res.ok || !res.reference) {
         setError(res.message);
         return;
@@ -146,6 +163,7 @@ export default function StudentRegistrationPage() {
     setStep((prev) => Math.max(prev - 1, 1));
   };
 
+  const minor = isMinor(form.dateOfBirth);
   const review: [string, string][] = [
     ['Name', `${form.firstName} ${form.lastName}`],
     ['Date of birth', form.dateOfBirth],
@@ -173,7 +191,7 @@ export default function StudentRegistrationPage() {
             <span className="text-2xl font-bold text-white">A</span>
           </motion.div>
           <h1 className="text-3xl font-bold text-white mb-2">Online Admission</h1>
-          <p className="text-slate-400">Apply to AuraEdu Institute. Our admissions team will contact you within one working day.</p>
+          <p className="text-slate-400">Apply to {instituteName}. Our admissions team will contact you within one working day.</p>
         </div>
 
         {/* Progress Bar */}
@@ -354,6 +372,39 @@ export default function StudentRegistrationPage() {
                     <p className="text-sm text-blue-200">
                       Please bring your photo, ID proof and latest marksheet to the centre — documents are verified in person before admission is confirmed.
                     </p>
+                  </div>
+                  <div className="space-y-3 rounded-xl border border-white/10 bg-slate-900/40 p-4">
+                    <label htmlFor="consent" className="flex items-start gap-3 text-sm text-slate-200 cursor-pointer">
+                      <input
+                        id="consent"
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 accent-emerald-500"
+                        checked={form.consent}
+                        onChange={(e) => setForm((f) => ({ ...f, consent: e.target.checked }))}
+                      />
+                      <span>
+                        I agree to the{' '}
+                        <Link href="/privacy-policy" target="_blank" className="text-emerald-400 underline hover:text-emerald-300">
+                          Privacy Notice
+                        </Link>{' '}
+                        and consent to {instituteName} processing this data for admission and academics. *
+                      </span>
+                    </label>
+                    {minor && (
+                      <label htmlFor="guardianConsent" className="flex items-start gap-3 text-sm text-slate-200 cursor-pointer">
+                        <input
+                          id="guardianConsent"
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 accent-emerald-500"
+                          checked={form.guardianConsent}
+                          onChange={(e) => setForm((f) => ({ ...f, guardianConsent: e.target.checked }))}
+                        />
+                        <span>
+                          I am the parent/guardian and give consent on the student&apos;s behalf. *
+                          <span className="block text-xs text-slate-400 mt-0.5">The applicant is under 18, so a parent/guardian must consent.</span>
+                        </span>
+                      </label>
+                    )}
                   </div>
                 </div>
               )}

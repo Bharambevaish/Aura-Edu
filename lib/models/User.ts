@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import type { ConsentRecord } from "@/lib/privacy";
+import { consentSchema } from "@/lib/models/consent";
 
 /** Everything important about who can log in and with what authority. */
 export type Role = "admin" | "staff" | "student";
@@ -52,6 +54,10 @@ export interface UserDoc {
   failedAttempts?: number;
   /** Set while brute-force protection blocks this account. */
   lockoutUntil?: Date;
+  /** Privacy-notice consent carried over from the admission lead. */
+  consent?: ConsentRecord;
+  /** Set when an admin erased this student's personal data (record kept for fee/tax). */
+  erasedAt?: Date;
   createdAt: Date;
 }
 
@@ -113,6 +119,8 @@ const userSchema = new mongoose.Schema<UserDoc>(
     lastLoginAt: Date,
     failedAttempts: { type: Number, default: 0 },
     lockoutUntil: Date,
+    consent: { type: consentSchema, default: undefined },
+    erasedAt: Date,
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true },

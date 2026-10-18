@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import type { ConsentRecord } from "@/lib/privacy";
+import { consentSchema } from "@/lib/models/consent";
 
 /**
  * One response to a Form Builder form. `answers` keeps the label as it was at
@@ -19,6 +21,7 @@ export interface FormSubmissionDoc {
   phone: string;
   leadId: mongoose.Types.ObjectId | null;
   leadNo: string;
+  consent?: ConsentRecord;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,6 +45,7 @@ const formSubmissionSchema = new mongoose.Schema<FormSubmissionDoc>(
     phone: { type: String, default: "" },
     leadId: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", default: null },
     leadNo: { type: String, default: "" },
+    consent: { type: consentSchema, default: undefined },
   },
   { timestamps: true },
 );

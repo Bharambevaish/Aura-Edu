@@ -8,6 +8,7 @@
  * authorize/rate-limit logic keeps its own generic errors.
  */
 import { z } from "zod";
+import { isMinor } from "@/lib/privacy";
 
 /** Normalized, trimmed, lowercased email + presence-checked password. */
 export const LoginSchema = z.object({
@@ -540,24 +541,42 @@ export const ConvertLeadSchema = z.object({
   dueInDays: z.number().int().min(0).max(365).default(30),
 });
 
-/** Public Online Admissions form (/register). */
-export const AdmissionSchema = z.object({
-  firstName: z.string().trim().min(1, { message: "First name is required." }).max(60),
-  lastName: z.string().trim().min(1, { message: "Last name is required." }).max(60),
-  dateOfBirth: z.string().trim().min(1, { message: "Date of birth is required." }).max(20),
-  gender: z.enum(["Male", "Female", "Other"], { message: "Select a gender." }),
-  email: z.string().trim().toLowerCase().email({ message: "Enter a valid email." }),
-  phone: leadPhone,
-  course: z.string().trim().min(1, { message: "Choose a course." }).max(150),
-  preferredBatch: z.string().trim().max(60).default(""),
-  branch: z.string().trim().max(80).default(""),
-  guardianName: z.string().trim().min(2, { message: "Guardian name is required." }).max(120),
-  guardianRelation: z.string().trim().max(40).default(""),
-  guardianPhone: leadPhone,
-  address: z.string().trim().min(5, { message: "Address is required." }).max(400),
-  /** Honeypot: real users never fill this hidden field. */
-  website: z.string().max(0).optional().or(z.literal("")),
-});
+export const CONSENT_REQUIRED_MESSAGE = "Please agree to the Privacy Notice to continue.";
+export const GUARDIAN_CONSENT_REQUIRED_MESSAGE =
+  "The applicant is under 18, so a parent/guardian must give consent on their behalf.";
+
+/** Privacy-notice consent ticked on a public form: must be exactly `true`. */
+const consentGiven = z.literal(true, { message: CONSENT_REQUIRED_MESSAGE });
+
+/**
+ * Public Online Admissions form (/register). Consent to the Privacy Notice is
+ * required; when the date of birth makes the applicant a minor, a
+ * parent/guardian must also consent on their behalf (DPDP Act 2023, s.9).
+ */
+export const AdmissionSchema = z
+  .object({
+    firstName: z.string().trim().min(1, { message: "First name is required." }).max(60),
+    lastName: z.string().trim().min(1, { message: "Last name is required." }).max(60),
+    dateOfBirth: z.string().trim().min(1, { message: "Date of birth is required." }).max(20),
+    gender: z.enum(["Male", "Female", "Other"], { message: "Select a gender." }),
+    email: z.string().trim().toLowerCase().email({ message: "Enter a valid email." }),
+    phone: leadPhone,
+    course: z.string().trim().min(1, { message: "Choose a course." }).max(150),
+    preferredBatch: z.string().trim().max(60).default(""),
+    branch: z.string().trim().max(80).default(""),
+    guardianName: z.string().trim().min(2, { message: "Guardian name is required." }).max(120),
+    guardianRelation: z.string().trim().max(40).default(""),
+    guardianPhone: leadPhone,
+    address: z.string().trim().min(5, { message: "Address is required." }).max(400),
+    consent: consentGiven,
+    guardianConsent: z.boolean().default(false),
+    /** Honeypot: real users never fill this hidden field. */
+    website: z.string().max(0).optional().or(z.literal("")),
+  })
+  .refine((d) => !isMinor(d.dateOfBirth) || d.guardianConsent, {
+    message: GUARDIAN_CONSENT_REQUIRED_MESSAGE,
+    path: ["guardianConsent"],
+  });
 
 /* ------------------------------------------------------------------ */
 /* Timetable                                                           */
@@ -745,6 +764,10 @@ export const FormInputSchema = z
 /** Public /f/[slug] submission: answers keyed by field id (checked against the stored form). */
 export const FormSubmitSchema = z.object({
   answers: z.record(z.string().max(40), z.union([z.string().max(5000), z.boolean()])),
+  /** Privacy-notice consent; always on the form, not a builder field. */
+  consent: consentGiven,
+  /** The person submitting is a parent/guardian acting for a minor. */
+  byGuardian: z.boolean().default(false),
   /** Honeypot: real users never fill this hidden field. */
   website: z.string().max(0).optional().or(z.literal("")),
 });

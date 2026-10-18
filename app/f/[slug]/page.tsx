@@ -22,16 +22,16 @@ export default async function PublicFormPage({ params, searchParams }: Props) {
   const form = await getPublicForm(slug);
   if (!form) notFound();
   const embed = query.embed === "1";
+  const institute = await getInstitute();
 
   if (embed) {
     return (
       <main className="p-3 sm:p-4">
-        <PublicForm form={form} />
+        <PublicForm form={form} instituteName={institute.name} />
       </main>
     );
   }
 
-  const institute = await getInstitute();
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-white/5 px-4 py-4">
@@ -44,7 +44,7 @@ export default async function PublicFormPage({ params, searchParams }: Props) {
       </header>
       <main className="flex-1 px-4 py-10">
         <div className="max-w-2xl mx-auto">
-          <PublicForm form={form} />
+          <PublicForm form={form} instituteName={institute.name} />
         </div>
       </main>
       <footer className="px-4 py-6 text-center text-xs text-slate-500">

@@ -50,7 +50,7 @@ test("1. an applicant applies online and gets a reference", async ({ page }) => 
   await page.goto("/register");
   await field(page, "First Name").fill(applicant.first);
   await field(page, "Last Name").fill(applicant.last);
-  await field(page, "Date of Birth").fill("2008-05-14");
+  await field(page, "Date of Birth").fill("2010-05-14");
   await field(page, "Gender").selectOption("Female");
   await field(page, "Email Address").fill(applicant.email);
   await field(page, "Phone Number").fill(applicant.phone);
@@ -66,6 +66,9 @@ test("1. an applicant applies online and gets a reference", async ({ page }) => 
   await page.getByRole("button", { name: "Continue" }).click();
 
   await expect(page.getByText(applicant.email)).toBeVisible();
+  // Born 2010 → a minor, so the guardian must consent as well.
+  await page.locator("#consent").check();
+  await page.locator("#guardianConsent").check();
   await page.getByRole("button", { name: "Submit Application" }).click();
   await expect(page.getByText("Application Received!")).toBeVisible();
   await expect(page.getByText(/^LD-\d{4}-\d+$/)).toBeVisible();

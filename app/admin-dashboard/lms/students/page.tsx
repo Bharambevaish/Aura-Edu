@@ -971,7 +971,7 @@ export default function StudentManagementPage() {
         student={editStudent}
         onSaved={fetchStudents}
       />
-      <StudentDetailModal open={viewId !== null} studentId={viewId} onClose={() => setViewId(null)} />
+      <StudentDetailModal open={viewId !== null} studentId={viewId} onClose={() => setViewId(null)} onChanged={() => fetchStudents()} />
 
       {/* Delete confirm */}
       <Modal

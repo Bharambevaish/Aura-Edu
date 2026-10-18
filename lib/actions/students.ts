@@ -182,6 +182,10 @@ export type StudentDetailDTO = StudentRowDTO & {
   testsTaken: number;
   avgPct: number | null;
   lastTestDate: string | null;
+  /** Privacy-notice consent carried from admission, if any. */
+  consent: { at: string; version: string; byGuardian: boolean } | null;
+  /** Personal data was erased (Data & privacy → Erase). */
+  erasedAt: string | null;
 };
 
 /** Full profile + derived test metrics for the View-detail modal. */
@@ -229,6 +233,10 @@ export async function getStudentDetail(id: string): Promise<StudentDetailDTO | n
     idProofNumber: student.idProofNumber ?? "-",
     testsTaken: attempts.length,
     avgPct,
+    consent: student.consent?.given
+      ? { at: fmtDate(student.consent.at), version: student.consent.version, byGuardian: !!student.consent.byGuardian }
+      : null,
+    erasedAt: student.erasedAt ? fmtDate(student.erasedAt) : null,
     lastTestDate: attempts.length
       ? fmtDate(attempts[attempts.length - 1].submittedAt ?? new Date())
       : null,

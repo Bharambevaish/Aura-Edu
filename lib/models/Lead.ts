@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import type { ConsentRecord } from "@/lib/privacy";
+import { consentSchema } from "@/lib/models/consent";
 
 /**
  * A prospective student (or B2B client) before they become a `users` row.
@@ -45,6 +47,8 @@ export interface LeadDoc {
   lostReason?: string;
   convertedStudentId?: mongoose.Types.ObjectId | null;
   convertedAt?: Date | null;
+  /** Privacy-notice consent from the public form that created/refreshed the lead. */
+  consent?: ConsentRecord;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -92,6 +96,7 @@ const leadSchema = new mongoose.Schema<LeadDoc>(
     lostReason: String,
     convertedStudentId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     convertedAt: { type: Date, default: null },
+    consent: { type: consentSchema, default: undefined },
   },
   { timestamps: true },
 );
