@@ -393,6 +393,49 @@ Branch `stage-f-golive`, merged from two parallel sessions.
 Verified on the merged branch: `tsc`, `eslint`, 58 unit tests, `next build`
 and 16 e2e tests pass. Nothing was run against Atlas.
 
+## Real-institute readiness (2026-10-17 → 2026-10-18)
+
+Branch `stage-f-golive`. The first three items were done in this session; the
+other four were built in parallel sessions and merged.
+
+- **Atlas connection help:** `uriPlaceholderProblem()` stops connectDB and the
+  seed with a clear message when MONGODB_URI still has <db_username>/<db_password>.
+- **Outside DEMO_MODE:**
+  - `payMyInvoice` refuses; there's no gateway, so students could mark their own
+    fees paid.
+  - `enrollInCourse` only self-enrolls free courses.
+  - Group chat posts no scripted student replies and hides the simulated
+    WhatsApp toggle.
+- **First-admin setup:** `lib/setup-institute.ts` + `npm run setup:institute`
+  create one admin with a one-time password (mustChangePassword), the institute
+  profile, an optional first branch and the Master Data defaults. They refuse
+  when users exist (unless `--add-admin`), on placeholder URIs, and on remote
+  URIs without `--confirm-remote`. `lib/seed/guard.ts` makes `npm run seed`
+  refuse a database holding non-demo accounts. docs/DEPLOYMENT.md has a "real
+  institute" section.
+- **Shared rate limit:** `lib/rate-limit.ts` is MongoDB-backed
+  (`lib/models/RateLimit.ts`, unique key + TTL), with one atomic pipeline update
+  per failure. The pure `checkBucket`/`applyFailure` are unit-tested, and it
+  fails open if the DB is down. Callers: login, admission form, public forms.
+- **Backups:** `lib/backup.ts` + `npm run backup` / `npm run restore`
+  (canonical EJSON, a manifest, `--confirm-restore` + `--confirm-remote`,
+  `syncIndexes`). A restore-drill test is included. The admin "Download all
+  institute data" export (`/api/admin/export`) excludes session/rate-limit
+  collections and password/token/secret fields, and is audit-logged. Docs in
+  docs/BACKUPS.md.
+- **Privacy:**
+  - Required consent on the admission form (plus guardian consent for under-18s)
+    and on public forms, stored with version, time, guardian flag and IP on
+    Lead/FormSubmission/User.
+  - A new plain-language privacy notice that reads the grievance contact from
+    the institute profile.
+  - Admin export/erase per student (`lib/actions/privacy.ts`). Erase anonymises,
+    keeps fee amounts, voids the password, ends sessions and records an audit
+    entry without the name.
+
+Verified on the merged branch: `tsc`, `eslint`, 110 unit tests, `next build`
+and 23 e2e tests pass. Nothing was run against Atlas.
+
 ## TODO next
 
 See `TASKLIST.md`: go-live (Atlas + Vercel, Stage B), the grading-role

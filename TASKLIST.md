@@ -178,12 +178,16 @@ aren't on the demo path.
 - [x] ~~Bugs found on the way~~: written answers counted as graded on submit; refunds/waivers could exceed what was paid/owed; marks not capped; duplicate document numbers after deletions; production over http couldn't keep a login; missed tests shown as upcoming
 
 ### Stage F — Productionize (only for modules a client buys)
+- [x] ~~First-admin setup for a real institute without demo data~~ (`npm run setup:institute`); the demo seed refuses a real institute's database
+- [x] ~~Login/form rate limit shared across Vercel instances~~ (MongoDB `ratelimits` with a TTL)
+- [x] ~~Students can't self-record fee payments, paid course enrollments or receive scripted chat replies outside DEMO_MODE~~
+- [ ] Error monitoring (Sentry or similar) **(you: account)**
 - [ ] File uploads to object storage (assignment attachments, avatars) with size/type limits and signed URLs
 - [ ] Real credential/notification delivery (email provider; SMS/WhatsApp later)
 - [ ] Payment gateway for student fees and course store (currently simulated checkout)
 - [ ] Password reset by email
-- [ ] Backup restore drill before any real data
-- [ ] Data retention / privacy policy page; DPDP-style consent for student data
+- [x] ~~Backup restore drill before any real data~~: `npm run backup` / `npm run restore`, a restore-drill test and admin "Download all institute data" (`docs/BACKUPS.md`)
+- [x] ~~Data retention / privacy policy page; DPDP-style consent for student data~~: consent (with guardian consent for minors) on admission and public forms, a privacy notice, admin export/erase per student. **(you)** Fill in the retention years and data region in the notice.
 
 ---
 
