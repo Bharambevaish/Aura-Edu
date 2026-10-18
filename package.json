@@ -13,6 +13,8 @@
     "seed": "tsx scripts/seed.ts",
     "seed:remote": "tsx scripts/seed.ts --confirm-remote",
     "setup:institute": "tsx scripts/setup-institute.ts",
+    "backup": "tsx scripts/backup.ts",
+    "restore": "tsx scripts/restore.ts",
     "mongo": "node scripts/dev-mongo.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test"
