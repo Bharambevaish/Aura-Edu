@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import Link from "next/link";
 import { getFinanceOverview, type OverviewData } from "@/lib/actions/finance";
 import { CircleDollarSign, DollarSign, AlertCircle, Users, ArrowRight, CreditCard, Loader2, PiggyBank, ReceiptText } from "lucide-react";
@@ -23,6 +24,7 @@ function initials(name: string) {
 const last5Colors = ["bg-blue-600", "bg-emerald-600", "bg-amber-600", "bg-purple-600", "bg-rose-600"];
 
 export default function FinanceOverviewPage() {
+  const hydrated = useHydrated();
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,9 +49,12 @@ export default function FinanceOverviewPage() {
     <div className="space-y-6">
       <PageHeader title="Finance Overview" subtitle="Money received, money still owed, and where it goes." icon={<CircleDollarSign size={20} className="text-blue-400" />}>
         <BranchChip />
-        <span className="px-3 py-1.5 bg-slate-900/50 border border-white/10 text-slate-300 rounded-lg text-xs font-medium">
-          {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-        </span>
+        {/* The browser's "today" (the server's may be another day). */}
+        {hydrated && (
+          <span className="px-3 py-1.5 bg-slate-900/50 border border-white/10 text-slate-300 rounded-lg text-xs font-medium">
+            {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+          </span>
+        )}
         <Link href="/admin-dashboard/finance/payments" className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors bg-[#5E9A2E] text-white hover:bg-[#4A7E24] text-sm">
           View All Payments
         </Link>

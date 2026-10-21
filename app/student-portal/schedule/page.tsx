@@ -6,6 +6,7 @@
  * Per-batch recurring timetable slots are a later module.
  */
 import React, { useEffect, useMemo, useState } from "react";
+import { useHydrated } from "@/lib/use-hydrated";
 import Link from "next/link";
 import { useStudent } from "@/context/StudentContext";
 import { getMySchedule, type ScheduleItem } from "@/lib/actions/student-portal";
@@ -49,6 +50,10 @@ function KindIcon({ kind }: { kind: ScheduleItem["kind"] }) {
 
 export default function SchedulePage() {
   const { profile } = useStudent();
+  // "Today" and the month grid come from the browser's clock. The server's
+  // (UTC on Vercel) can be on a different day, so render them only after
+  // hydration to avoid a server/client mismatch.
+  const mounted = useHydrated();
   const [items, setItems] = useState<ScheduleItem[] | null>(null);
   const [filter, setFilter] = useState<Filter>("Day");
   const [selectedDay, setSelectedDay] = useState(() => new Date());
@@ -99,6 +104,10 @@ export default function SchedulePage() {
     filter === "Day"
       ? selectedDay.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
       : filter;
+
+  if (!mounted) {
+    return <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 text-sm text-slate-400">Loading schedule…</div>;
+  }
 
   return (
     <div className="space-y-6">

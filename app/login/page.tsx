@@ -8,6 +8,7 @@
  */
 import { connection } from "next/server";
 import { isDemoMode } from "@/lib/demo-mode";
+import { demoDataStatus } from "@/lib/demo-status";
 import LoginForm, { type DemoLogin } from "./LoginForm";
 
 const DEMO_LOGINS: DemoLogin[] = [
@@ -18,5 +19,8 @@ const DEMO_LOGINS: DemoLogin[] = [
 
 export default async function LoginPage() {
   await connection();
-  return <LoginForm demoLogins={isDemoMode() ? DEMO_LOGINS : null} />;
+  const demo = isDemoMode();
+  // An unseeded demo database rejects every login; say so instead.
+  const demoDataMissing = demo && (await demoDataStatus()) === "missing";
+  return <LoginForm demoLogins={demo ? DEMO_LOGINS : null} demoDataMissing={demoDataMissing} />;
 }

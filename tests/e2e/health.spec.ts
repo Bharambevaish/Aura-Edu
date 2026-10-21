@@ -6,5 +6,6 @@ test("/api/health reports the database up, uncached, without details", async ({ 
   const res = await request.get("/api/health");
   expect(res.status()).toBe(200);
   expect(res.headers()["cache-control"]).toContain("no-store");
-  expect(await res.json()).toEqual({ ok: true, db: "up" });
+  // The e2e server runs a seeded demo (DEMO_MODE=true), so it also reports the demo data.
+  expect(await res.json()).toEqual({ ok: true, db: "up", demoData: "ready" });
 });

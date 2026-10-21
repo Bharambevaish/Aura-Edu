@@ -18,15 +18,15 @@ import { login } from "@/lib/actions/auth";
 export type DemoLogin = { role: "student" | "admin" | "staff"; email: string; password: string; label: string };
 
 // useSearchParams() needs a Suspense boundary.
-export default function LoginForm({ demoLogins }: { demoLogins: DemoLogin[] | null }) {
+export default function LoginForm({ demoLogins, demoDataMissing = false }: { demoLogins: DemoLogin[] | null; demoDataMissing?: boolean }) {
   return (
     <Suspense>
-      <LoginSelector demoLogins={demoLogins} />
+      <LoginSelector demoLogins={demoLogins} demoDataMissing={demoDataMissing} />
     </Suspense>
   );
 }
 
-function LoginSelector({ demoLogins }: { demoLogins: DemoLogin[] | null }) {
+function LoginSelector({ demoLogins, demoDataMissing }: { demoLogins: DemoLogin[] | null; demoDataMissing: boolean }) {
   const [activeTab, setActiveTab] = useState<"student" | "admin" | "staff">("student");
   const [state, formAction, pending] = useActionState(login, null);
   // Set by /session-ended after a block, force logout or expiry.
@@ -266,6 +266,11 @@ function LoginSelector({ demoLogins }: { demoLogins: DemoLogin[] | null }) {
           {demoLogins && (
             <div className="mt-5 pt-5 border-t border-white/10 space-y-2">
               <p className="text-[10px] uppercase tracking-wider text-slate-500 font-mono text-center">One-click demo access</p>
+              {demoDataMissing && (
+                <p role="alert" data-testid="demo-data-missing" className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-300 text-xs text-center">
+                  Demo data isn&apos;t loaded on this deployment yet, so these logins won&apos;t work. Run <code>npm run seed:remote</code> once against this database.
+                </p>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 {demoLogins.map((demo) => (
                   <form key={demo.role} action={formAction}>

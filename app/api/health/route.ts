@@ -8,6 +8,8 @@
  */
 import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
+import { isDemoMode } from "@/lib/demo-mode";
+import { demoDataStatus } from "@/lib/demo-status";
 
 /** Fail fast instead of hanging the function on an unreachable cluster. */
 const PING_TIMEOUT_MS = 5_000;
@@ -27,7 +29,8 @@ export async function GET() {
         timer = setTimeout(() => reject(new Error("database ping timed out")), PING_TIMEOUT_MS);
       }),
     ]);
-    return json({ ok: true, db: "up" }, 200);
+    // On a demo deployment, also say whether the demo accounts exist.
+    return json(isDemoMode() ? { ok: true, db: "up", demoData: await demoDataStatus() } : { ok: true, db: "up" }, 200);
   } catch (error) {
     console.error("[health] database check failed:", error instanceof Error ? error.message : error);
     return json({ ok: false }, 503);

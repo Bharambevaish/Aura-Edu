@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Button, useToast } from "@/components/ui";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RefreshCw, Clock, BookOpen, Video, GraduationCap, ExternalLink } from "lucide-react";
 import { getDaySchedule, type DayItem } from "@/lib/actions/timetable";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const toIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const shift = (iso: string, days: number) => {
@@ -23,6 +24,8 @@ const KIND = {
 } as const;
 
 export default function DatewiseSchedulePage() {
+  // The default date is the browser's today; render it only after hydration.
+  const hydrated = useHydrated();
   const { toast } = useToast();
   const [date, setDate] = useState(() => toIso(new Date()));
   const [items, setItems] = useState<DayItem[] | null>(null);
@@ -43,6 +46,10 @@ export default function DatewiseSchedulePage() {
   const count = (k: DayItem["kind"]) => items?.filter((i) => i.kind === k).length ?? 0;
   const batches = new Set(items?.filter((i) => i.kind === "class").map((i) => i.batches)).size;
   const label = new Date(`${date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  if (!hydrated) {
+    return <div className="glass-panel rounded-2xl p-6 text-sm text-slate-400">Loading schedule…</div>;
+  }
 
   return (
     <div className="space-y-6">

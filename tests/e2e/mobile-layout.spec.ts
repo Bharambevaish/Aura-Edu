@@ -1,13 +1,11 @@
 import { expect, test, type Browser } from "@playwright/test";
+import { ADMIN_ROUTES as ADMIN, PUBLIC_ROUTES as PUBLIC, STUDENT_ROUTES as STUDENT } from "./routes";
 
 /**
  * Phone-width layout guard: no page may scroll sideways at 375px. Content
  * inside its own scroll box (wide tables) is fine; the page itself is not.
  */
 
-const ADMIN = "/admin-dashboard /admin-dashboard/account /admin-dashboard/administration/master /admin-dashboard/administration/payroll /admin-dashboard/administration/staff /admin-dashboard/connect /admin-dashboard/connect/calendar /admin-dashboard/connect/groups /admin-dashboard/connect/meetings /admin-dashboard/connect/meetings/schedule /admin-dashboard/connect/notices /admin-dashboard/finance/audit-trail /admin-dashboard/finance/expense-approvals /admin-dashboard/finance/expense-categories /admin-dashboard/finance/expenses /admin-dashboard/finance/expenses/create /admin-dashboard/finance/invoices /admin-dashboard/finance/overview /admin-dashboard/finance/payments /admin-dashboard/finance/refunds /admin-dashboard/finance/vendors /admin-dashboard/finance/waivers /admin-dashboard/leave /admin-dashboard/lms/courses /admin-dashboard/lms/courses/create /admin-dashboard/lms/doubts /admin-dashboard/lms/forms /admin-dashboard/lms/forms/create /admin-dashboard/lms/leads /admin-dashboard/lms/schedules/batch /admin-dashboard/lms/schedules/date-wise /admin-dashboard/lms/students /admin-dashboard/lms/students/assignments /admin-dashboard/lms/students/assignments/create /admin-dashboard/lms/students/attendance /admin-dashboard/lms/students/batches /admin-dashboard/lms/students/batches/create /admin-dashboard/lms/students/certificates /admin-dashboard/lms/students/certificates/generate /admin-dashboard/lms/students/logins /admin-dashboard/lms/students/test-cards /admin-dashboard/lms/students/tests /admin-dashboard/lms/students/tests/create /admin-dashboard/lms/tasks /admin-dashboard/reports /admin-dashboard/settings /admin-dashboard/settings/config/branch /admin-dashboard/settings/config/invoice /admin-dashboard/settings/config/staff-permission /admin-dashboard/settings/config/tax /admin-dashboard/settings/profile".split(" ");
-const STUDENT = "/student-portal /student-portal/assignments /student-portal/attendance /student-portal/certificates /student-portal/course-store /student-portal/fees /student-portal/my-courses /student-portal/notifications /student-portal/profile/manage /student-portal/schedule /student-portal/test-card /student-portal/tests".split(" ");
-const PUBLIC = "/ /login /register /privacy-policy /verify /f/free-demo-class".split(" ");
 
 test.use({ viewport: { width: 375, height: 812 } });
 test.setTimeout(600_000);
