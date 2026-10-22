@@ -15,7 +15,7 @@ effort is a rough single-developer estimate.
 
 ---
 
-## 1. Snapshot (2026-10-15, after Stage E)
+## 1. Snapshot (2026-10-23, live)
 
 | Area | Status |
 |---|---|
@@ -23,11 +23,12 @@ effort is a rough single-developer estimate.
 | Live-DB modules | ✅ Students, Student Logins, Batches, Courses, Attendance, Tests, Assignments, Certificates, Finance (10 screens), Communications (5 screens) |
 | Student portal | ✅ Fully live: profile, fees + pay, courses + lesson progress, store, tests, assignments, attendance, schedule, earned certificates, notifications |
 | Phase 1 security & core fixes | ✅ Done on branch `phase1-security` |
-| Stage A close-out | ✅ Code items done on branch `stage-a-closeout` · ⏳ owner items: history purge, new remote, PR merge, branch protection |
+| Stage A close-out | ✅ Code done · ✅ new remote (GitHub `Nikhil270703/AuraEdu`, private) · ✅ all stages on `main` · ⏳ owner items: old-history purge, branch protection |
 | Demo story | ✅ Online admission → leads → follow-up → convert → student → test → grading → certificate → reset (branch `stage-c-demo-story`, script in `docs/DEMO_SCRIPT.md`) |
 | Breadth modules | ✅ Timetable, Reports Hub, Task Manager, Form Builder, Settings, Master Data, Multi-branch, Payroll simulator, Leave, staff self-service, group chat, lesson doubts (branch `stage-d-breadth`) |
-| Quality gates | ✅ CI: typecheck, lint, 42 unit tests, build, Playwright e2e (demo story, CSP, phone layout) |
-| Deployment | ❌ No Atlas, no Vercel link · ✅ code on GitHub `Nikhil270703/AuraEdu` · ✅ CI workflow |
+| Real-institute readiness | ✅ First-admin setup, backups/restore/export, shared rate limit, privacy consent, DEMO_MODE switch (Stage F part 1) |
+| Quality gates | ✅ CI: typecheck, lint, 113 unit tests, build, 24 Playwright e2e (demo story, grading access, privacy, export, CSP, phone layout, time-zone hydration) · ✅ live smoke tests (`npm run test:live`) |
+| Deployment | ✅ **Live demo:** https://aura-edu-eight.vercel.app (Vercel Hobby, `main`; MongoDB Atlas Cluster2, database `auraedu`; DEMO_MODE=true; seeded 2026-10-23) |
 
 ---
 
@@ -46,7 +47,9 @@ spent on modules nobody buys.
 | **C. Complete the demo story** | The Definition of Done (§6) works start to finish | Lead → student → test → grading → certificate → reset, with no demo-only data on the way | ~1 week |
 | **D. Breadth sweep** | Every sidebar module *does something* visible | No dead buttons or static-only pages left in the sidebar | 1–2 weeks |
 | **E. Harden & polish** | Confidence on demo day | e2e test of the demo path, mobile pass, demo scripts written | ~1 week |
-| **F. Productionize (per client)** | Turn chosen modules into a real product | Only for modules a client signs for | per module |
+| **F. Productionize, part 1** | Safe for a real institute without accounts | First-admin setup, backups, shared rate limit, consent ✅ | done |
+| **G. Pilot readiness** | One real institute runs on it | Integrations live, client infra, a 2–4 week pilot | ~3–4 weeks + your accounts |
+| **H. Scale** | Many institutes on one platform | Multi-tenant, super-admin, billing | after 3–5 clients |
 
 **Why this order**
 - **A before anything else:** a payment can currently land on the wrong
@@ -111,10 +114,11 @@ aren't on the demo path.
 - [x] ~~Reset keeps the clicking admin signed in~~
 - [x] ~~Docs brought in line with the code (`WORKLOG.md`, `README.md`, `PROJECT_STATUS.md`, this file)~~
 
-### Stage A — Close out Phase 1 (code done on branch `stage-a-closeout`)
-- [ ] **(you)** Purge the old git history locally: delete `refs/original/*`, remove the `origin` remote, expire the reflog, `git gc` (exact commands in the Phase 1 report)
-- [ ] **(you)** Choose the new git remote (your own GitHub repo) and push `main`, `phase1-security`, `stage-a-closeout`
-- [ ] **(you)** Merge `phase1-security` then `stage-a-closeout` → `main` through PRs; turn on branch protection requiring the CI check
+### Stage A — Close out Phase 1 ✅ (except two owner items)
+- [ ] **(you)** Purge the old git history locally: delete `refs/original/*`, remove the old `origin` remote (CoachingPOC), expire the reflog, `git gc`
+- [x] ~~New git remote: private GitHub repo `Nikhil270703/AuraEdu`; all stage branches pushed~~
+- [x] ~~All stages on `main` (fast-forwarded, 2026-10-16 → 2026-10-22)~~
+- [ ] **(you)** GitHub → Settings → Branches: protect `main`, require the CI check to pass
 - [x] ~~**Bug:** admin "Record Payment" could apply a payment to another student's invoice. Now ownership-checked and overpayment-guarded~~
 - [x] ~~**Bug:** imported students all got `Student@123`. Now each gets a unique one-time password, and every admin-issued password forces a change at first sign-in~~
 - [x] ~~**Bug (found):** Generate Login / Send Credentials never worked (wrong argument shape from the page)~~
@@ -126,12 +130,18 @@ aren't on the demo path.
 - [x] ~~Honour `callbackUrl` after login, only for local paths inside the user's own portal (no open redirect)~~
 - [x] ~~"Reset demo data" now also clears batches, courses, attendance and assignments created during a demo~~
 
-### Stage B — Go live early (1–2 days)
-- [ ] **(you)** MongoDB Atlas cluster, DB user, network access; enable backups
-- [ ] **(you)** Vercel project; set `MONGODB_URI`, `AUTH_SECRET` (fresh), `AUTH_URL`
-- [ ] Replace the in-memory login rate limiter with a shared store (Upstash Redis or a Mongo TTL collection). It doesn't work across serverless instances
-- [ ] Seed the live DB; smoke-test the one-click logins, a student payment, Block, and Reset on the live link
-- [ ] Decide demo delivery: live link (recommended) vs laptop **(you)**
+### Stage B — Go live ✅ (2026-10-23)
+- [x] ~~Atlas cluster (Cluster2), app DB user `nikhil_raghu` (read/write), network access 0.0.0.0/0; database `auraedu`~~
+- [x] ~~Vercel project `aura-edu` from `main`; MONGODB_URI, AUTH_SECRET, AUTH_URL, AUTH_TRUST_HOST, DEMO_MODE~~
+- [x] ~~Shared login rate limiter (MongoDB TTL collection)~~
+- [x] ~~Live DB seeded (`npm run seed:remote`); /api/health reports `db: up, demoData: ready`; one-click logins work~~
+- [x] ~~Read-only live smoke tests pass (`npm run test:live`)~~
+- [x] ~~Demo delivery: the live link~~
+- [ ] **(you)** Run the live sign-in checks: `$env:LIVE_URL="https://aura-edu-eight.vercel.app"; $env:LIVE_LOGINS="1"; npm run test:live`
+- [ ] **(you)** Atlas backups: the free M0 tier has none. Run `npm run backup` weekly until you move to a paid tier (Stage G)
+- [ ] **(you)** Vercel → Settings → Functions → region: the same region as the Atlas cluster (builds run in Washington, iad1). A mismatch adds latency to every page
+- [ ] **(you)** Keep `nraghuvanshi100_db_user` (atlasAdmin) for the Atlas console only; the app uses `nikhil_raghu`
+- [x] ~~**Go-live fixes found on the way:** database name taken from the URI (Atlas case conflict `auraedu`/`AuraEdu`), placeholder-credential message, unseeded-demo warning + `demoData` in /api/health, login says "temporarily unavailable" instead of crashing when the DB is down, 10s connect timeout, time-zone hydration errors on 3 pages, Vercel "Blocked" deploys (commits now authored as the repo owner)~~
 
 ### Stage C — Complete the demo story (done on branch `stage-c-demo-story`)
 - [x] ~~**Leads:** `Lead` model (stage pipeline, priority, source, owner, follow-ups, notes); live Leads page with stats, filters, Add Lead, Follow-up history, CSV export~~
@@ -177,17 +187,52 @@ aren't on the demo path.
 - [x] ~~Demo-day checklist: one-click login, reset, tour path through the wow modules~~ (`docs/DEMO_DAY_CHECKLIST.md`)
 - [x] ~~Bugs found on the way~~: written answers counted as graded on submit; refunds/waivers could exceed what was paid/owed; marks not capped; duplicate document numbers after deletions; production over http couldn't keep a login; missed tests shown as upcoming
 
-### Stage F — Productionize (only for modules a client buys)
+### Stage F — Productionize, part 1 ✅ (account-free items, 2026-10-18)
 - [x] ~~First-admin setup for a real institute without demo data~~ (`npm run setup:institute`); the demo seed refuses a real institute's database
 - [x] ~~Login/form rate limit shared across Vercel instances~~ (MongoDB `ratelimits` with a TTL)
 - [x] ~~Students can't self-record fee payments, paid course enrollments or receive scripted chat replies outside DEMO_MODE~~
-- [ ] Error monitoring (Sentry or similar) **(you: account)**
-- [ ] File uploads to object storage (assignment attachments, avatars) with size/type limits and signed URLs
-- [ ] Real credential/notification delivery (email provider; SMS/WhatsApp later)
-- [ ] Payment gateway for student fees and course store (currently simulated checkout)
-- [ ] Password reset by email
 - [x] ~~Backup restore drill before any real data~~: `npm run backup` / `npm run restore`, a restore-drill test and admin "Download all institute data" (`docs/BACKUPS.md`)
 - [x] ~~Data retention / privacy policy page; DPDP-style consent for student data~~: consent (with guardian consent for minors) on admission and public forms, a privacy notice, admin export/erase per student. **(you)** Fill in the retention years and data region in the notice.
+
+
+### Stage G — Pilot readiness (next; ~3–4 weeks, mostly gated on your accounts)
+Goal: one real institute uses AuraEdu daily for a month without data loss,
+fee errors or support fires. Each step unblocks the next.
+
+**G1. Housekeeping (code, no accounts; ~2 days)**
+- [ ] Separate local and live databases: local `.env` back to local Mongo; the live DB only via Vercel
+- [ ] Pin Node 22 in `engines` (removes Vercel's "will upgrade automatically" warning)
+- [ ] Vercel Preview environment variables (Preview deploys currently have none and can't reach a DB)
+- [ ] Multi-branch follow-ups: branch-scope expenses, reports, attendance and leads
+- [ ] Mask ID-proof numbers in admin views
+- [ ] Confirm the GitHub CI run is green on `main`; add its badge to README
+
+**G2. Accounts → integrations (~1–2 weeks of code once each account exists)**
+- [ ] **(you: Sentry)** Error monitoring with alerts for server errors and failed-login spikes
+- [ ] **(you: Resend or SES + a domain)** Email: password reset, credential delivery, fee reminders
+- [ ] **(you: Razorpay)** Online fees and paid course checkout with webhook-verified receipts (then student self-payment can be enabled outside DEMO_MODE safely)
+- [ ] **(you: Cloudflare R2)** File uploads: assignment attachments, lesson material, avatars (size/type limits, signed URLs)
+- [ ] Learn player opens uploaded lesson material (closes the Stage D leftover)
+
+**G3. Client infrastructure (per institute; ~1 day each)**
+- [ ] **(you)** Atlas Flex or M10+ in Mumbai with automated backups; one database per institute
+- [ ] **(you)** Vercel Pro project per institute (DEMO_MODE unset), custom domain, AUTH_URL
+- [ ] `npm run setup:institute -- --confirm-remote --name … --email …` → the first admin signs in and changes the password
+- [ ] Institute profile, GST, branches, batches and courses entered; staff and students imported
+- [ ] Privacy notice placeholders filled; weekly `npm run backup` until Atlas backups are on
+
+**G4. Pilot (2–4 weeks)**
+- [ ] One institute; fees recorded by staff (gateway optional at first)
+- [ ] Weekly check-in: bugs, missing workflows, speed; ship small fixes
+- [ ] One restore drill during the pilot (`npm run restore` into a scratch database)
+- [ ] Choose what to productionise next from real usage
+
+### Stage H — Scale to many institutes (after 3–5 paying clients)
+- [ ] One deployment for many institutes: tenant from the subdomain, one database per institute
+- [ ] Super-admin console: create institutes, plans/limits, billing, usage
+- [ ] Parent access (login or WhatsApp updates); SMS/WhatsApp provider with DLT registration
+- [ ] Installable student app (PWA first)
+- [ ] Hindi/regional-language labels on the student side
 
 ---
 
@@ -203,7 +248,7 @@ aren't on the demo path.
 | Test Management | **Working** (crown jewel) |
 | Assignments + notifications | **Working** |
 | Certificates | **Working** (stateless generator) |
-| Finance (10 screens) | **Working** (one admin payment bug, Stage A) |
+| Finance (10 screens) | **Working** (student self-payment only in DEMO_MODE until a gateway exists) |
 | Communications (5 screens) | **Working** (group chat saved; student replies and WhatsApp simulated) |
 | Student Portal | **Working** (all widgets on live data) |
 | Staff permissions + self-service | **Working** (CRUD, My Account, leave, payslips) |
@@ -235,11 +280,13 @@ aren't on the demo path.
 - [x] ~~Students restricted to their own batch's tests~~
 - [x] ~~Post-login redirect limited to the user's own portal (no open redirect)~~
 - [ ] Mask ID-proof numbers in admin views (needs an "unchanged" edit flow first)
-- [ ] Distributed rate limiting (Stage B)
-- [ ] Audit log for all admin actions (Stage D)
-- [ ] Strict CSP without `unsafe-eval` (Stage E)
-- [ ] Uploads: limits, object storage, signed URLs (Stage F)
-- [ ] Atlas backups + restore drill (Stage B / F)
+- [x] ~~Distributed rate limiting~~ (MongoDB TTL collection)
+- [x] ~~Audit log for admin actions~~ (money, accounts, students, tests, grading, settings, data export/erase)
+- [x] ~~Strict CSP~~ (per-request nonce; no `unsafe-inline`/`unsafe-eval` for scripts in production)
+- [x] ~~Backups + restore drill~~ (`npm run backup` / `restore`, tested); Atlas automated backups need a paid tier **(you)**
+- [x] ~~Demo features (one-click logins, Reset, self-payment, scripted chat) off unless DEMO_MODE=true~~
+- [ ] Uploads: limits, object storage, signed URLs (Stage G)
+- [ ] Error monitoring and alerting (Stage G)
 
 ---
 
@@ -250,9 +297,9 @@ One-click Admin login → every sidebar module does something visible → a
 auto-scored → a written answer is graded → a certificate is generated →
 **Reset demo data** → clean state for the next client. Build green, live link up.
 
-The story runs end to end and is checked by the e2e suite on every push
-(`docs/DEMO_SCRIPT.md`, `docs/DEMO_DAY_CHECKLIST.md`). Still blocked by:
-the live link (Stage B). Deployment steps: `docs/DEPLOYMENT.md`.
+✅ **Met (2026-10-23).** The story runs end to end, is checked by the e2e suite
+on every push, and the live link is up: https://aura-edu-eight.vercel.app
+(`docs/DEMO_SCRIPT.md`, `docs/DEMO_DAY_CHECKLIST.md`, `docs/DEPLOYMENT.md`).
 
 ---
 
@@ -272,15 +319,27 @@ the live link (Stage B). Deployment steps: `docs/DEPLOYMENT.md`.
   before any merge.
 - **Git:** one branch per feature, PR into `main`, one commit per logical change.
 - **Local dev:** `npm run mongo` → `npm run seed` → `npm run dev`. The DB name
-  is `auraedu`.
+  is `auraedu`. **Careful:** the local `.env` currently points at the live Atlas
+  database; switch `MONGODB_URI` back to the commented local line before
+  developing, or local changes edit the live demo.
+- **Commits:** authored as the repo owner (Nikhil Raghuwanshi, GitHub no-reply
+  email). Vercel Hobby blocks deploys whose author it can't match.
 - Demo from the live link once it exists; every module gets a 5-minute demo script.
 
 ---
 
 ## 8. Decisions needed from you
 
-1. **Hosting accounts:** Atlas + Vercel (Stage B), and the new git remote (Stage A).
-2. **Target:** stay a sales-demo POC, or is there a client who has picked
-   modules? A real client moves their modules to Stage F and skips most of D.
-3. **Grading:** may admins grade written answers, or staff only?
-4. **Email/SMS provider** (only when Stage F starts).
+1. ~~Hosting accounts~~: done (Atlas + Vercel + GitHub).
+2. ~~Grading~~: admins and staff; an admin can lock staff out.
+3. **First pilot institute:** who, and which modules they actually use. This
+   decides what Stage G builds first.
+4. **Vercel plan:** Hobby is for personal, non-commercial use. Before a paying
+   client, run their deployment on Vercel **Pro**.
+5. **Atlas tier and region** for real data: Flex or M10+ (automated backups),
+   in Mumbai (Indian student data stays in India).
+6. **Providers when Stage G starts:** payments (Razorpay), email (Resend or
+   SES), error monitoring (Sentry), file storage (Cloudflare R2), a domain.
+7. **Privacy notice:** fill in the retention years and data region.
+8. **Pricing model** (per student / per branch / yearly licence); it decides
+   whether usage needs metering.

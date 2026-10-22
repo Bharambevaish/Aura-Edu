@@ -436,7 +436,36 @@ other four were built in parallel sessions and merged.
 Verified on the merged branch: `tsc`, `eslint`, 110 unit tests, `next build`
 and 23 e2e tests pass. Nothing was run against Atlas.
 
+## Go-live (2026-10-21 → 2026-10-23)
+
+Live demo: https://aura-edu-eight.vercel.app (Vercel Hobby from `main`;
+Atlas Cluster2, database `auraedu`; DEMO_MODE=true).
+
+- The live database was empty because `seed:remote` failed. Causes, in order:
+  - a rejected password for the atlasAdmin user;
+  - after switching to the app user `nikhil_raghu`, Atlas refused `AuraEdu`
+    because an empty `auraedu` database already existed (created by the older
+    forced dbName). The URI now uses `/auraedu`.
+  Seeded 2026-10-23: 31 users, 22 invoices.
+- **Unseeded demo:** `lib/demo-status.ts` adds a login-page warning and
+  `demoData` in /api/health.
+- **DB unavailable:** `lib/db-errors.ts` makes login return "Sign-in is
+  temporarily unavailable…" instead of crashing the page. Connections time out
+  after 10s unless the URI sets its own timeout; the demo-data check is capped at 3s.
+- **Hydration:** `lib/use-hydrated.ts` renders clock-dependent text only in the
+  browser (Student Schedule, Finance Overview, date-wise schedule).
+  `tests/e2e/hydration.spec.ts` runs every page with the browser at UTC+14.
+- **Live smoke tests:** `tests/live` + `npm run test:live` (read-only;
+  sign-in checks behind LIVE_LOGINS=1). The read-only set passes on the live site.
+- **Vercel "Blocked" deploys:** the commit author `AuraEdu Engineering` wasn't a
+  Vercel/GitHub user. The repo git config now authors as the owner (GitHub
+  no-reply email).
+
+Verified: 113 unit tests, 24 e2e tests, the build, and the live read-only
+checks pass. The owner confirmed the one-click logins on the live site.
+
 ## TODO next
 
-See `TASKLIST.md`: go-live (Atlas + Vercel, Stage B), the grading-role
-decision, then Stage F integrations for the modules a client buys.
+See `TASKLIST.md` Stage G (pilot readiness): G1 housekeeping first, then the
+integrations as each account is created, then client infrastructure and a
+2–4 week pilot.
