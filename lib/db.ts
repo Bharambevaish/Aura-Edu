@@ -56,6 +56,10 @@ export async function connectDB(): Promise<typeof mongoose> {
         // Don't buffer model operations while connecting — fail fast in dev
         // instead of hanging a request on an unconfigured database.
         bufferCommands: false,
+        // Give up on an unreachable cluster in 10s (driver default 30s) so a
+        // request fails with a clear message instead of hanging the function.
+        // A serverSelectionTimeoutMS in the URI itself still wins.
+        ...(/[?&]serverSelectionTimeoutMS=/i.test(MONGODB_URI) ? {} : { serverSelectionTimeoutMS: 10_000 }),
       })
       .catch((error) => {
         // Forget the failed attempt so the next request retries instead of

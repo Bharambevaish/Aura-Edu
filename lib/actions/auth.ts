@@ -21,6 +21,7 @@ import { endSession, loginGateToken } from "@/lib/session-registry";
 import { canAccessPath } from "@/lib/permissions";
 import type { Role } from "@/lib/models/User";
 import { connectDB } from "@/lib/db";
+import { isDatabaseError, SIGN_IN_UNAVAILABLE } from "@/lib/db-errors";
 import { UserModel } from "@/lib/models/User";
 import { LoginSchema, type LoginState } from "@/lib/validation";
 import {
@@ -73,11 +74,22 @@ export async function login(
     };
   }
 
-  await connectDB();
+  // A down or misconfigured database must not crash the page ("This page
+  // couldn't load"); tell the user it's temporary and log the real cause.
+  try {
+    await connectDB();
+  } catch (error) {
+    console.error("[login] database unavailable:", error instanceof Error ? error.message : error);
+    return { message: SIGN_IN_UNAVAILABLE };
+  }
 
   try {
     await signIn("credentials", { email, password, gate: loginGateToken(), redirect: false });
   } catch (error) {
+    if (isDatabaseError(error)) {
+      console.error("[login] database error during sign-in:", error instanceof Error ? error.message : error);
+      return { message: SIGN_IN_UNAVAILABLE };
+    }
     if (error instanceof AuthError) {
       // Blocked accounts get a direct, honest message (no attempt counting —
       // it's an admin decision, not a brute-force failure).
