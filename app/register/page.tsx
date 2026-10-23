@@ -100,6 +100,7 @@ export default function StudentRegistrationPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [reference, setReference] = useState<string | null>(null);
+  const [branches, setBranches] = useState<string[]>([]);
   const totalSteps = 5;
 
   useEffect(() => {
@@ -108,6 +109,9 @@ export default function StudentRegistrationPage() {
       .then((o) => {
         if (ignore) return;
         setCourses(o.courses);
+        setBranches(o.branches);
+        // Default to the first real branch unless the applicant already picked one.
+        setForm((f) => (o.branches.includes(f.branch) ? f : { ...f, branch: o.branches[0] ?? '' }));
         if (o.instituteName) setInstituteName(o.instituteName);
       })
       .catch(() => {
@@ -315,14 +319,16 @@ export default function StudentRegistrationPage() {
                           <option>Weekend Only</option>
                         </select>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-slate-300 mb-2">Branch</label>
-                        <select className={inputCls} value={form.branch} onChange={set('branch')}>
-                          <option>Main Branch</option>
-                          <option>City Centre</option>
-                          <option>Online Only</option>
-                        </select>
-                      </div>
+                      {branches.length > 0 && (
+                        <div>
+                          <label className="block text-sm font-medium text-slate-300 mb-2">Branch</label>
+                          <select className={inputCls} value={form.branch} onChange={set('branch')}>
+                            {branches.map((b) => (
+                              <option key={b}>{b}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

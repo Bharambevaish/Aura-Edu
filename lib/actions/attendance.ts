@@ -22,6 +22,7 @@
  */
 
 import { connectDB } from "@/lib/db";
+import { getBranchScope, scopedStudentIds } from "@/lib/branch-scope";
 import { requireRole } from "@/lib/dal";
 import { writeAudit } from "@/lib/audit";
 import { Types } from "mongoose";
@@ -98,9 +99,14 @@ export async function getAttendanceOverview(batch: string, month: string): Promi
   const { start, end } = monthRange(month);
   await connectDB();
 
-  const registers = await AttendanceModel.find({ batch, date: { $gte: start, $lte: end } })
-    .sort({ date: 1 })
-    .lean();
+  // Branch switcher: count only the selected branch's students.
+  const ids = await scopedStudentIds(await getBranchScope());
+  const inScope = ids ? new Set(ids.map(String)) : null;
+  const registers = (
+    await AttendanceModel.find({ batch, date: { $gte: start, $lte: end } })
+      .sort({ date: 1 })
+      .lean()
+  ).map((r) => (inScope ? { ...r, entries: r.entries.filter((e) => inScope.has(String(e.studentId))) } : r));
 
   let present = 0;
   let absent = 0;
@@ -156,8 +162,9 @@ export async function getAttendanceRegister(batch: string, date: string): Promis
   await requireRole(["admin", "staff"]);
   await connectDB();
 
+  const scope = await getBranchScope();
   const [students, reg] = await Promise.all([
-    UserModel.find({ role: "student", batch }).sort({ name: 1 }).select("name admissionNo rollNo").lean(),
+    UserModel.find({ role: "student", batch, ...scope.students }).sort({ name: 1 }).select("name admissionNo rollNo").lean(),
     AttendanceModel.findOne({ batch, date: dayStart(date) }).lean(),
   ]);
 
@@ -213,7 +220,10 @@ export async function saveAttendanceRegister(input: unknown): Promise<Attendance
 
   const { batch, date, subject, entries } = parsed.data;
 
-  const roster = await UserModel.find({ role: "student", batch }).select("_id").lean();
+  // Branch switcher: only the selected branch's students can be marked here;
+  // the other branches' marks on the same register are kept as they are.
+  const scope = await getBranchScope();
+  const roster = await UserModel.find({ role: "student", batch, ...scope.students }).select("_id").lean();
   if (roster.length === 0) {
     return { ok: false, message: `No students are enrolled in "${batch}" yet — assign students first.` };
   }
@@ -238,6 +248,12 @@ export async function saveAttendanceRegister(input: unknown): Promise<Attendance
     else late += 1;
   }
 
+  const kept = scope.branch
+    ? ((await AttendanceModel.findOne({ batch, date: dayStart(date) }).select("entries").lean())?.entries ?? []).filter(
+        (e) => !rosterIds.has(String(e.studentId)),
+      )
+    : [];
+
   await AttendanceModel.updateOne(
     { batch, date: dayStart(date) },
     {
@@ -245,7 +261,7 @@ export async function saveAttendanceRegister(input: unknown): Promise<Attendance
         batch,
         date: dayStart(date),
         subject: subject || "Regular Session",
-        entries: valid,
+        entries: [...kept, ...valid],
         updatedBy: new Types.ObjectId(user.id),
       },
     },

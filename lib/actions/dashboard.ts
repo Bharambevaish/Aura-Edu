@@ -25,7 +25,7 @@ import { SubmissionModel } from "@/lib/models/Submission";
 import { ExpenseModel } from "@/lib/models/Expense";
 import { TimetableSlotModel } from "@/lib/models/TimetableSlot";
 import mongoose from "mongoose";
-import { getBranchScope, scopedStudentIds } from "@/lib/branch-scope";
+import { expenseBranchFilter, getBranchScope, leadBranchFilter, scopedStudentIds } from "@/lib/branch-scope";
 
 export type RevenueBar = { label: string; amount: number };
 
@@ -70,7 +70,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
   const byStudent = ids ? { studentId: { $in: ids } } : {};
   const byUser = ids ? { userId: { $in: ids } } : {};
   const scopedIds = ids ? new Set(ids.map(String)) : null;
-  const byLeadBranch = scope.branch ? { branch: scope.branch } : {};
+  const byLeadBranch = leadBranchFilter(scope);
 
   const [
     activeStudents,
@@ -112,7 +112,7 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     ResultModel.find(byUser).select("testId obtained").lean(),
     TestModel.find().select("passMarks").lean(),
     SubmissionModel.countDocuments({ status: "pending_review", ...byUser }),
-    ExpenseModel.countDocuments({ status: "pending" }),
+    ExpenseModel.countDocuments({ status: "pending", ...expenseBranchFilter(scope) }),
     UserModel.find({ role: "student", ...scope.students }).select("name batch admissionDate createdAt").sort({ admissionDate: -1, createdAt: -1 }).limit(4).lean(),
     SubmissionModel.find(byUser).select("studentName submittedAt").sort({ submittedAt: -1 }).limit(4).lean(),
   ]);

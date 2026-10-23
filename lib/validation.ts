@@ -338,6 +338,8 @@ export const ExpenseSchema = z.object({
   internalNotes: z.string().max(1000).optional().or(z.literal("")),
   isReimbursement: z.boolean().optional(),
   reimbursedTo: z.string().max(150).optional().or(z.literal("")),
+  /** Branch name, or "" for institute-wide. Checked against active branches. */
+  branch: z.string().trim().max(80).optional().or(z.literal("")),
 });
 
 export const ExpenseDecisionSchema = z.object({

@@ -118,7 +118,7 @@ export default function ExpenseTrackerPage() {
 
   const columns: DataTableColumn<ExpenseRow>[] = [
     { key: "refNumber", header: "EXPENSE #", cell: (r) => <span className="text-xs font-mono text-slate-400">{r.refNumber}</span> },
-    { key: "title", header: "TITLE", cell: (r) => <div><p className="text-xs font-bold text-white">{r.title}</p><p className="text-[11px] text-slate-500">{r.description.slice(0, 40)}{r.description.length > 40 ? "..." : ""}</p></div> },
+    { key: "title", header: "TITLE", cell: (r) => <div><p className="text-xs font-bold text-white">{r.title}</p><p className="text-[11px] text-slate-500">{r.branch || "Institute-wide"}{r.description ? ` · ${r.description.slice(0, 40)}${r.description.length > 40 ? "..." : ""}` : ""}</p></div> },
     { key: "category", header: "CATEGORY", cell: (r) => <span className="text-xs text-slate-300">{r.category}</span> },
     { key: "vendor", header: "VENDOR", cell: (r) => <span className="text-xs text-slate-400">{r.vendor || "-"}</span> },
     { key: "amount", header: "AMOUNT", cell: (r) => <span className="text-xs font-bold text-white">₹{r.amount.toLocaleString("en-IN")}</span> },

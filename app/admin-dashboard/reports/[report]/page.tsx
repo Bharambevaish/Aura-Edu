@@ -56,6 +56,9 @@ export default function ReportPage() {
           </Link>
           <h1 className="text-2xl font-bold text-white">{data.title}</h1>
           <p className="text-sm text-slate-400 mt-1">{data.description}</p>
+          <p className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border bg-white/5 text-slate-300 border-white/10">
+            {data.key === "payroll-summary" ? "Institute-wide (staff aren't tied to a branch)" : `Branch: ${data.branch ?? "All branches"}`}
+          </p>
         </div>
         <Button variant="secondary" size="sm" onClick={exportCsv} disabled={!data.rows.length}>
           <Download size={16} /> Export CSV

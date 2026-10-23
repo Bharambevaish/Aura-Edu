@@ -25,7 +25,8 @@ import { RefundModel } from "@/lib/models/Refund";
 import { WaiverModel } from "@/lib/models/Waiver";
 import { AuditLogModel } from "@/lib/models/AuditLog";
 import { writeAudit, writeSystemAudit } from "@/lib/audit";
-import { getBranchScope, studentRefFilter } from "@/lib/branch-scope";
+import { expenseBranchFilter, getBranchScope, studentRefFilter } from "@/lib/branch-scope";
+import { BranchModel } from "@/lib/models/Branch";
 import { getInstitute, defaultTaxRule, inclusiveGst } from "@/lib/institute";
 import {
   VendorSchema,
@@ -233,6 +234,8 @@ export async function deleteExpenseCategory(categoryId: string): Promise<{ ok: b
 
 export type ExpenseRow = {
   id: string;
+  /** "" = institute-wide. */
+  branch: string;
   refNumber: string;
   title: string;
   description: string;
@@ -255,6 +258,7 @@ export type ExpenseRow = {
 
 type ExpenseDetails = {
   id: string;
+  branch: string;
   refNumber: string;
   title: string;
   description: string;
@@ -279,9 +283,9 @@ type ExpenseDetails = {
   rejectedReason: string;
 };
 
-async function fetchExpenseDetails(): Promise<ExpenseDetails[]> {
+async function fetchExpenseDetails(filter: Record<string, unknown> = {}): Promise<ExpenseDetails[]> {
   const [expenses, categories, vendors, users] = await Promise.all([
-    ExpenseModel.find().sort({ createdAt: -1 }).lean(),
+    ExpenseModel.find(filter).sort({ createdAt: -1 }).lean(),
     ExpenseCategoryModel.find().lean(),
     VendorModel.find().lean(),
     UserModel.find().select("_id name").lean(),
@@ -291,6 +295,7 @@ async function fetchExpenseDetails(): Promise<ExpenseDetails[]> {
   const userMap = new Map(users.map((u) => [String(u._id), u.name]));
   return expenses.map((e) => ({
     id: String(e._id),
+    branch: e.branch ?? "",
     refNumber: e.refNumber,
     title: e.title,
     description: e.description ?? "",
@@ -319,6 +324,7 @@ async function fetchExpenseDetails(): Promise<ExpenseDetails[]> {
 function toExpenseRow(e: ExpenseDetails): ExpenseRow {
   return {
     id: e.id,
+    branch: e.branch,
     refNumber: e.refNumber,
     title: e.title,
     description: e.description,
@@ -351,7 +357,8 @@ export async function getExpenseUsers() {
 export async function getExpenses(): Promise<{ stats: { pending: number; approved: number; total: number; monthSpend: number }; expenses: ExpenseRow[] }> {
   await requireRole(["admin", "staff"]);
   await connectDB();
-  const details = await fetchExpenseDetails();
+  // Branch switcher: the branch's own expenses; institute-wide ones under "All".
+  const details = await fetchExpenseDetails(expenseBranchFilter(await getBranchScope()));
   const expenses = details.map(toExpenseRow);
   const monthSpend = details
     .filter((e) => e.status === "approved")
@@ -384,6 +391,9 @@ export async function createExpense(input: unknown): Promise<{ ok: boolean; mess
   if (parsed.data.vendorRef) {
     const vendor = await VendorModel.findById(parsed.data.vendorRef).lean();
     if (!vendor) return { ok: false, message: "Pick a valid vendor." };
+  }
+  if (parsed.data.branch && !(await BranchModel.exists({ name: parsed.data.branch, active: true }))) {
+    return { ok: false, message: "Pick an active branch, or Institute-wide." };
   }
   const refNumber = await nextDocNo(ExpenseModel, "refNumber", `EXP-${year()}-`, 5);
   const expense = await ExpenseModel.create({
@@ -1063,12 +1073,13 @@ export async function getFinanceOverview(): Promise<OverviewData> {
   await requireRole(["admin", "staff"]);
   await connectDB();
   // Fee figures follow the branch switcher (through the student); expenses
-  // carry no branch, so they stay institute-wide.
-  const own = await studentRefFilter(await getBranchScope());
+  // follow their own branch (institute-wide ones only under "All branches").
+  const scope = await getBranchScope();
+  const own = await studentRefFilter(scope);
   const [invoices, payments, expenses, categories, refunds, waivers, users] = await Promise.all([
     InvoiceModel.find(own).lean(),
     PaymentModel.find(own).lean(),
-    ExpenseModel.find().lean(),
+    ExpenseModel.find(expenseBranchFilter(scope)).lean(),
     ExpenseCategoryModel.find().lean(),
     RefundModel.find(own).lean(),
     WaiverModel.find(own).lean(),

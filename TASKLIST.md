@@ -175,7 +175,7 @@ aren't on the demo path.
 - [x] ~~Learn player "Doubt discussion": students ask on a lesson; LMS → Doubts Inbox for replies, with a notification back~~
 - [ ] Learn player: lesson material opens only when a lesson has a URL (needs file uploads, Stage F)
 - [x] ~~**Certificate verification:** HMAC-signed certificate links and a public `/verify` page~~
-- [ ] Multi-branch follow-ups: expenses are institute-wide; reports, attendance and leads are not branch-scoped yet
+- [x] ~~Multi-branch follow-ups~~ (Stage G1)
 
 ### Stage E — Harden & polish ✅ (branch `stage-e-hardening`, 2026-10-15)
 - [x] ~~Playwright e2e test of the full demo story (§6) running in CI~~ (`tests/e2e`, `npm run test:e2e`; also CSP and phone-width checks)
@@ -199,13 +199,13 @@ aren't on the demo path.
 Goal: one real institute uses AuraEdu daily for a month without data loss,
 fee errors or support fires. Each step unblocks the next.
 
-**G1. Housekeeping (code, no accounts; ~2 days)**
-- [ ] Separate local and live databases: local `.env` back to local Mongo; the live DB only via Vercel
-- [ ] Pin Node 22 in `engines` (removes Vercel's "will upgrade automatically" warning)
-- [ ] Vercel Preview environment variables (Preview deploys currently have none and can't reach a DB)
-- [ ] Multi-branch follow-ups: branch-scope expenses, reports, attendance and leads
-- [ ] Mask ID-proof numbers in admin views
-- [ ] Confirm the GitHub CI run is green on `main`; add its badge to README
+**G1. Housekeeping ✅ (branch `stage-g-housekeeping`, 2026-10-23)**
+- [x] ~~Separate local and live databases~~: `.env` = local Mongo; the Atlas string lives in git-ignored `.env.atlas`, read only by `npm run seed:remote` / `npm run backup:remote`
+- [x] ~~Pin Node 22~~ (`engines: 22.x`, `.nvmrc`)
+- [x] ~~Preview environment guidance~~ (docs/DEPLOYMENT.md §3.3a) · [ ] **(you)** add the Preview variables in Vercel if you want working previews
+- [x] ~~Multi-branch follow-ups~~: expenses get a branch (blank = institute-wide), reports (all but payroll), attendance (saving keeps other branches' marks) and leads (plus unassigned) follow the switcher; the admission form offers only real branches
+- [x] ~~Mask ID-proof numbers in admin views~~ ("•••• •••• 8896"; blank on edit keeps the stored number)
+- [x] ~~GitHub CI green on `main`~~ (verified via the Actions API); CI badge in README
 
 **G2. Accounts → integrations (~1–2 weeks of code once each account exists)**
 - [ ] **(you: Sentry)** Error monitoring with alerts for server errors and failed-login spikes
@@ -258,7 +258,7 @@ fee errors or support fires. Each step unblocks the next.
 | Timetable / schedules | **Working** |
 | Reports Hub | **Working** (19 live reports) |
 | Task Manager · Form Builder · Master Data · Settings | **Working** |
-| Multi-branch | **Working** (students, finance, dashboard scoped) |
+| Multi-branch | **Working** (students, finance, expenses, dashboard, reports, attendance, leads scoped) |
 | Payroll · Leave Management | **Working** (payroll is a simulator) |
 
 ---
@@ -279,7 +279,7 @@ fee errors or support fires. Each step unblocks the next.
 - [x] ~~DTO projection audit (no password hashes / lockout data / answer keys to the client)~~
 - [x] ~~Students restricted to their own batch's tests~~
 - [x] ~~Post-login redirect limited to the user's own portal (no open redirect)~~
-- [ ] Mask ID-proof numbers in admin views (needs an "unchanged" edit flow first)
+- [x] ~~Mask ID-proof numbers in admin views~~ (Stage G1)
 - [x] ~~Distributed rate limiting~~ (MongoDB TTL collection)
 - [x] ~~Audit log for admin actions~~ (money, accounts, students, tests, grading, settings, data export/erase)
 - [x] ~~Strict CSP~~ (per-request nonce; no `unsafe-inline`/`unsafe-eval` for scripts in production)
@@ -319,9 +319,8 @@ on every push, and the live link is up: https://aura-edu-eight.vercel.app
   before any merge.
 - **Git:** one branch per feature, PR into `main`, one commit per logical change.
 - **Local dev:** `npm run mongo` → `npm run seed` → `npm run dev`. The DB name
-  is `auraedu`. **Careful:** the local `.env` currently points at the live Atlas
-  database; switch `MONGODB_URI` back to the commented local line before
-  developing, or local changes edit the live demo.
+  is `auraedu`. `.env` points at the local database; the live Atlas string is
+  only in `.env.atlas` (git-ignored), used by `seed:remote` and `backup:remote`.
 - **Commits:** authored as the repo owner (Nikhil Raghuwanshi, GitHub no-reply
   email). Vercel Hobby blocks deploys whose author it can't match.
 - Demo from the live link once it exists; every module gets a 5-minute demo script.

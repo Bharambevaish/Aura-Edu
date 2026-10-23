@@ -1,5 +1,7 @@
 # AuraEdu — Institution Management Platform (POC / Sales Demo)
 
+[![CI](https://github.com/Nikhil270703/AuraEdu/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Nikhil270703/AuraEdu/actions/workflows/ci.yml)
+
 A proof-of-concept web app for a coaching/institution management suite. Its only
 job is to impress potential clients with ~25 demonstrable modules so they can
 choose which ones get built for real. **Speed to a demoable state matters more

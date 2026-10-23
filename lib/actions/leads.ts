@@ -27,6 +27,8 @@ import { UserModel } from "@/lib/models/User";
 import { BatchModel } from "@/lib/models/Batch";
 import { CourseModel } from "@/lib/models/Course";
 import { InvoiceModel } from "@/lib/models/Invoice";
+import { BranchModel } from "@/lib/models/Branch";
+import { getBranchScope, leadBranchFilter } from "@/lib/branch-scope";
 import { AdmissionSchema, ConvertLeadSchema, CreateLeadSchema, UpdateLeadSchema } from "@/lib/validation";
 
 export type LeadRow = {
@@ -101,7 +103,8 @@ async function nextLeadNo(): Promise<string> {
 export async function getLeads(): Promise<{ stats: LeadStats; leads: LeadRow[] }> {
   await requireRole(["admin", "staff"]);
   await connectDB();
-  const leads = await LeadModel.find().sort({ createdAt: -1 }).limit(500).lean<LeadLean[]>();
+  // Branch switcher: that branch's leads plus unassigned ones.
+  const leads = await LeadModel.find(leadBranchFilter(await getBranchScope())).sort({ createdAt: -1 }).limit(500).lean<LeadLean[]>();
 
   const byStage: Record<LeadStage, number> = {
     new: 0, contacted: 0, follow_up: 0, qualified: 0, converted: 0, lost: 0,
@@ -263,6 +266,10 @@ export async function convertLead(id: string, input: unknown): Promise<ConvertOu
   );
   if (claimed.modifiedCount === 0) return { ok: false, message: "This lead was just converted by someone else." };
 
+  // The lead’s branch if it is a real active branch, else the first active one.
+  const branches = await activeBranchNames();
+  const studentBranch = lead.branch && branches.includes(lead.branch) ? lead.branch : (branches[0] ?? "");
+
   const password = randomPassword();
   const now = new Date();
   let studentId: mongoose.Types.ObjectId;
@@ -282,7 +289,7 @@ export async function convertLead(id: string, input: unknown): Promise<ConvertOu
       address: lead.address ? { street: lead.address } : undefined,
       batch: batch.name,
       course: batch.course,
-      branch: lead.branch || "Main Branch",
+      branch: studentBranch,
       status: "Active",
       admissionStatus: "Active",
       isDemo: false,
@@ -307,7 +314,7 @@ export async function convertLead(id: string, input: unknown): Promise<ConvertOu
       studentId,
       course: batch.course,
       batch: batch.name,
-      branch: lead.branch || "Main Branch",
+      branch: studentBranch,
       total: parsed.data.feeTotal,
       paid: 0,
       waived: 0,
@@ -353,13 +360,19 @@ export async function convertLead(id: string, input: unknown): Promise<ConvertOu
 /* ------------------------------------------------------------------ */
 
 /** Published course titles + the institute name (for the consent text) for the admission form. */
-export async function getAdmissionOptions(): Promise<{ courses: string[]; instituteName: string }> {
+export async function getAdmissionOptions(): Promise<{ courses: string[]; branches: string[]; instituteName: string }> {
   await connectDB();
-  const [courses, institute] = await Promise.all([
+  const [courses, institute, branches] = await Promise.all([
     CourseModel.find({ published: true }).select("title").sort({ title: 1 }).lean(),
     getInstitute(),
+    activeBranchNames(),
   ]);
-  return { courses: courses.map((c) => c.title), instituteName: institute.name };
+  return { courses: courses.map((c) => c.title), branches, instituteName: institute.name };
+}
+
+async function activeBranchNames(): Promise<string[]> {
+  const rows = await BranchModel.find({ active: true }).select("name").sort({ name: 1 }).lean<{ name: string }[]>();
+  return rows.map((b) => b.name);
 }
 
 export type AdmissionOutcome = { ok: boolean; message: string; reference?: string };
@@ -398,7 +411,8 @@ export async function submitAdmission(input: unknown): Promise<AdmissionOutcome>
     phone: d.phone,
     interestedCourse: d.course,
     preferredBatch: d.preferredBatch,
-    branch: d.branch,
+    // Only a real, active branch is stored; anything else stays unassigned.
+    branch: (await activeBranchNames()).includes(d.branch) ? d.branch : "",
     gender: d.gender,
     dateOfBirth: dob,
     guardianName: d.guardianName,

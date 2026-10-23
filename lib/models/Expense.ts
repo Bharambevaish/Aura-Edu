@@ -29,6 +29,8 @@ export interface ExpenseDoc {
   rejectedBy?: mongoose.Types.ObjectId;
   rejectedAt?: Date;
   rejectedReason?: string;
+  /** Branch the spend belongs to; "" = institute-wide. */
+  branch: string;
   createdAt: Date;
 }
 
@@ -55,6 +57,7 @@ const expenseSchema = new mongoose.Schema<ExpenseDoc>(
     rejectedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     rejectedAt: Date,
     rejectedReason: { type: String, default: "" },
+    branch: { type: String, default: "" },
   },
   { timestamps: true },
 );

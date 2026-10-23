@@ -18,6 +18,7 @@
 
 import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/db";
+import { maskIdNumber } from "@/lib/mask";
 import { requireRole } from "@/lib/dal";
 import { writeAudit } from "@/lib/audit";
 import { nextAdmissionNo, randomPassword } from "@/lib/student-accounts";
@@ -230,7 +231,8 @@ export async function getStudentDetail(id: string): Promise<StudentDetailDTO | n
     country: student.address?.country ?? "-",
     admissionDate: student.admissionDate ? fmtDate(student.admissionDate) : "-",
     idProofType: student.idProofType ?? "-",
-    idProofNumber: student.idProofNumber ?? "-",
+    // Masked: the full number is never sent to the browser after saving.
+    idProofNumber: maskIdNumber(student.idProofNumber),
     testsTaken: attempts.length,
     avgPct,
     consent: student.consent?.given

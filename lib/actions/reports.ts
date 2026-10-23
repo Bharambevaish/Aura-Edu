@@ -25,6 +25,7 @@ import { ResultModel } from "@/lib/models/Result";
 import { TestModel } from "@/lib/models/Test";
 import { LeadModel } from "@/lib/models/Lead";
 import { LeaveRequestModel } from "@/lib/models/LeaveRequest";
+import { expenseBranchFilter, getBranchScope, leadBranchFilter, scopedStudentIds } from "@/lib/branch-scope";
 
 type Cell = string | number;
 
@@ -39,6 +40,8 @@ export type ReportResult = {
   /** Chart the value column against the label column. */
   chart: { label: number; value: number } | null;
   summary: { label: string; value: string }[];
+  /** Branch the figures are limited to (header switcher), or null for all. */
+  branch: string | null;
 };
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
@@ -59,12 +62,28 @@ export async function runReport(key: string): Promise<ReportResult | null> {
   if (!meta) return null;
   await requireRole(meta.adminOnly ? ["admin"] : ["admin", "staff"]);
   await connectDB();
-  const base = { key: meta.key, title: meta.title, moneyColumns: [] as number[], summary: [] as { label: string; value: string }[] };
+  // Branch switcher: student-owned records go through the student's branch,
+  // leads and expenses through their own branch field. Payroll stays
+  // institute-wide (staff are not tied to a branch).
+  const scope = await getBranchScope();
+  const ids = await scopedStudentIds(scope);
+  const inScope = ids ? new Set(ids.map(String)) : null;
+  const byStudent = ids ? { studentId: { $in: ids } } : {};
+  const byUser = ids ? { userId: { $in: ids } } : {};
+  const byLead = leadBranchFilter(scope);
+  const byExpense = expenseBranchFilter(scope);
+  const base = {
+    key: meta.key,
+    title: meta.title,
+    moneyColumns: [] as number[],
+    summary: [] as { label: string; value: string }[],
+    branch: meta.key === "payroll-summary" ? null : scope.branch,
+  };
   const now = new Date();
 
   switch (meta.key) {
     case "collections-by-month": {
-      const pays = await PaymentModel.find({ status: "success" }).select("amount recordedAt").lean();
+      const pays = await PaymentModel.find({ status: "success", ...byStudent }).select("amount recordedAt").lean();
       const map = sumBy(pays, (p) => monthKey(new Date(p.recordedAt)), (p) => p.amount);
       const keys = [...map.keys()].sort();
       return {
@@ -78,7 +97,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "collections-by-mode": {
-      const pays = await PaymentModel.find({ status: "success" }).select("amount mode source").lean();
+      const pays = await PaymentModel.find({ status: "success", ...byStudent }).select("amount mode source").lean();
       const map = sumBy(pays, (p) => p.mode || "Other", (p) => p.amount);
       const total = pays.reduce((n, p) => n + p.amount, 0);
       return {
@@ -94,7 +113,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "collections-by-branch": {
-      const pays = await PaymentModel.find({ status: "success" }).select("amount branch").lean();
+      const pays = await PaymentModel.find({ status: "success", ...byStudent }).select("amount branch").lean();
       const map = sumBy(pays, (p) => p.branch || "Main Branch", (p) => p.amount);
       return {
         ...base,
@@ -107,7 +126,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "gst-collected": {
-      const pays = await PaymentModel.find({ status: "success" }).select("gst amount recordedAt").lean();
+      const pays = await PaymentModel.find({ status: "success", ...byStudent }).select("gst amount recordedAt").lean();
       const map = sumBy(pays, (p) => monthKey(new Date(p.recordedAt)), (p) => p.gst ?? 0);
       const keys = [...map.keys()].sort();
       const total = pays.reduce((n, p) => n + (p.gst ?? 0), 0);
@@ -122,7 +141,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "fee-defaulters": {
-      const invoices = await InvoiceModel.find().lean();
+      const invoices = await InvoiceModel.find(byStudent).lean();
       const students = new Map((await UserModel.find({ _id: { $in: invoices.map((i) => i.studentId) } }).select("name admissionNo phone").lean()).map((u) => [String(u._id), u]));
       const rows = invoices
         .map((i) => ({ i, balance: i.total - i.paid - i.waived, overdueDays: Math.floor((now.getTime() - new Date(i.dueDate).getTime()) / 86400000) }))
@@ -145,7 +164,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "expected-vs-collected": {
-      const invoices = await InvoiceModel.find().lean();
+      const invoices = await InvoiceModel.find(byStudent).lean();
       const byCourse = new Map<string, { expected: number; collected: number; waived: number }>();
       for (const i of invoices) {
         const k = i.course || "—";
@@ -166,7 +185,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "waivers": {
-      const waivers = await WaiverModel.find().sort({ createdAt: -1 }).lean();
+      const waivers = await WaiverModel.find(byStudent).sort({ createdAt: -1 }).lean();
       const names = new Map((await UserModel.find({ _id: { $in: waivers.map((w) => w.studentId) } }).select("name").lean()).map((u) => [String(u._id), u.name]));
       return {
         ...base,
@@ -179,7 +198,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "refunds": {
-      const refunds = await RefundModel.find().sort({ createdAt: -1 }).lean();
+      const refunds = await RefundModel.find(byStudent).sort({ createdAt: -1 }).lean();
       const map = sumBy(refunds, (r) => r.status, (r) => r.amount);
       return {
         ...base,
@@ -192,7 +211,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "expense-breakdown": {
-      const [expenses, cats] = await Promise.all([ExpenseModel.find({ status: "approved" }).lean(), ExpenseCategoryModel.find().lean()]);
+      const [expenses, cats] = await Promise.all([ExpenseModel.find({ status: "approved", ...byExpense }).lean(), ExpenseCategoryModel.find().lean()]);
       const catName = new Map(cats.map((c) => [String(c._id), c.name]));
       const map = sumBy(expenses, (e) => catName.get(String(e.categoryRef)) ?? "Uncategorised", (e) => e.amount);
       const total = expenses.reduce((n, e) => n + e.amount, 0);
@@ -207,7 +226,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "vendor-payments": {
-      const [expenses, vendors] = await Promise.all([ExpenseModel.find({ status: "approved", vendorRef: { $ne: null } }).lean(), VendorModel.find().lean()]);
+      const [expenses, vendors] = await Promise.all([ExpenseModel.find({ status: "approved", vendorRef: { $ne: null }, ...byExpense }).lean(), VendorModel.find().lean()]);
       const vName = new Map(vendors.map((v) => [String(v._id), v.name]));
       const map = sumBy(expenses, (e) => vName.get(String(e.vendorRef)) ?? "—", (e) => e.amount);
       return {
@@ -252,7 +271,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "admissions-by-month": {
-      const students = await UserModel.find({ role: "student" }).select("admissionDate createdAt").lean();
+      const students = await UserModel.find({ role: "student", ...scope.students }).select("admissionDate createdAt").lean();
       const map = sumBy(students, (s) => monthKey(new Date(s.admissionDate ?? s.createdAt)), () => 1);
       const keys = [...map.keys()].sort();
       return {
@@ -266,12 +285,13 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "batch-attendance": {
-      const regs = await AttendanceModel.find().select("batch entries.status").lean();
+      const regs = await AttendanceModel.find().select("batch entries.status entries.studentId").lean();
       const byBatch = new Map<string, { sessions: number; marked: number; present: number; late: number; absent: number }>();
       for (const r of regs) {
         const v = byBatch.get(r.batch) ?? { sessions: 0, marked: 0, present: 0, late: 0, absent: 0 };
         v.sessions += 1;
         for (const e of r.entries ?? []) {
+          if (inScope && !inScope.has(String(e.studentId))) continue;
           v.marked += 1;
           if (e.status === "present") v.present += 1;
           else if (e.status === "late") v.late += 1;
@@ -298,7 +318,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
         moneyColumns: [],
         rows: courses.map((c) => {
           const lessonIds = new Set((c.modules ?? []).flatMap((m) => (m.lessons ?? []).map((l) => l.id)));
-          const enrolled = c.enrolledStudents ?? [];
+          const enrolled = (c.enrolledStudents ?? []).filter((u) => !inScope || inScope.has(String(u)));
           const perStudent = enrolled.map((u) => progress.filter((p) => String(p.courseId) === String(c._id) && String(p.userId) === String(u) && lessonIds.has(p.lessonId)).length);
           const avg = enrolled.length && lessonIds.size ? Math.round((perStudent.reduce((n, x) => n + x, 0) / (enrolled.length * lessonIds.size)) * 100) : 0;
           return [c.title, enrolled.length, lessonIds.size, avg, perStudent.filter((x) => lessonIds.size > 0 && x >= lessonIds.size).length];
@@ -308,7 +328,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "test-performance": {
-      const [results, tests] = await Promise.all([ResultModel.find().lean(), TestModel.find().select("passMarks").lean()]);
+      const [results, tests] = await Promise.all([ResultModel.find(byUser).lean(), TestModel.find().select("passMarks").lean()]);
       const pass = new Map(tests.map((t) => [String(t._id), t.passMarks ?? 0]));
       const byBatch = new Map<string, { attempts: number; pctSum: number; passed: number }>();
       for (const r of results) {
@@ -329,7 +349,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "lead-funnel": {
-      const leads = await LeadModel.find().select("stage").lean();
+      const leads = await LeadModel.find(byLead).select("stage").lean();
       const order = ["new", "contacted", "follow_up", "qualified", "converted", "lost"];
       const map = sumBy(leads, (l) => l.stage, () => 1);
       return {
@@ -343,7 +363,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "lead-sources": {
-      const leads = await LeadModel.find().select("source stage").lean();
+      const leads = await LeadModel.find(byLead).select("source stage").lean();
       const bySource = new Map<string, { total: number; converted: number; lost: number }>();
       for (const l of leads) {
         const v = bySource.get(l.source) ?? { total: 0, converted: 0, lost: 0 };
@@ -363,7 +383,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "counselor-performance": {
-      const leads = await LeadModel.find().select("ownerName stage").lean();
+      const leads = await LeadModel.find(byLead).select("ownerName stage").lean();
       const byOwner = new Map<string, { total: number; open: number; converted: number; lost: number }>();
       for (const l of leads) {
         const v = byOwner.get(l.ownerName || "Unassigned") ?? { total: 0, open: 0, converted: 0, lost: 0 };
@@ -384,7 +404,7 @@ export async function runReport(key: string): Promise<ReportResult | null> {
       };
     }
     case "lost-leads": {
-      const leads = await LeadModel.find({ stage: "lost" }).select("name source lostReason ownerName updatedAt").sort({ updatedAt: -1 }).lean();
+      const leads = await LeadModel.find({ stage: "lost", ...byLead }).select("name source lostReason ownerName updatedAt").sort({ updatedAt: -1 }).lean();
       return {
         ...base,
         description: "Leads marked lost and the reasons recorded.",

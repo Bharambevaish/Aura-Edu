@@ -104,6 +104,8 @@ export default function AddStudentModal({ isOpen, onClose, student, onSaved }: A
   const { branches, current: currentBranch } = useBranch();
   const [currentStep, setCurrentStep] = useState(1);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
+  // Masked number already on file (edit mode); blank input keeps it.
+  const [idOnFile, setIdOnFile] = useState("");
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -166,9 +168,11 @@ export default function AddStudentModal({ isOpen, onClose, student, onSaved }: A
               course: detail.course === "-" ? "" : detail.course,
               batch: detail.batch === "-" ? "" : detail.batch,
               idProofType: detail.idProofType === "-" ? "Aadhar" : detail.idProofType,
-              idProofNumber: detail.idProofNumber === "-" ? "" : detail.idProofNumber,
+              // Only a masked value comes back; leave the input empty to keep it.
+              idProofNumber: "",
               photoName: "",
             });
+            setIdOnFile(detail.idProofNumber);
             setLoading(false);
           })
           .catch((err) => {
@@ -612,7 +616,13 @@ export default function AddStudentModal({ isOpen, onClose, student, onSaved }: A
                           </div>
                           <div>
                             <label className={labelCls}>ID Proof Number</label>
-                            <input type="text" className={inputCls} placeholder="Enter ID proof number" value={form.idProofNumber} onChange={set("idProofNumber")} />
+                            <input
+                              type="text"
+                              className={inputCls}
+                              placeholder={idOnFile && idOnFile !== "-" ? `On file: ${idOnFile} (leave blank to keep)` : "Enter ID proof number"}
+                              value={form.idProofNumber}
+                              onChange={set("idProofNumber")}
+                            />
                           </div>
                         </div>
                       </div>

@@ -46,6 +46,23 @@ export async function getBranchScope(): Promise<BranchScope> {
   return { branch: name, students: { branch: name } };
 }
 
+/**
+ * Leads: the branch's own plus unassigned ones (no branch yet), so a new
+ * enquiry never disappears from a branch view.
+ */
+export function leadBranchFilter(scope: BranchScope): Record<string, unknown> {
+  return scope.branch ? { branch: { $in: [scope.branch, "", null] } } : {};
+}
+
+/**
+ * Expenses: only the branch's own. Institute-wide expenses (no branch, e.g.
+ * head-office rent) appear under "All branches" only, so they are never
+ * counted once per branch.
+ */
+export function expenseBranchFilter(scope: BranchScope): Record<string, unknown> {
+  return scope.branch ? { branch: scope.branch } : {};
+}
+
 /** Ids of the students in the selected branch, or null for all branches. */
 export async function scopedStudentIds(scope: BranchScope): Promise<mongoose.Types.ObjectId[] | null> {
   if (!scope.branch) return null;

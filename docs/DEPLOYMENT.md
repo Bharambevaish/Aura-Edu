@@ -79,8 +79,10 @@ password with only letters and digits.
 
 The database starts empty. Load the demo data from your own computer:
 
-1. In the repository folder, create or edit the file `.env` and set
-   `MONGODB_URI=` to the full string from 1.3.
+1. In the repository folder, create a file named `.env.atlas` (git-ignored)
+   with one line: `MONGODB_URI=` followed by the full string from 1.3. Keep
+   `.env` on your local database; `seed:remote` and `backup:remote` read
+   `.env.atlas` instead, so ordinary local work never touches the live data.
 2. Run:
 
    ```bash
@@ -92,8 +94,9 @@ The database starts empty. Load the demo data from your own computer:
    ```
 
 3. It prints the host and database it is writing to, e.g.
-   `Seeding REMOTE database "AuraEdu" on cluster2.1tgshhd.mongodb.net`, then
-   `Done.` Check that the database name is right.
+   `Seeding REMOTE database "auraedu" on cluster2.1tgshhd.mongodb.net`, then
+   `Done.` Check that the database name is right. Use lowercase `auraedu`:
+   Atlas refuses two databases whose names differ only in capitals.
 
 Plain `npm run seed` refuses to touch any database that is not on your own
 computer. Seeding **replaces** the demo data, so only use `seed:remote` on the
@@ -102,8 +105,8 @@ creates the public demo accounts (`admin@demo.auraedu.com` / `Admin@123` …).
 A real institute is set up with `npm run setup:institute` instead (section 6),
 and the seed refuses any database that already holds non-demo accounts.
 
-Afterwards, switch `.env` back to your local database
-(`mongodb://127.0.0.1:27017/auraedu`) so local work never touches Atlas.
+To back up the live demo database to your computer: `npm run backup:remote`
+(see `docs/BACKUPS.md`).
 
 ---
 
@@ -162,6 +165,24 @@ guess (`https://<project-name>.vercel.app`), and after the deploy check the
 
 `MONGODB_DB` is optional and only used when `MONGODB_URI` has no database
 name in it. Leave it out.
+
+### 3.3a Preview deployments (pull requests and other branches)
+
+Vercel builds every branch and pull request as a **Preview** with its own
+web address. Previews get only the variables ticked for **Preview**. Without a
+database variable they load but can't sign anyone in. Two safe options:
+
+- **Recommended:** a separate demo database for previews. In Atlas create
+  nothing new: the same cluster can hold another database. Add for **Preview
+  only**: `MONGODB_URI` = the same string with `/auraedu_preview` instead of
+  `/auraedu`, `DEMO_MODE=true`, `AUTH_SECRET` (a different one from
+  Production), `AUTH_TRUST_HOST=true`. **Don't set `AUTH_URL` for Preview**:
+  each preview has its own address. Seed it once with `.env.atlas` pointing at
+  `/auraedu_preview` and `npm run seed:remote`.
+- **Simplest:** leave Preview without variables and only use the Production
+  link. Previews then show pages but can't sign in.
+
+Never point Preview at a real institute's database.
 
 ### 3.4 Deploy
 

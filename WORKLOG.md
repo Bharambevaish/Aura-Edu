@@ -464,6 +464,45 @@ Atlas Cluster2, database `auraedu`; DEMO_MODE=true).
 Verified: 113 unit tests, 24 e2e tests, the build, and the live read-only
 checks pass. The owner confirmed the one-click logins on the live site.
 
+## Stage G1 — Housekeeping (2026-10-23)
+
+Branch `stage-g-housekeeping`.
+
+- **Local vs live DB:** `.env` now uses the local Mongo (`127.0.0.1:27017/auraedu`).
+  The Atlas URI moved to the git-ignored `.env.atlas`, which `seed:remote` and the
+  new `backup:remote` load via `tsx --env-file=.env.atlas`. A stale
+  commented-out Atlas URI was removed from `.env`.
+- **Node:** `engines.node` is `22.x`, and `.nvmrc` is added.
+- **Preview guidance:** docs/DEPLOYMENT.md §3.3a recommends a separate
+  `auraedu_preview` database, DEMO_MODE, and no AUTH_URL.
+- **Branch scoping** (`leadBranchFilter` / `expenseBranchFilter` in
+  `lib/branch-scope.ts`):
+  - Expenses get a `branch` field (blank = institute-wide, shown only under All).
+    It's picked on the expense form and shown in the list.
+  - The finance overview, the dashboard's pending-expense count and the expense
+    reports follow it.
+  - Reports: payments, invoices, waivers, refunds, admissions, attendance,
+    course completion and test results follow the student's branch; leads
+    follow their own branch. Payroll stays institute-wide. The report page shows
+    which branch it covers.
+  - Attendance: the overview and register show only the branch's students.
+    Saving replaces only their marks and keeps other branches' marks on the same
+    register.
+  - Leads: a branch view shows the branch's leads plus unassigned ones.
+  - The admission form lists the active branches from Settings → Branches
+    (it was hard-coded to "Main / City Centre / Online Only"). Unknown branches
+    are stored as unassigned. Conversion falls back to the first active branch
+    instead of a hard-coded "Main Branch".
+- **ID-proof masking:** `lib/mask.ts`. The student detail returns
+  "•••• •••• 8896"; the edit form starts blank, and blank keeps the stored
+  number (Mongoose drops undefined from `$set`).
+- **CI:** the GitHub Actions runs on `main` are green (checked via the API);
+  the badge is in README.
+- **Tests:** unit tests for masking; `tests/e2e/branch-scope.spec.ts` covers
+  reports and leads narrowing in the Mumbai view and the admission form branches.
+
+Verified: `tsc`, `eslint`, 116 unit tests, `next build` and 27 e2e tests pass.
+
 ## TODO next
 
 See `TASKLIST.md` Stage G (pilot readiness): G1 housekeeping first, then the

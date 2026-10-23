@@ -9,6 +9,7 @@ import { Combobox, type ComboboxOption } from "@/components/ui/Combobox";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { ArrowLeft } from "lucide-react";
+import { useBranch } from "@/components/admin/shell/BranchContext";
 
 const inputCls =
   "mt-1 w-full px-3 py-2 border border-white/10 rounded-lg text-sm bg-slate-900/50 focus:outline-none focus:border-emerald-500 text-white placeholder:text-slate-500";
@@ -35,6 +36,9 @@ export default function CreateExpensePage() {
   const [paymentSource, setPaymentSource] = useState<string>(PAYMENT_SOURCES[0]);
   const [refNo, setRefNo] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
+  const { current: currentBranch, branches } = useBranch();
+  // "" = institute-wide (shown only under "All branches").
+  const [branch, setBranch] = useState(currentBranch ?? "");
 
   useEffect(() => {
     let ignore = false;
@@ -64,6 +68,7 @@ export default function CreateExpensePage() {
         paymentSource,
         refNo,
         internalNotes,
+        branch,
       });
       if (res.ok) {
         toast("Expense submitted");
@@ -129,6 +134,16 @@ export default function CreateExpensePage() {
             </select>
           </div>
         </div>
+
+        {branches.length > 0 && (
+          <div>
+            <label className={labelCls}>Branch</label>
+            <select value={branch} onChange={(e) => setBranch(e.target.value)} className={inputCls}>
+              <option value="">Institute-wide (all branches)</option>
+              {branches.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </div>
+        )}
 
         <div>
           <label className={labelCls}>Reference Number (optional)</label>
