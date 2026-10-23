@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect, useRef, useTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { 
@@ -17,13 +17,17 @@ import { logoutAction } from '@/lib/actions/auth';
 import { setBranchScope } from '@/lib/actions/branches';
 import { useToast } from '@/components/ui';
 import { useBranch } from './BranchContext';
+import { useMenus } from '@/components/useMenus';
 import type { SessionUser } from '@/lib/dal';
 
 export default function AdminHeader({ user, onMenu }: { user: SessionUser; onMenu: () => void }) {
   const router = useRouter();
   const [time, setTime] = useState<Date | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isBranchOpen, setIsBranchOpen] = useState(false);
+  // One menu at a time; closes on outside click, Esc or navigation.
+  const menuArea = useRef<HTMLDivElement>(null);
+  const menus = useMenus<'branch' | 'profile'>(menuArea);
+  const isBranchOpen = menus.isOpen('branch');
+  const isProfileOpen = menus.isOpen('profile');
   const { current: selectedBranch, branches } = useBranch();
   const [switching, startSwitch] = useTransition();
   const { toast } = useToast();
@@ -31,7 +35,7 @@ export default function AdminHeader({ user, onMenu }: { user: SessionUser; onMen
   // The choice lives in a cookie; refreshing re-renders the layout, which
   // passes the new scope down and remounts the page so its data refetches.
   const switchBranch = (name: string | null) => {
-    setIsBranchOpen(false);
+    menus.close();
     if (name === selectedBranch) return;
     startSwitch(async () => {
       const res = await setBranchScope(name);
@@ -90,7 +94,7 @@ export default function AdminHeader({ user, onMenu }: { user: SessionUser; onMen
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+      <div ref={menuArea} className="flex items-center gap-2 sm:gap-6 min-w-0">
         <div className="hidden md:flex items-center gap-4 text-sm font-medium">
           <div className="flex flex-col items-end">
             <span className="text-green-400 font-mono tracking-wider">
@@ -106,7 +110,8 @@ export default function AdminHeader({ user, onMenu }: { user: SessionUser; onMen
 
         <div className="relative">
           <button 
-            onClick={() => setIsBranchOpen(!isBranchOpen)}
+            onClick={() => menus.toggle('branch')}
+            aria-expanded={isBranchOpen}
             disabled={switching}
             aria-label="Switch branch"
             className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-60 min-w-0"
@@ -151,7 +156,9 @@ export default function AdminHeader({ user, onMenu }: { user: SessionUser; onMen
 
         <div className="relative shrink-0">
           <button 
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            onClick={() => menus.toggle('profile')}
+            aria-expanded={isProfileOpen}
+            aria-label="Account menu"
             className="flex items-center gap-3 hover:bg-white/5 p-1 pr-3 rounded-full transition-colors border border-transparent hover:border-white/10"
           >
             <div className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md">
@@ -185,7 +192,7 @@ export default function AdminHeader({ user, onMenu }: { user: SessionUser; onMen
                 <button
                   onClick={() => {
                     router.push("/admin-dashboard/account");
-                    setIsProfileOpen(false);
+                    menus.close();
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
                 >
@@ -195,7 +202,7 @@ export default function AdminHeader({ user, onMenu }: { user: SessionUser; onMen
                 <button
                   onClick={() => {
                     router.push("/admin-dashboard/settings");
-                    setIsProfileOpen(false);
+                    menus.close();
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
                 >

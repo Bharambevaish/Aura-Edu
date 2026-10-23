@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useStudent } from "@/context/StudentContext";
 import { logoutAction } from "@/lib/actions/auth";
+import { useMenus } from "@/components/useMenus";
 import {
   Menu,
   Bell,
@@ -24,8 +25,9 @@ interface TopHeaderProps {
 export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
   const pathname = usePathname();
   const { profile, notifications, pendingFee } = useStudent();
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [showNotifQuick, setShowNotifQuick] = useState(false);
+  // One menu at a time; closes on outside click, Esc or navigation.
+  const menuArea = useRef<HTMLDivElement>(null);
+  const menus = useMenus<"notifications" | "profile">(menuArea);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -73,7 +75,7 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
       </div>
 
       {/* Right side: Quick Search, Notifications, Version Badge, Profile */}
-      <div className="flex items-center gap-3">
+      <div ref={menuArea} className="flex items-center gap-3">
         {/* Version Badge */}
         <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
           <ShieldCheck className="h-3.5 w-3.5" />
@@ -94,7 +96,8 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
         {/* Notifications Quick Dropdown Trigger */}
         <div className="relative">
           <button
-            onClick={() => setShowNotifQuick(!showNotifQuick)}
+            onClick={() => menus.toggle("notifications")}
+            aria-expanded={menus.isOpen("notifications")}
             className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition-all"
             aria-label="Notifications"
           >
@@ -107,7 +110,7 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
           </button>
 
           {/* Notifications Quick Popup */}
-          {showNotifQuick && (
+          {menus.isOpen("notifications") && (
             <div className="absolute right-0 mt-3 w-80 sm:w-96 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <h3 className="font-bold text-white text-sm flex items-center gap-2">
@@ -115,7 +118,7 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
                 </h3>
                 <Link
                   href="/student-portal/notifications"
-                  onClick={() => setShowNotifQuick(false)}
+                  onClick={menus.close}
                   className="text-xs font-semibold text-cyan-400 hover:underline flex items-center gap-1"
                 >
                   View All <ExternalLink className="h-3 w-3" />
@@ -147,7 +150,9 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
         {/* Profile Dropdown */}
         <div className="relative">
           <button
-            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+            onClick={() => menus.toggle("profile")}
+            aria-expanded={menus.isOpen("profile")}
+            aria-label="Account menu"
             className="flex items-center gap-3 pl-2 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all text-left"
           >
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-emerald-500 text-slate-950 font-bold text-sm">
@@ -160,7 +165,7 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
             <ChevronDown className="h-4 w-4 text-slate-400" />
           </button>
 
-          {showProfileDropdown && (
+          {menus.isOpen("profile") && (
             <div className="absolute right-0 mt-3 w-64 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl p-2 z-50">
               <div className="px-3 py-2.5 border-b border-slate-800 mb-1">
                 <p className="text-sm font-bold text-white">{profile.name}</p>
@@ -172,14 +177,14 @@ export default function TopHeader({ onToggleSidebar }: TopHeaderProps) {
 
               <Link
                 href="/student-portal/profile/manage"
-                onClick={() => setShowProfileDropdown(false)}
+                onClick={menus.close}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
               >
                 <User className="h-4 w-4 text-cyan-400" /> Manage Profile & Password
               </Link>
               <Link
                 href="/student-portal/fees"
-                onClick={() => setShowProfileDropdown(false)}
+                onClick={menus.close}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
               >
                 <AlertCircle className="h-4 w-4 text-amber-400" /> Fee Allocation & Receipts
