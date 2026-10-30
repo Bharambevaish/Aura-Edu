@@ -10,6 +10,7 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, Download, Edit2, ExternalLink, Inbox } from "lucide-react";
 import { PageHeader, Button, useToast } from "@/components/ui";
 import { getFormSubmissions, type FormDetail, type FormSubmissionRow } from "@/lib/actions/forms";
+import { toCsv } from "@/lib/csv";
 
 const fmt = (iso: string) =>
   new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -63,12 +64,9 @@ export default function FormSubmissionsPage() {
 
   const exportCsv = () => {
     const header = ["Submitted", ...columns.map((c) => c.label), "Lead No"];
-    const lines = submissions.map((s) =>
-      [fmt(s.createdAt), ...columns.map((c) => answer(s, c.id)), s.leadNo]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(","),
-    );
-    const blob = new Blob([[header.map((h) => `"${h.replace(/"/g, '""')}"`).join(","), ...lines].join("\n")], { type: "text/csv" });
+    const rows = submissions.map((s) => [fmt(s.createdAt), ...columns.map((c) => answer(s, c.id)), s.leadNo]);
+    // Public-form answers: toCsv defuses formula-like text.
+    const blob = new Blob([toCsv([header, ...rows])], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

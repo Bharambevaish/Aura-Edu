@@ -12,6 +12,7 @@ import { requireRole } from "@/lib/dal";
 import { UserModel } from "@/lib/models/User";
 import { LeaveRequestModel } from "@/lib/models/LeaveRequest";
 import { computePayslip, workingDaysBetween, workingDaysInMonth, type Payslip } from "@/lib/hr";
+import { assertStrings } from "@/lib/guards";
 
 export type PayslipRow = {
   userId: string;
@@ -53,6 +54,7 @@ async function unpaidDaysInMonth(year: number, index: number, userIds?: mongoose
 
 /** Admin: payslips for every active staff member for a month (YYYY-MM). */
 export async function getPayroll(month: string): Promise<{ month: string; workingDays: number; rows: PayslipRow[]; withoutSalary: string[]; totals: { gross: number; deductions: number; net: number } }> {
+  assertStrings(month);
   await requireRole(["admin"]);
   await connectDB();
   const { year, index, label } = parseMonth(month);
@@ -85,6 +87,7 @@ export async function getPayroll(month: string): Promise<{ month: string; workin
 
 /** The signed-in staff member's own payslip for a month. */
 export async function getMyPayslip(month: string): Promise<PayslipRow | null> {
+  assertStrings(month);
   const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
   const { year, index, label } = parseMonth(month);

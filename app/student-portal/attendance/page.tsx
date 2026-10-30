@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useStudent } from "@/context/StudentContext";
 import { getStudentAttendance, type StudentAttendance } from "@/lib/actions/attendance";
 import { Clock, List, Activity, FileSpreadsheet, Loader2 } from "lucide-react";
+import { toCsv } from "@/lib/csv";
 
 export default function AttendancePage() {
   const { profile } = useStudent();
@@ -35,10 +36,10 @@ export default function AttendancePage() {
   const handleExportCSV = () => {
     const csvContent =
       "data:text/csv;charset=utf-8," +
-      "Date,Day,Batch,Subject,CheckIn,Status,Remarks\n" +
-      logs
-        .map((a) => `${a.date},${a.day},${a.batch},${a.subject},${a.checkIn},${a.status},${a.remarks}`)
-        .join("\n");
+      toCsv([
+        ["Date", "Day", "Batch", "Subject", "CheckIn", "Status", "Remarks"],
+        ...logs.map((a) => [a.date, a.day, a.batch, a.subject, a.checkIn, a.status, a.remarks]),
+      ]);
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);

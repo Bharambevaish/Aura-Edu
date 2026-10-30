@@ -24,6 +24,7 @@ import type { DoubtStatus, DoubtReply } from "@/lib/models/Doubt";
 import { NotificationModel } from "@/lib/models/Notification";
 import { TimetableSlotModel } from "@/lib/models/TimetableSlot";
 import { AskDoubtSchema, ReplyDoubtSchema } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 type Outcome<T = unknown> = (T & { ok: true }) | { ok: false; message: string };
 
@@ -105,6 +106,7 @@ const findLesson = (course: CourseLessons, lessonId: string) =>
 
 /** All doubts on one lesson of a course the student is enrolled in, newest first. */
 export async function listLessonDoubts(courseId: string, lessonId: string): Promise<DoubtRow[]> {
+  assertStrings(courseId, lessonId);
   const { user } = await requireRole(["student"]);
   if (typeof lessonId !== "string" || !lessonId) return [];
   await connectDB();
@@ -228,6 +230,7 @@ export async function replyToDoubt(input: unknown): Promise<Outcome<{ doubt: Dou
 
 /** Mark answered without a reply, or reopen. */
 export async function setDoubtStatus(doubtId: string, status: DoubtStatus): Promise<Outcome> {
+  assertStrings(doubtId);
   const { user } = await requireRole(["admin", "staff"]);
   if (status !== "open" && status !== "answered") return { ok: false, message: "Invalid status." };
   await connectDB();

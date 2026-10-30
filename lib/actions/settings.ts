@@ -20,6 +20,7 @@ import { PaymentModel } from "@/lib/models/Payment";
 import { UserModel } from "@/lib/models/User";
 import { InstituteProfileSchema, TaxRulesSchema } from "@/lib/validation";
 import { MAX_ATTEMPTS, WINDOW_MS, LOCK_MS } from "@/lib/rate-limit";
+import { assertStrings } from "@/lib/guards";
 
 export async function getInstituteSettings(): Promise<InstituteProfile> {
   await requireRole(["admin"]);
@@ -125,6 +126,7 @@ export type InvoicePrint = {
 
 /** Everything needed to print one invoice (admin + staff). */
 export async function getInvoicePrint(invoiceId: string): Promise<InvoicePrint | null> {
+  assertStrings(invoiceId);
   await requireRole(["admin", "staff"]);
   if (!mongoose.isValidObjectId(invoiceId)) return null;
   await connectDB();

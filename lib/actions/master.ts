@@ -20,6 +20,7 @@ import { ExpenseCategoryModel } from "@/lib/models/ExpenseCategory";
 import { ExpenseModel } from "@/lib/models/Expense";
 import { BranchModel } from "@/lib/models/Branch";
 import { MasterItemSchema } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 export type MasterRow = {
   id: string;
@@ -141,6 +142,7 @@ export async function saveMasterItem(id: string | null, input: unknown): Promise
 }
 
 export async function deleteMasterItem(id: string): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Entry not found." };
   await connectDB();

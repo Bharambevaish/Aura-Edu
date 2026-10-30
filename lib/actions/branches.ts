@@ -21,6 +21,7 @@ import { InvoiceModel } from "@/lib/models/Invoice";
 import { PaymentModel } from "@/lib/models/Payment";
 import { LeadModel } from "@/lib/models/Lead";
 import { BranchSchema } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 export type BranchRow = {
   id: string;
@@ -130,6 +131,7 @@ export async function saveBranch(id: string | null, input: unknown): Promise<Out
 }
 
 export async function deleteBranch(id: string): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Branch not found." };
   await connectDB();

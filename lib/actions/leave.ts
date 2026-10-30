@@ -13,6 +13,7 @@ import { writeAudit } from "@/lib/audit";
 import { LeaveRequestModel, type LeaveRequestDoc, type LeaveStatus, type LeaveType } from "@/lib/models/LeaveRequest";
 import { LEAVE_ALLOWANCE, LEAVE_LABEL, workingDaysBetween } from "@/lib/hr";
 import { LeaveRequestSchema, LeaveDecisionSchema } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 export type LeaveRow = {
   id: string;
@@ -117,6 +118,7 @@ export async function requestLeave(input: unknown): Promise<LeaveOutcome> {
 }
 
 export async function cancelMyLeave(id: string): Promise<LeaveOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin", "staff"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Request not found." };
   await connectDB();
@@ -153,6 +155,7 @@ export async function getLeaveQueue(): Promise<{
 
 /** Admin: approve or reject a pending request. */
 export async function decideLeave(id: string, input: unknown): Promise<LeaveOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Request not found." };
   const parsed = LeaveDecisionSchema.safeParse(input);

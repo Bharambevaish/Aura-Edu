@@ -29,6 +29,7 @@ import { Types } from "mongoose";
 import { AttendanceModel } from "@/lib/models/Attendance";
 import { UserModel } from "@/lib/models/User";
 import { SaveAttendanceSchema } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 export type AttendanceStatus = "present" | "absent" | "late";
 
@@ -95,6 +96,7 @@ export type AttendanceOverview = {
 
 /** Admin/staff: month stats + a per-day line for the selected batch. */
 export async function getAttendanceOverview(batch: string, month: string): Promise<AttendanceOverview> {
+  assertStrings(batch, month);
   await requireRole(["admin", "staff"]);
   const { start, end } = monthRange(month);
   await connectDB();
@@ -159,6 +161,7 @@ function mapStoredStatus(status: string | undefined): AttendanceStatus | null {
 
 /** Admin/staff: the selected day's roster with any stored marks for that date. */
 export async function getAttendanceRegister(batch: string, date: string): Promise<AttendanceRegister> {
+  assertStrings(batch, date);
   await requireRole(["admin", "staff"]);
   await connectDB();
 

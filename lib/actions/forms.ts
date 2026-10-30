@@ -24,6 +24,7 @@ import { LeadModel, type LeadDoc } from "@/lib/models/Lead";
 import { DEFAULT_THANK_YOU, leadFieldMap, slugify, validateAnswers, type FormField, type PublicFormView } from "@/lib/forms";
 import { CONSENT_REQUIRED_MESSAGE, FormInputSchema, FormSubmitSchema } from "@/lib/validation";
 import { buildConsent } from "@/lib/privacy";
+import { assertStrings } from "@/lib/guards";
 
 export type FormRow = {
   id: string;
@@ -109,6 +110,7 @@ export async function getForms(): Promise<FormRow[]> {
 }
 
 export async function getForm(id: string): Promise<FormDetail | null> {
+  assertStrings(id);
   await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return null;
   await connectDB();
@@ -141,6 +143,7 @@ export async function createForm(input: unknown): Promise<Outcome> {
 }
 
 export async function updateForm(id: string, input: unknown): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Form not found." };
   const parsed = FormInputSchema.safeParse(input);
@@ -172,6 +175,7 @@ export async function updateForm(id: string, input: unknown): Promise<Outcome> {
 }
 
 export async function duplicateForm(id: string): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Form not found." };
   await connectDB();
@@ -195,6 +199,7 @@ export async function duplicateForm(id: string): Promise<Outcome> {
 
 /** Deletes the form and its stored responses. Leads it created are kept. */
 export async function deleteForm(id: string): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Form not found." };
   await connectDB();
@@ -207,6 +212,7 @@ export async function deleteForm(id: string): Promise<Outcome> {
 }
 
 export async function toggleFormActive(id: string): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Form not found." };
   await connectDB();
@@ -218,6 +224,7 @@ export async function toggleFormActive(id: string): Promise<Outcome> {
 }
 
 export async function getFormSubmissions(id: string): Promise<{ form: FormDetail; submissions: FormSubmissionRow[] } | null> {
+  assertStrings(id);
   await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return null;
   await connectDB();
@@ -247,6 +254,7 @@ export type PublicForm = PublicFormView & { slug: string; active: boolean };
 
 /** Public storefront data: the form's schema, or null when it doesn't exist. */
 export async function getPublicForm(slug: string): Promise<PublicForm | null> {
+  assertStrings(slug);
   if (typeof slug !== "string" || slug.length > 60) return null;
   await connectDB();
   const form = await FormModel.findOne({ slug: slug.toLowerCase() }).lean<FormLean>();
@@ -268,6 +276,7 @@ async function createLeadNo(): Promise<string> {
  * Privacy-notice consent is required and stored on the submission and lead.
  */
 export async function submitForm(slug: string, input: unknown): Promise<SubmitFormOutcome> {
+  assertStrings(slug);
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "local";
   const key = `form|${ip}`;

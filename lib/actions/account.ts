@@ -14,6 +14,8 @@ import { writeAudit } from "@/lib/audit";
 import { UserModel, type Role } from "@/lib/models/User";
 import { TimetableSlotModel } from "@/lib/models/TimetableSlot";
 import { ChangePasswordSchema, UpdateOwnAccountSchema } from "@/lib/validation";
+import { endOtherSessions } from "@/lib/session-registry";
+import { auth } from "@/auth";
 
 export type MyAccount = {
   name: string;
@@ -81,6 +83,8 @@ export async function changeOwnPassword(input: unknown): Promise<AccountOutcome>
   }
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
   await UserModel.updateOne({ _id: doc._id }, { $set: { passwordHash, mustChangePassword: false } });
+  // Sign out every other device that was using the old password.
+  const signedOut = await endOtherSessions(user.id, (await auth())?.user?.sessionId);
   await writeAudit(user, "changed own password", user.email);
-  return { ok: true, message: "Password updated." };
+  return { ok: true, message: signedOut ? `Password updated. Signed out ${signedOut} other device(s).` : "Password updated." };
 }

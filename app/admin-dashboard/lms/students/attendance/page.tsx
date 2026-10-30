@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { toCsv } from "@/lib/csv";
 
 const todayISO = () => {
   const d = new Date();
@@ -226,7 +227,7 @@ export default function AttendanceManagementPage() {
     ];
     const csv =
       "data:text/csv;charset=utf-8," +
-      rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+      toCsv(rows);
     const encoded = encodeURI(csv);
     const link = document.createElement("a");
     link.setAttribute("href", encoded);

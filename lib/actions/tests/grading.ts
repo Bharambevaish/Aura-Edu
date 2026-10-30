@@ -23,6 +23,7 @@ import { AttemptModel } from "@/lib/models/Attempt";
 import { ResultModel } from "@/lib/models/Result";
 import { GradeWrittenSchema } from "@/lib/validation";
 import { applyWrittenGrades, type QuestionDTO } from "@/lib/services/tests";
+import { assertStrings } from "@/lib/guards";
 
 export type GradeScreenDTO = {
   attemptId: string;
@@ -48,6 +49,7 @@ async function gradingUser() {
 
 /** Admin + staff: loads one attempt with full question+answer details for grading. */
 export async function getAttemptForGrading(attemptId: string): Promise<GradeScreenDTO | null> {
+  assertStrings(attemptId);
   const { canGrade } = await gradingUser();
   await connectDB();
 
@@ -117,6 +119,7 @@ export async function gradeWrittenAnswers(
   attemptId: string,
   grades: { questionId: string; marks: number }[],
 ): Promise<GradeOutcome> {
+  assertStrings(attemptId);
   const { user, canGrade } = await gradingUser();
   if (!canGrade) {
     return { success: false, writtenScore: 0, score: 0, remainingWritten: 0, fullyGraded: false, message: GRADING_LOCKED_MESSAGE };

@@ -32,6 +32,7 @@ import {
   CourseStoreSettingsSchema,
 } from "@/lib/validation";
 import type { CourseModule, CourseLesson } from "@/lib/models/Course";
+import { assertStrings } from "@/lib/guards";
 
 export type CourseContentRow = {
   id: string;
@@ -52,6 +53,7 @@ export type CourseContentOverview = {
 
 /** Admin/staff: content list + headline stats (real counts from the DB). */
 export async function getCourseContentList(search?: string): Promise<CourseContentOverview> {
+  assertStrings(search);
   await requireRole(["admin", "staff"]);
   await connectDB();
 
@@ -126,6 +128,7 @@ export type CourseDetail = {
 
 /** Admin/staff: one course + its full curriculum tree. */
 export async function getCourseDetail(courseId: string): Promise<CourseDetail | null> {
+  assertStrings(courseId);
   await requireRole(["admin", "staff"]);
   await connectDB();
 
@@ -211,6 +214,7 @@ export async function createCourse(input: unknown): Promise<CourseOutcome> {
 
 /** Admin only: delete a course (refused while students are enrolled). */
 export async function deleteCourse(courseId: string): Promise<CourseOutcome> {
+  assertStrings(courseId);
   const { user } = await requireRole(["admin"]);
   await connectDB();
 
@@ -253,6 +257,7 @@ function lessonIndex(module: CourseModule | undefined, lessonId: string): number
 
 /** Admin/staff: add a module to a course. */
 export async function addModule(courseId: string, input: unknown): Promise<CourseOutcome> {
+  assertStrings(courseId);
   const parsed = ModuleSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Module title is required." };
@@ -268,6 +273,7 @@ export async function addModule(courseId: string, input: unknown): Promise<Cours
 
 /** Admin/staff: rename a module. */
 export async function renameModule(courseId: string, moduleId: string, input: unknown): Promise<CourseOutcome> {
+  assertStrings(courseId, moduleId);
   const parsed = ModuleSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Module title is required." };
@@ -286,6 +292,7 @@ export async function renameModule(courseId: string, moduleId: string, input: un
 
 /** Admin/staff: delete a module (and its lessons). */
 export async function deleteModule(courseId: string, moduleId: string): Promise<CourseOutcome> {
+  assertStrings(courseId, moduleId);
   await requireRole(["admin", "staff"]);
   await connectDB();
   return mutateModules(courseId, (modules) => modules.filter((m) => m.id !== moduleId));
@@ -293,6 +300,7 @@ export async function deleteModule(courseId: string, moduleId: string): Promise<
 
 /** Admin/staff: move a module up/down in the curriculum. */
 export async function moveModule(courseId: string, moduleId: string, direction: "up" | "down"): Promise<CourseOutcome> {
+  assertStrings(courseId, moduleId);
   await requireRole(["admin", "staff"]);
   await connectDB();
   return mutateModules(courseId, (modules) => {
@@ -307,6 +315,7 @@ export async function moveModule(courseId: string, moduleId: string, direction: 
 
 /** Admin/staff: add a lesson to a module. */
 export async function addLesson(courseId: string, moduleId: string, input: unknown): Promise<CourseOutcome> {
+  assertStrings(courseId, moduleId);
   const parsed = LessonSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Lesson title is required." };
@@ -337,6 +346,7 @@ export async function updateLesson(
   lessonId: string,
   input: unknown,
 ): Promise<CourseOutcome> {
+  assertStrings(courseId, moduleId, lessonId);
   const parsed = LessonSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Lesson title is required." };
@@ -364,6 +374,7 @@ export async function updateLesson(
 
 /** Admin/staff: delete a lesson. */
 export async function deleteLesson(courseId: string, moduleId: string, lessonId: string): Promise<CourseOutcome> {
+  assertStrings(courseId, moduleId, lessonId);
   await requireRole(["admin", "staff"]);
   await connectDB();
   return mutateModules(courseId, (modules) => {
@@ -382,6 +393,7 @@ export async function moveLesson(
   lessonId: string,
   direction: "up" | "down",
 ): Promise<CourseOutcome> {
+  assertStrings(courseId, moduleId, lessonId);
   await requireRole(["admin", "staff"]);
   await connectDB();
   return mutateModules(courseId, (modules) => {
@@ -475,6 +487,7 @@ export type CourseStudentDTO = {
 
 /** Admin/staff: roster for a course's enrolled students (View Students modal). */
 export async function getCourseStudents(courseId: string): Promise<CourseStudentDTO[]> {
+  assertStrings(courseId);
   await requireRole(["admin", "staff"]);
   await connectDB();
 
@@ -507,6 +520,7 @@ export async function updateCourseStoreSettings(
   courseId: string,
   input: unknown,
 ): Promise<CourseOutcome> {
+  assertStrings(courseId);
   const parsed = CourseStoreSettingsSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid store settings." };

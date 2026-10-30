@@ -40,6 +40,7 @@ import {
   stagePill,
 } from "@/lib/leads";
 import type { LeadStage } from "@/lib/models/Lead";
+import { toCsv } from "@/lib/csv";
 
 const PAGE_SIZE = 10;
 
@@ -207,12 +208,9 @@ export default function AllLeadsPage() {
 
   const exportCsv = () => {
     const header = ["Lead No", "Name", "Type", "Stage", "Priority", "Source", "Course", "Owner", "Next Follow-up", "Phone", "Email", "Created"];
-    const lines = filtered.map((l) =>
-      [l.leadNo, l.name, l.type, stageLabel(l.stage), l.priority, sourceLabel(l.source), l.interestedCourse, l.ownerName, fmtDate(l.nextFollowUpAt), l.phone, l.email, fmtDate(l.createdAt)]
-        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-        .join(","),
-    );
-    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv" });
+    const rows = filtered.map((l) => [l.leadNo, l.name, l.type, stageLabel(l.stage), l.priority, sourceLabel(l.source), l.interestedCourse, l.ownerName, fmtDate(l.nextFollowUpAt), l.phone, l.email, fmtDate(l.createdAt)]);
+    // toCsv quotes every cell and defuses formula-like text from public forms.
+    const blob = new Blob([toCsv([header, ...rows])], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

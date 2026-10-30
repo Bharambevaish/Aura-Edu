@@ -7,6 +7,7 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui";
 import { runReport, type ReportResult } from "@/lib/actions/reports";
+import { toCsv } from "@/lib/csv";
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 
@@ -39,9 +40,8 @@ export default function ReportPage() {
   const max = chart ? Math.max(1, ...data.rows.map((r) => Number(r[chart.value]) || 0)) : 1;
 
   const exportCsv = () => {
-    const lines = [data.columns, ...data.rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","));
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+    a.href = URL.createObjectURL(new Blob([toCsv([data.columns, ...data.rows])], { type: "text/csv" }));
     a.download = `${data.key}-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);

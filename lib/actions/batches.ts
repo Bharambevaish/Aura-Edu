@@ -27,6 +27,7 @@ import { writeAudit } from "@/lib/audit";
 import { BatchModel } from "@/lib/models/Batch";
 import { UserModel } from "@/lib/models/User";
 import { CreateBatchSchema, AssignStudentsSchema } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 export type BatchStatus = "upcoming" | "active" | "completed";
 
@@ -202,6 +203,7 @@ export type BatchDetail = {
 
 /** Admin/staff: one batch + its roster + assignable/movable students. */
 export async function getBatchDetail(batchId: string): Promise<BatchDetail | null> {
+  assertStrings(batchId);
   await requireRole(["admin", "staff"]);
   await connectDB();
 
@@ -283,6 +285,7 @@ export async function createBatch(input: unknown): Promise<BatchOutcome> {
 
 /** Admin/staff: edit a batch's details (name must stay unique). */
 export async function updateBatch(batchId: string, input: unknown): Promise<BatchOutcome> {
+  assertStrings(batchId);
   const parsed = CreateBatchSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid batch details." };
@@ -380,6 +383,7 @@ export async function removeStudentFromBatch(input: unknown): Promise<BatchOutco
 
 /** Admin/staff: delete an empty batch (refused while students are enrolled). */
 export async function deleteBatch(batchId: string): Promise<BatchOutcome> {
+  assertStrings(batchId);
   const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
 

@@ -9,6 +9,7 @@ import { Button, Modal, useToast } from "@/components/ui";
 import { Plus, RefreshCw, Download, Search, LayoutGrid, List, Calendar, User, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { getTasks, saveTask, moveTask, deleteTask, type TaskRow } from "@/lib/actions/tasks";
 import type { TaskPriority, TaskStatus } from "@/lib/models/Task";
+import { toCsv } from "@/lib/csv";
 
 const COLUMNS: { status: TaskStatus; label: string; head: string }[] = [
   { status: "todo", label: "To Do", head: "border-slate-600 bg-slate-800/50 text-slate-300" },
@@ -97,7 +98,7 @@ export default function TaskManagerPage() {
 
   const exportCsv = () => {
     const rows = [["Title", "Status", "Priority", "Assignee", "Due", "Created by"], ...tasks.map((t) => [t.title, t.status, t.priority, t.assigneeName, t.dueDate?.slice(0, 10) ?? "", t.createdByName])];
-    const blob = new Blob([rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n")], { type: "text/csv" });
+    const blob = new Blob([toCsv(rows)], { type: "text/csv" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `tasks-${new Date().toISOString().slice(0, 10)}.csv`;

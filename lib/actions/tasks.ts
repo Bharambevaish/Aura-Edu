@@ -13,6 +13,7 @@ import { writeAudit } from "@/lib/audit";
 import { TaskModel, type TaskDoc, type TaskPriority, type TaskStatus } from "@/lib/models/Task";
 import { UserModel } from "@/lib/models/User";
 import { TaskSchema } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 export type TaskRow = {
   id: string;
@@ -99,6 +100,7 @@ export async function saveTask(id: string | null, input: unknown): Promise<TaskO
 
 /** Move a card between columns (drag-and-drop). */
 export async function moveTask(id: string, status: TaskStatus): Promise<TaskOutcome> {
+  assertStrings(id);
   await requireRole(["admin", "staff"]);
   if (!mongoose.isValidObjectId(id) || !["todo", "in_progress", "done"].includes(status)) {
     return { ok: false, message: "Invalid move." };
@@ -112,6 +114,7 @@ export async function moveTask(id: string, status: TaskStatus): Promise<TaskOutc
 }
 
 export async function deleteTask(id: string): Promise<TaskOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin", "staff"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Task not found." };
   await connectDB();

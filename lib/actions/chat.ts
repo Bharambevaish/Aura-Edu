@@ -21,6 +21,7 @@ import type { ChatChannel, ChatSenderRole } from "@/lib/models/ChatMessage";
 import { SendChatMessageSchema } from "@/lib/validation";
 import { sendBatchBroadcast } from "@/lib/actions/connect";
 import { isDemoMode } from "@/lib/demo-mode";
+import { assertStrings } from "@/lib/guards";
 
 export type ChatMessageRow = {
   id: string;
@@ -68,6 +69,7 @@ const toRow = (m: ChatLean, meId: string): ChatMessageRow => ({
 
 /** The last 200 messages of one batch's group, oldest first. */
 export async function listChatMessages(batchName: string): Promise<ChatMessageRow[]> {
+  assertStrings(batchName);
   const { user } = await requireRole(["admin", "staff"]);
   if (typeof batchName !== "string" || !batchName.trim()) return [];
   await connectDB();
@@ -188,6 +190,7 @@ export async function getChatDemoMode(): Promise<boolean> {
  * the batch so the thread looks right, but the text is scripted.
  */
 export async function postScriptedReply(messageId: string): Promise<Outcome<{ message: ChatMessageRow | null }>> {
+  assertStrings(messageId);
   const { user } = await requireRole(["admin", "staff"]);
   // Never invent messages from real students on a real institute's deployment.
   if (!isDemoMode()) return { ok: true, message: null };

@@ -27,6 +27,9 @@ import { UpdateMyProfileSchema, ChangePasswordSchema } from "@/lib/validation";
 import { isDemoMode } from "@/lib/demo-mode";
 import { signedCertificateQuery } from "@/lib/certificate-signing";
 import { writeAudit } from "@/lib/audit";
+import { assertStrings } from "@/lib/guards";
+import { endOtherSessions } from "@/lib/session-registry";
+import { auth } from "@/auth";
 
 /* ------------------------------------------------------------------ */
 /* Profile                                                             */
@@ -143,8 +146,10 @@ export async function changeMyPassword(input: unknown): Promise<ProfileOutcome> 
 
   const passwordHash = await bcrypt.hash(parsed.data.newPassword, 12);
   await UserModel.updateOne({ _id: doc._id }, { $set: { passwordHash, mustChangePassword: false } });
+  // Sign out every other device that was using the old password.
+  const signedOut = await endOtherSessions(user.id, (await auth())?.user?.sessionId);
   await writeAudit(user, "changed own password", user.email);
-  return { ok: true, message: "Password updated." };
+  return { ok: true, message: signedOut ? `Password updated. Signed out ${signedOut} other device(s).` : "Password updated." };
 }
 
 /* ------------------------------------------------------------------ */
@@ -254,6 +259,7 @@ export async function getMyCourses(): Promise<MyCourse[]> {
 
 /** One enrolled course with its curriculum; null if missing or not enrolled. */
 export async function getMyCourse(courseId: string): Promise<MyCourse | null> {
+  assertStrings(courseId);
   const { user } = await requireRole(["student"]);
   if (!mongoose.isValidObjectId(courseId)) return null;
   await connectDB();
@@ -270,6 +276,7 @@ export async function getMyCourse(courseId: string): Promise<MyCourse | null> {
 
 /** Mark a lesson complete (or not) for the signed-in student. Enrollment-checked. */
 export async function setLessonComplete(courseId: string, lessonId: string, done: boolean): Promise<ProfileOutcome> {
+  assertStrings(courseId, lessonId);
   const { user } = await requireRole(["student"]);
   if (!mongoose.isValidObjectId(courseId) || typeof lessonId !== "string" || !lessonId) {
     return { ok: false, message: "Lesson not found." };
@@ -325,6 +332,7 @@ export async function getCourseStore(): Promise<StoreCourse[]> {
  * a paid course would be given away.
  */
 export async function enrollInCourse(courseId: string): Promise<ProfileOutcome> {
+  assertStrings(courseId);
   const { user } = await requireRole(["student"]);
   if (!mongoose.isValidObjectId(courseId)) return { ok: false, message: "Course not found." };
   await connectDB();

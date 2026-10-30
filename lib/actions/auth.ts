@@ -31,6 +31,7 @@ import {
   MAX_ATTEMPTS,
   LOCK_MS,
 } from "@/lib/rate-limit";
+import { writeSystemAudit } from "@/lib/audit";
 
 /**
  * Build the rate-limit identity for the current request: best-effort client
@@ -101,6 +102,11 @@ export async function login(
       // Track the failure in the shared limiter (active lockout) and on the user doc
       // (light audit trail that survives restarts).
       await recordFailure(identity);
+      // This failure just triggered the lockout: leave a security trail (A09).
+      // Later attempts are refused before reaching here, so it logs once.
+      if (!(await checkRateLimit(identity)).ok) {
+        await writeSystemAudit("sign-in locked after repeated failures", `${email} (${MAX_ATTEMPTS} failed attempts)`).catch(() => undefined);
+      }
       const nextFails = (user?.failedAttempts ?? 0) + 1;
       const userLocked = nextFails >= MAX_ATTEMPTS;
       await UserModel.updateOne(

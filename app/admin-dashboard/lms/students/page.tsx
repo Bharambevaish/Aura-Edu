@@ -40,6 +40,7 @@ import {
   type SortField,
   type SortDir,
 } from "@/lib/actions/students";
+import { sanitizeRecords } from "@/lib/csv";
 
 type ColumnKey = "sr" | "student" | "admission" | "batch" | "phone" | "status" | "admStatus" | "actions";
 
@@ -293,7 +294,7 @@ export default function StudentManagementPage() {
         });
         return out;
       });
-      const ws = XLSX.utils.json_to_sheet(sheetData);
+      const ws = XLSX.utils.json_to_sheet(sanitizeRecords(sheetData));
       ws["!cols"] = EXPORT_COLUMNS.map(() => ({ wch: 24 }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Students");

@@ -103,6 +103,19 @@ export async function checkAccess(userId: string, sessionId: string | undefined)
   return { name: user.name, email: user.email, role: user.role, mustChangePassword: !!user.mustChangePassword };
 }
 
+/**
+ * After a password change: end every other active session of the user, so a
+ * device that knew the old password (or a stolen session) is signed out.
+ * The session making the change stays signed in. OWASP A07.
+ */
+export async function endOtherSessions(userId: string, keepSessionId: string | undefined): Promise<number> {
+  await connectDB();
+  const filter: Record<string, unknown> = { userId, active: true };
+  if (keepSessionId) filter.sessionId = { $ne: keepSessionId };
+  const res = await SessionModel.updateMany(filter, { $set: { active: false } });
+  return res.modifiedCount;
+}
+
 /** End every active session of a user (Block, erase); they are signed out on their next request. */
 export async function endAllSessions(userId: string): Promise<number> {
   await connectDB();

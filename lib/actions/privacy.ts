@@ -32,6 +32,7 @@ import { ChatMessageModel } from "@/lib/models/ChatMessage";
 import { LeadModel } from "@/lib/models/Lead";
 import { FormSubmissionModel } from "@/lib/models/FormSubmission";
 import { SessionModel } from "@/lib/models/Session";
+import { assertStrings } from "@/lib/guards";
 
 export type PrivacyOutcome = { ok: boolean; message: string };
 export type ExportOutcome = PrivacyOutcome & { filename?: string; json?: string };
@@ -54,6 +55,7 @@ function leadFilter(studentId: mongoose.Types.ObjectId, email: string) {
  * the admission leads / form responses they came from.
  */
 export async function exportStudentData(id: string): Promise<ExportOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   const student = await findStudent(id);
   if (!student) return { ok: false, message: "Student not found." };
@@ -119,6 +121,7 @@ export async function exportStudentData(id: string): Promise<ExportOutcome> {
  * student's current name.
  */
 export async function eraseStudentData(id: string, confirmName: unknown): Promise<PrivacyOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   const student = await findStudent(id);
   if (!student) return { ok: false, message: "Student not found." };

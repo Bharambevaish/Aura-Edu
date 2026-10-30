@@ -15,6 +15,7 @@ import { UserModel } from "@/lib/models/User";
 import { SessionModel, type SessionDoc } from "@/lib/models/Session";
 import { requireRole } from "@/lib/dal";
 import { writeAudit } from "@/lib/audit";
+import { assertStrings } from "@/lib/guards";
 
 export type SessionStatus = "Active" | "Offline" | "Blocked";
 
@@ -134,6 +135,7 @@ export async function getLoginOverview(): Promise<LoginOverview> {
 export async function toggleBlockUser(
   userId: string,
 ): Promise<{ ok: boolean; blocked?: boolean; message?: string }> {
+  assertStrings(userId);
   const { user } = await requireRole(["admin"]);
   await connectDB();
 
@@ -165,6 +167,7 @@ export async function toggleBlockUser(
 export async function forceLogoutUser(
   userId: string,
 ): Promise<{ ok: boolean; count?: number; message?: string }> {
+  assertStrings(userId);
   const { user } = await requireRole(["admin"]);
   await connectDB();
 
@@ -184,6 +187,7 @@ export async function forceLogoutUser(
 export async function forceLogoutSession(
   sessionId: string,
 ): Promise<{ ok: boolean; message?: string }> {
+  assertStrings(sessionId);
   const { user } = await requireRole(["admin"]);
   await connectDB();
 

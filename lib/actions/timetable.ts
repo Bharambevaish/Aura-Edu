@@ -18,6 +18,7 @@ import { UserModel } from "@/lib/models/User";
 import { MeetingModel } from "@/lib/models/Meeting";
 import { TestModel } from "@/lib/models/Test";
 import { TimetableSlotSchema } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 export type SlotRow = {
   id: string;
@@ -165,6 +166,7 @@ export async function saveTimetableSlot(id: string | null, input: unknown): Prom
 }
 
 export async function deleteTimetableSlot(id: string): Promise<SlotOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin", "staff"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Class not found." };
   await connectDB();
@@ -189,6 +191,7 @@ export type DayItem = {
 
 /** Everything happening on one date (YYYY-MM-DD) across all batches. */
 export async function getDaySchedule(isoDate: string): Promise<{ date: string; items: DayItem[] }> {
+  assertStrings(isoDate);
   await requireRole(["admin", "staff"]);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) isoDate = new Date().toISOString().slice(0, 10);
   await connectDB();

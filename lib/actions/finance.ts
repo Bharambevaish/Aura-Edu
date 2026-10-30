@@ -48,6 +48,7 @@ import type {
 import { invoiceBalance, invoiceStatus, summarizeFees, refundableAmount } from "@/lib/finance";
 import { nextDocNo } from "@/lib/doc-numbers";
 import { isDemoMode } from "@/lib/demo-mode";
+import { assertStrings } from "@/lib/guards";
 
 const pad = (n: number, width: number) => String(n).padStart(width, "0");
 
@@ -131,6 +132,7 @@ export async function createVendor(input: unknown): Promise<{ ok: boolean; messa
 }
 
 export async function updateVendor(vendorId: string, input: unknown): Promise<{ ok: boolean; message: string }> {
+  assertStrings(vendorId);
   const { user } = await requireRole(["admin", "staff"]);
   const parsed = VendorSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid vendor details." };
@@ -145,6 +147,7 @@ export async function updateVendor(vendorId: string, input: unknown): Promise<{ 
 }
 
 export async function toggleVendor(vendorId: string): Promise<{ ok: boolean; message: string }> {
+  assertStrings(vendorId);
   const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
   const vendor = await VendorModel.findById(vendorId);
@@ -156,6 +159,7 @@ export async function toggleVendor(vendorId: string): Promise<{ ok: boolean; mes
 }
 
 export async function deleteVendor(vendorId: string): Promise<{ ok: boolean; message: string }> {
+  assertStrings(vendorId);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   const vendor = await VendorModel.findById(vendorId);
@@ -203,6 +207,7 @@ export async function createExpenseCategory(input: unknown): Promise<{ ok: boole
 }
 
 export async function updateExpenseCategory(categoryId: string, input: unknown): Promise<{ ok: boolean; message: string }> {
+  assertStrings(categoryId);
   const { user } = await requireRole(["admin", "staff"]);
   const parsed = ExpenseCategorySchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid category details." };
@@ -217,6 +222,7 @@ export async function updateExpenseCategory(categoryId: string, input: unknown):
 }
 
 export async function deleteExpenseCategory(categoryId: string): Promise<{ ok: boolean; message: string }> {
+  assertStrings(categoryId);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   const cat = await ExpenseCategoryModel.findById(categoryId);
@@ -408,6 +414,7 @@ export async function createExpense(input: unknown): Promise<{ ok: boolean; mess
 }
 
 export async function updateExpense(expenseId: string, input: unknown): Promise<{ ok: boolean; message: string }> {
+  assertStrings(expenseId);
   const { user } = await requireRole(["admin", "staff"]);
   const parsed = ExpenseSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid expense details." };
@@ -434,6 +441,7 @@ export async function decideExpense(
   expenseId: string,
   input: unknown,
 ): Promise<{ ok: boolean; message: string }> {
+  assertStrings(expenseId);
   const { user } = await requireRole(["admin"]);
   const parsed = ExpenseDecisionSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "Invalid decision." };
@@ -466,6 +474,7 @@ export async function decideExpense(
 }
 
 export async function voidExpense(expenseId: string, reason: string): Promise<{ ok: boolean; message: string }> {
+  assertStrings(expenseId, reason);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   const expense = await ExpenseModel.findById(expenseId);
@@ -487,6 +496,7 @@ export async function voidExpense(expenseId: string, reason: string): Promise<{ 
 }
 
 export async function deleteExpense(expenseId: string): Promise<{ ok: boolean; message: string }> {
+  assertStrings(expenseId);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   const expense = await ExpenseModel.findById(expenseId);
@@ -754,6 +764,7 @@ export async function recordPayment(input: unknown): Promise<{ ok: boolean; mess
 }
 
 export async function cancelPayment(paymentId: string): Promise<{ ok: boolean; message: string }> {
+  assertStrings(paymentId);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   const payment = await PaymentModel.findById(paymentId);
@@ -868,6 +879,7 @@ export async function decideRefund(
   decision: "approved" | "rejected",
   remarks: string,
 ): Promise<{ ok: boolean; message: string }> {
+  assertStrings(refundId, remarks);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   const refund = await RefundModel.findById(refundId);
@@ -889,6 +901,7 @@ export async function decideRefund(
 }
 
 export async function processRefund(refundId: string): Promise<{ ok: boolean; message: string }> {
+  assertStrings(refundId);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   const refund = await RefundModel.findById(refundId);
@@ -911,6 +924,7 @@ export async function processRefund(refundId: string): Promise<{ ok: boolean; me
 }
 
 export async function completeRefund(refundId: string): Promise<{ ok: boolean; message: string }> {
+  assertStrings(refundId);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   const refund = await RefundModel.findById(refundId);
@@ -1013,6 +1027,7 @@ export async function decideWaiver(
   decision: "approved" | "rejected",
   remarks: string,
 ): Promise<{ ok: boolean; message: string }> {
+  assertStrings(waiverId, remarks);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   const waiver = await WaiverModel.findById(waiverId);

@@ -32,6 +32,7 @@ import {
   type QuestionDTO,
 } from "@/lib/services/tests";
 import { redirect } from "next/navigation";
+import { assertStrings } from "@/lib/guards";
 
 export type TestCardDTO = {
   id: string;
@@ -158,6 +159,7 @@ export type TestIntro =
 
 /** Read-only test preview for the exam Begin screen; never creates an attempt. */
 export async function getTestIntro(testId: string): Promise<TestIntro> {
+  assertStrings(testId);
   const { user } = await requireRole(["student"]);
   await connectDB();
 
@@ -232,6 +234,7 @@ export type StartTestResult =
  * can never start twice.
  */
 export async function startStudentTest(testId: string): Promise<StartTestResult> {
+  assertStrings(testId);
   const { user } = await requireRole(["student"]);
   await connectDB();
 

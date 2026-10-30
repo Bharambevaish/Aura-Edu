@@ -31,6 +31,7 @@ import { NotificationModel } from "@/lib/models/Notification";
 import { UserModel } from "@/lib/models/User";
 import { CreateAssignmentSchema, SubmitAssignmentSchema, ReviewSubmissionSchema } from "@/lib/validation";
 import { fmtDate, fmtDateTime, fmtTime } from "@/lib/services/tests";
+import { assertStrings } from "@/lib/guards";
 
 const DEADLINE_HINT_MS = 48 * 60 * 60 * 1000;
 
@@ -115,6 +116,7 @@ export async function getAssignmentsOverview(): Promise<AssignmentsOverview> {
 
 /** Admin/staff: complete worksheet + every student's submission for grading. */
 export async function getAssignmentDetail(assignmentId: string) {
+  assertStrings(assignmentId);
   await requireRole(["admin", "staff"]);
   await connectDB();
 
@@ -235,6 +237,7 @@ export async function reviewSubmission(
   submissionId: string,
   input: { marks: number; verdict: "complete" | "needs_work"; note?: string },
 ): Promise<ReviewOutcome> {
+  assertStrings(submissionId);
   const { user } = await requireRole(["admin", "staff"]);
 
   const validated = ReviewSubmissionSchema.safeParse({ submissionId, ...input });
@@ -368,6 +371,7 @@ export type WorksheetRead =
 
 /** Student: read-only worksheet for the solve screen (or own submission if done). */
 export async function getAssignmentWorksheet(assignmentId: string): Promise<WorksheetRead | null> {
+  assertStrings(assignmentId);
   const { user } = await requireRole(["student"]);
   const batch = await getStudentBatch(user.id);
   await connectDB();
@@ -422,6 +426,7 @@ export async function submitAssignment(
   assignmentId: string,
   answers: string[],
 ): Promise<SubmitOutcome> {
+  assertStrings(assignmentId);
   const { user } = await requireRole(["student"]);
 
   const validated = SubmitAssignmentSchema.safeParse({ assignmentId, answers });
@@ -513,6 +518,7 @@ export async function getStudentNotifications(): Promise<StudentNotification[]> 
 
 /** Student: mark one notification as read. */
 export async function markNotificationRead(id: string): Promise<void> {
+  assertStrings(id);
   const { user } = await requireRole(["student"]);
   await connectDB();
   await NotificationModel.updateMany({ _id: id, userId: user.id }, { $set: { read: true } });

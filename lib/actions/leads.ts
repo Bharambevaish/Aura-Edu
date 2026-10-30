@@ -30,6 +30,7 @@ import { InvoiceModel } from "@/lib/models/Invoice";
 import { BranchModel } from "@/lib/models/Branch";
 import { getBranchScope, leadBranchFilter } from "@/lib/branch-scope";
 import { AdmissionSchema, ConvertLeadSchema, CreateLeadSchema, UpdateLeadSchema } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 export type LeadRow = {
   id: string;
@@ -189,6 +190,7 @@ export async function createLead(input: unknown): Promise<LeadOutcome> {
 
 /** Follow-up: change stage/priority, schedule the next follow-up, add a note. */
 export async function updateLead(id: string, input: unknown): Promise<LeadOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin", "staff"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Lead not found." };
   const parsed = UpdateLeadSchema.safeParse(input);
@@ -240,6 +242,7 @@ export type ConvertOutcome = LeadOutcome & {
  * invoice, enrolls them in the course and links the lead. Audit-logged.
  */
 export async function convertLead(id: string, input: unknown): Promise<ConvertOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin", "staff"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Lead not found." };
   const parsed = ConvertLeadSchema.safeParse(input);

@@ -24,6 +24,7 @@ import { ResultModel } from "@/lib/models/Result";
 import { UserModel } from "@/lib/models/User";
 import { CreateTestSchema } from "@/lib/validation";
 import { fmtDate, fmtDateTime, ranksFor } from "@/lib/services/tests";
+import { assertStrings } from "@/lib/guards";
 
 export type AdminTestDTO = {
   id: string;
@@ -174,6 +175,7 @@ export type AttemptRowDTO = {
 
 /** Attempt rows for one test's report screen (score, written-pending, grade link). */
 export async function getAdminAttempts(testId: string): Promise<AttemptRowDTO[]> {
+  assertStrings(testId);
   await requireRole(["admin", "staff"]);
   await connectDB();
 
@@ -237,6 +239,7 @@ export type TestCardDetailDTO = {
  * portal test-card shows (accurate from live `results` data).
  */
 export async function getAdminTestCardDetail(studentId: string): Promise<TestCardDetailDTO | null> {
+  assertStrings(studentId);
   await requireRole(["admin", "staff"]);
   await connectDB();
 

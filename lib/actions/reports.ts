@@ -26,6 +26,7 @@ import { TestModel } from "@/lib/models/Test";
 import { LeadModel } from "@/lib/models/Lead";
 import { LeaveRequestModel } from "@/lib/models/LeaveRequest";
 import { expenseBranchFilter, getBranchScope, leadBranchFilter, scopedStudentIds } from "@/lib/branch-scope";
+import { assertStrings } from "@/lib/guards";
 
 type Cell = string | number;
 
@@ -58,6 +59,7 @@ const sumBy = <T,>(items: T[], key: (t: T) => string, val: (t: T) => number) => 
 };
 
 export async function runReport(key: string): Promise<ReportResult | null> {
+  assertStrings(key);
   const meta = reportMeta(key);
   if (!meta) return null;
   await requireRole(meta.adminOnly ? ["admin"] : ["admin", "staff"]);

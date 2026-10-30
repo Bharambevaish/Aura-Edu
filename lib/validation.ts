@@ -10,6 +10,23 @@
 import { z } from "zod";
 import { isMinor } from "@/lib/privacy";
 
+/**
+ * A link stored by staff and shown to others: only http(s) or a path on this
+ * site. Blocks javascript:, data: and other schemes (stored XSS, OWASP A03).
+ */
+export function isSafeLink(value: string): boolean {
+  const v = value.trim();
+  if (v === "") return true;
+  if (v.startsWith("/") && !v.startsWith("//")) return true;
+  return /^https?:\/\/[^\s]+$/i.test(v);
+}
+
+const safeLink = z
+  .string()
+  .trim()
+  .max(500)
+  .refine(isSafeLink, { message: "Links must start with https:// (or http://), or be a path on this site." });
+
 /** Normalized, trimmed, lowercased email + presence-checked password. */
 export const LoginSchema = z.object({
   email: z.string().email({ message: "Enter a valid email address." }).trim().toLowerCase(),
@@ -256,7 +273,7 @@ export const SaveAttendanceSchema = z.object({
 export const LessonSchema = z.object({
   title: z.string().min(1, { message: "Lesson title is required." }).max(200).trim(),
   type: z.enum(["video", "document", "quiz"]),
-  url: z.string().max(500).optional().or(z.literal("")),
+  url: safeLink.optional(),
   duration: z.string().max(40).optional().or(z.literal("")),
 });
 
@@ -334,7 +351,7 @@ export const ExpenseSchema = z.object({
   paymentMethod: z.enum(["Cash", "Bank Transfer", "UPI", "Cheque", "Online"]),
   paymentSource: z.enum(["Company", "Personal"]),
   refNo: z.string().max(80).optional().or(z.literal("")),
-  receiptUrl: z.string().max(500).optional().or(z.literal("")),
+  receiptUrl: safeLink.optional(),
   internalNotes: z.string().max(1000).optional().or(z.literal("")),
   isReimbursement: z.boolean().optional(),
   reimbursedTo: z.string().max(150).optional().or(z.literal("")),

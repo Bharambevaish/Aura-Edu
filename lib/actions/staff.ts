@@ -18,6 +18,7 @@ import { UserModel } from "@/lib/models/User";
 import { SessionModel } from "@/lib/models/Session";
 import { TimetableSlotModel } from "@/lib/models/TimetableSlot";
 import { StaffSchema } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 export type StaffUserDTO = {
   id: string;
@@ -104,6 +105,7 @@ export async function createStaff(input: unknown): Promise<StaffOutcome> {
 }
 
 export async function updateStaff(id: string, input: unknown): Promise<StaffOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Staff member not found." };
   const parsed = StaffSchema.safeParse(input);
@@ -123,6 +125,7 @@ export async function updateStaff(id: string, input: unknown): Promise<StaffOutc
 
 /** Deactivate (signs them out everywhere, blocks sign-in) or reactivate. */
 export async function setStaffActive(id: string, active: boolean): Promise<StaffOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Staff member not found." };
   await connectDB();
@@ -136,6 +139,7 @@ export async function setStaffActive(id: string, active: boolean): Promise<Staff
 
 /** Issue a new one-time password (forced change at next sign-in). */
 export async function resetStaffPassword(id: string): Promise<StaffOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   if (!mongoose.isValidObjectId(id)) return { ok: false, message: "Staff member not found." };
   await connectDB();

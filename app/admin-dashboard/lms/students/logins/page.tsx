@@ -31,6 +31,7 @@ import type { LoginOverview, LoginStudentDTO, LoginSessionDTO } from "@/lib/acti
 import { useToast } from "@/components/ui/Toast";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Modal } from "@/components/ui/Modal";
+import { sanitizeRecords } from "@/lib/csv";
 
 type StatusFilter = "All" | "Active" | "Offline" | "Blocked";
 type Confirm =
@@ -172,7 +173,7 @@ export default function StudentLoginsPage() {
     }));
 
   const exportFile = (format: "xlsx" | "csv") => {
-    const ws = XLSX.utils.json_to_sheet(exportRows());
+    const ws = XLSX.utils.json_to_sheet(sanitizeRecords(exportRows()));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Student Logins");
     const stamp = new Date().toISOString().slice(0, 10);

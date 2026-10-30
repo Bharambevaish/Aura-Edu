@@ -31,6 +31,7 @@ import {
   CreateMeetingSchema,
   CreateCalendarEventSchema,
 } from "@/lib/validation";
+import { assertStrings } from "@/lib/guards";
 
 type ResultOk<T> = T & { ok: true };
 type ResultFail = { ok: false; message: string };
@@ -201,6 +202,7 @@ export async function getNotices(): Promise<NoticeSlice[]> {
 
 /** Read-receipt detail for one broadcast. */
 export async function getNoticeStats(id: string): Promise<{ delivered: number; read: number; readers: string[] }> {
+  assertStrings(id);
   await requireRole(["admin", "staff"]);
   await connectDB();
   const rows = await NotificationModel.find({ sourceId: id }).select("userId read").lean();
@@ -252,6 +254,7 @@ export async function createNotice(input: unknown): Promise<Outcome<{ id: string
 }
 
 export async function togglePinNotice(id: string): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
   if (!mongoose.Types.ObjectId.isValid(id)) return { ok: false, message: "Broadcast not found." };
@@ -263,6 +266,7 @@ export async function togglePinNotice(id: string): Promise<Outcome> {
 }
 
 export async function deleteNotice(id: string): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   if (!mongoose.Types.ObjectId.isValid(id)) return { ok: false, message: "Broadcast not found." };
@@ -442,6 +446,7 @@ export async function listMeetings(): Promise<MeetingRow[]> {
 }
 
 export async function updateMeetingStatus(id: string, status: MeetingDoc["status"]): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin", "staff"]);
   await connectDB();
   if (!mongoose.Types.ObjectId.isValid(id)) return { ok: false, message: "Meeting not found." };
@@ -453,6 +458,7 @@ export async function updateMeetingStatus(id: string, status: MeetingDoc["status
 }
 
 export async function deleteMeeting(id: string): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   if (!mongoose.Types.ObjectId.isValid(id)) return { ok: false, message: "Meeting not found." };
@@ -502,6 +508,7 @@ export async function createCalendarEvent(input: unknown): Promise<Outcome<{ id:
 
 /** Events for one calendar month ("YYYY-MM"), sorted by day then time. */
 export async function listCalendarEvents(month: string): Promise<CalendarEventRow[]> {
+  assertStrings(month);
   await requireRole(["admin", "staff"]);
   await connectDB();
   const [year, mon] = month.split("-").map(Number);
@@ -521,6 +528,7 @@ export async function listCalendarEvents(month: string): Promise<CalendarEventRo
 }
 
 export async function deleteCalendarEvent(id: string): Promise<Outcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
   await connectDB();
   if (!mongoose.Types.ObjectId.isValid(id)) return { ok: false, message: "Event not found." };

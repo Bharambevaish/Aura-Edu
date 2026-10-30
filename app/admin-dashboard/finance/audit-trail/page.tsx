@@ -9,6 +9,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { sanitizeRecords } from "@/lib/csv";
 
 function actionColor(action: string) {
   if (/created|added|recorded|approved/i.test(action)) return "text-emerald-400";
@@ -53,7 +54,7 @@ export default function AuditTrailPage() {
 
   const exportFile = () => {
     if (filtered.length === 0) { toast("Nothing to export", "error"); return; }
-    const ws = XLSX.utils.json_to_sheet(exportRows());
+    const ws = XLSX.utils.json_to_sheet(sanitizeRecords(exportRows()));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Audit Trail");
     const stamp = new Date().toISOString().slice(0, 10);

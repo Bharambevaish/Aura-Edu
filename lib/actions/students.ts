@@ -36,6 +36,7 @@ import {
   ImportStudentRowSchema,
 } from "@/lib/validation";
 import { fmtDate } from "@/lib/services/tests";
+import { assertStrings } from "@/lib/guards";
 
 const PAGE_SIZE = 20;
 
@@ -191,6 +192,7 @@ export type StudentDetailDTO = StudentRowDTO & {
 
 /** Full profile + derived test metrics for the View-detail modal. */
 export async function getStudentDetail(id: string): Promise<StudentDetailDTO | null> {
+  assertStrings(id);
   await requireRole(["admin", "staff"]);
   await connectDB();
 
@@ -346,6 +348,7 @@ export async function createStudent(input: Record<string, unknown>): Promise<Stu
 }
 
 export async function updateStudent(id: string, input: Record<string, unknown>): Promise<StudentOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin", "staff"]);
 
   const parsed = UpdateStudentSchema.safeParse(input);
@@ -392,6 +395,7 @@ export async function updateStudent(id: string, input: Record<string, unknown>):
 }
 
 export async function deleteStudent(id: string): Promise<StudentOutcome> {
+  assertStrings(id);
   const { user } = await requireRole(["admin"]);
 
   await connectDB();
