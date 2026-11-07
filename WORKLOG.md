@@ -503,6 +503,19 @@ Branch `stage-g-housekeeping`.
 
 Verified: `tsc`, `eslint`, 116 unit tests, `next build` and 27 e2e tests pass.
 
+## 2026-11-06 — Live site slowness
+
+Measured on https://aura-edu-eight.vercel.app: functions ran in **iad1 (Washington)**
+while the Atlas M0 cluster is in **ap-south-1 (Mumbai)**, so every database call crossed
+the world (warm `/login` ~0.55s for one lookup; cold starts ~5s). Next.js also queues
+server actions called from the browser, so the student dashboard's 5 loaders ran one after another.
+
+- `vercel.json`: `regions: ["bom1"]` (Mumbai, next to Atlas). Takes effect on the next deploy.
+- `lib/actions/student-dashboard.ts`: one `getStudentDashboard()` action runs the 5 loaders
+  in parallel on the server; `app/student-portal/page.tsx` makes one request.
+
+Verified: `tsc`, eslint, 10 e2e tests (demo story, hydration, mobile layout).
+
 ## TODO next
 
 See `TASKLIST.md` Stage G (pilot readiness): G1 housekeeping first, then the

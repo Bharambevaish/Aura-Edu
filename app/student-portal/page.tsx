@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useStudent } from "@/context/StudentContext";
-import { getStudentAssignments, type StudentAssignmentRow } from "@/lib/actions/assignments";
-import { getStudentAttendance, type StudentAttendance } from "@/lib/actions/attendance";
-import { getMyCourses, getMyCertificates, type MyCourse } from "@/lib/actions/student-portal";
-import { getStudentTests, type TestCardDTO } from "@/lib/actions/tests/student-tests";
+import type { StudentAssignmentRow } from "@/lib/actions/assignments";
+import type { StudentAttendance } from "@/lib/actions/attendance";
+import type { MyCourse } from "@/lib/actions/student-portal";
+import type { TestCardDTO } from "@/lib/actions/tests/student-tests";
+import { getStudentDashboard } from "@/lib/actions/student-dashboard";
 import {
   BookOpen,
   CheckCircle2,
@@ -42,19 +43,21 @@ export default function StudentDashboardPage() {
   // soft (its widget stays empty) so one error never blanks the dashboard.
   useEffect(() => {
     let ignore = false;
-    const settle = <T,>(p: Promise<T>, apply: (v: T) => void) =>
-      p.then((v) => {
-        if (!ignore) apply(v);
-      }).catch(() => {});
-    Promise.all([
-      settle(getMyCourses(), setEnrolledCourses),
-      settle(getStudentAssignments(), setDbAssignments),
-      settle(getStudentAttendance(), setDbAttendance),
-      settle(getStudentTests(), setTests),
-      settle(getMyCertificates(), (c) => setCertificateCount(c.length)),
-    ]).finally(() => {
-      if (!ignore) setIsRefreshing(false);
-    });
+    // One request for every widget (server actions queue in the browser, so
+    // separate calls would run one after another).
+    getStudentDashboard()
+      .then((d) => {
+        if (ignore) return;
+        if (d.courses) setEnrolledCourses(d.courses);
+        if (d.assignments) setDbAssignments(d.assignments);
+        if (d.attendance) setDbAttendance(d.attendance);
+        if (d.tests) setTests(d.tests);
+        if (d.certificateCount !== null) setCertificateCount(d.certificateCount);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!ignore) setIsRefreshing(false);
+      });
     return () => {
       ignore = true;
     };
